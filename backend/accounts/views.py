@@ -6,7 +6,7 @@ from django.db import transaction
 from .serializers import UserRegistrationSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
-
+from .permissions import IsOrganizer, IsAttendee
 
 
 class UserRegistrationAPIView(APIView):
@@ -104,6 +104,106 @@ class UserProfileAPIView(APIView):
                     'username': user.username,
                     'role': user.role,
                     'date_joined': user.date_joined,
+                }
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class OrganizerOnlyAPIView(APIView):
+    """
+    Example: API endpoint accessible only by Organizers
+    Use this pattern for creating events, managing venues, etc.
+    """
+    
+    permission_classes = [IsAuthenticated, IsOrganizer]
+    
+    def get(self, request):
+        """Only Organizers can access this"""
+        return Response(
+            {
+                'success': True,
+                'message': 'Welcome Organizer!',
+                'data': {
+                    'user': request.user.username,
+                    'role': request.user.role,
+                    'access': 'You can create and manage events'
+                }
+            },
+            status=status.HTTP_200_OK
+        )
+    
+    def post(self, request):
+        """Example: Create event (Organizer only)"""
+        return Response(
+            {
+                'success': True,
+                'message': 'Event created successfully',
+                'data': {
+                    'created_by': request.user.username,
+                    'role': request.user.role
+                }
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class AttendeeOnlyAPIView(APIView):
+    """
+    Example: API endpoint accessible only by Attendees
+    Use this pattern for booking tickets, registering for events, etc.
+    """
+    
+    permission_classes = [IsAuthenticated, IsAttendee]
+    
+    def get(self, request):
+        """Only Attendees can access this"""
+        return Response(
+            {
+                'success': True,
+                'message': 'Welcome Attendee!',
+                'data': {
+                    'user': request.user.username,
+                    'role': request.user.role,
+                    'access': 'You can browse and register for events'
+                }
+            },
+            status=status.HTTP_200_OK
+        )
+    
+    def post(self, request):
+        """Example: Register for event (Attendee only)"""
+        return Response(
+            {
+                'success': True,
+                'message': 'Registered for event successfully',
+                'data': {
+                    'registered_by': request.user.username,
+                    'role': request.user.role
+                }
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class AllUsersAPIView(APIView):
+    """
+    Example: API endpoint accessible by all authenticated users
+    Both Organizers and Attendees can access
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """All authenticated users can access"""
+        return Response(
+            {
+                'success': True,
+                'message': f'Welcome {request.user.role}!',
+                'data': {
+                    'user': request.user.username,
+                    'role': request.user.role,
+                    'access': 'All authenticated users can view this'
                 }
             },
             status=status.HTTP_200_OK
