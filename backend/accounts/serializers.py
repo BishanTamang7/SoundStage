@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -60,3 +62,36 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             role=validated_data.get('role', User.ATTENDEE)
         )
         return user
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """Serializer for user login"""
+    
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    
+    def validate(self, attrs):
+        """Validate user credentials"""
+        email = attrs.get('email', '').lower().strip()
+        password = attrs.get('password')
+        
+        if not email or not password:
+            raise serializers.ValidationError('Email and password are required.')
+        
+        # Authenticate user
+        user = authenticate(username=email, password=password)
+        
+        if not user:
+            raise serializers.ValidationError('Invalid email or password.')
+        
+        if not user.is_active:
+            raise serializers.ValidationError('User account is disabled.')
+        
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return {
+            'user': user,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
