@@ -53,10 +53,13 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    # Add local apps here
+    'accounts',
 ]
 
 INSTALLED_APPS += THIRD_PARTY_APPS + LOCAL_APPS
+
+# Custom user model
+AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
