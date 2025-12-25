@@ -5,6 +5,57 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
+  // Error state
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Email validation
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = () => {
+    // Clear previous errors
+    setErrors({});
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Set submitting state
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      // Navigate to user home (in real app, this would depend on user role from API)
+      navigate("/user1/home");
+    }, 1000);
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-50 px-4">
@@ -34,8 +85,23 @@ export default function Login() {
           <input
             type="email"
             placeholder="Enter your email address"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              // Clear error when user starts typing
+              if (errors.email) {
+                setErrors({ ...errors, email: "" });
+              }
+            }}
+            className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
+              errors.email
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-red-500"
+            }`}
           />
+          {errors.email && (
+            <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+          )}
         </div>
 
         {/* Password */}
@@ -53,7 +119,19 @@ export default function Login() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-red-500"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                // Clear error when user starts typing
+                if (errors.password) {
+                  setErrors({ ...errors, password: "" });
+                }
+              }}
+              className={`w-full border rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 ${
+                errors.password
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-red-500"
+              }`}
             />
             <button
               type="button"
@@ -63,14 +141,22 @@ export default function Login() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {errors.password && (
+            <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+          )}
         </div>
 
         {/* Sign in button */}
         <button
-          className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition"
-          onClick={() => navigate("/user1/home")}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className={`w-full py-3 rounded-lg font-semibold transition ${
+            isSubmitting
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 text-white hover:bg-red-600"
+          }`}
         >
-          Sign In
+          {isSubmitting ? "Signing In..." : "Sign In"}
         </button>
 
         {/* Divider */}
