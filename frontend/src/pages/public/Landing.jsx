@@ -2,6 +2,22 @@ import React from 'react';
 import { Music, Search, CreditCard, QrCode, CheckCircle } from 'lucide-react';
 
 export default function Landing() {
+  const handleSignIn = () => {
+    window.location.href = '/login';
+  };
+
+  const handleGetStarted = () => {
+    window.location.href = '/register';
+  };
+
+  const handleFindConcerts = () => {
+    window.location.href = '/login';
+  };
+
+  const handleHostEvent = () => {
+    window.location.href = '/login';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -12,10 +28,16 @@ export default function Landing() {
             <span className="text-xl font-semibold text-gray-900">SoundStage</span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">
+            <button 
+              onClick={handleSignIn}
+              className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+            >
               Sign In
             </button>
-            <button className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium">
+            <button 
+              onClick={handleGetStarted}
+              className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium transition"
+            >
               Get Started
             </button>
           </div>
@@ -35,11 +57,17 @@ export default function Landing() {
           your QR e-ticket in seconds. The future of live music is here.
         </p>
         <div className="flex items-center justify-center gap-4">
-          <button className="px-8 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium flex items-center gap-2">
+          <button 
+            onClick={handleFindConcerts}
+            className="px-8 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium flex items-center gap-2 transition"
+          >
             <Music className="w-5 h-5" />
             Find Concerts
           </button>
-          <button className="px-8 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-lg hover:bg-gray-50 font-medium">
+          <button 
+            onClick={handleHostEvent}
+            className="px-8 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-lg hover:bg-gray-50 font-medium transition"
+          >
             Host an Event
           </button>
         </div>
