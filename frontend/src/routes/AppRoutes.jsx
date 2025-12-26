@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from '../pages/public/Landing'
 import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
-import User1Home from '../pages/user1/User1Home'
-import User2Home from '../pages/user2/User2Home'
+import OrganizerHome from '../pages/Organizer/OrganizerHome'
+import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoute from './RoleRoute'
 import { ROLES } from '../utils/roles'
@@ -20,11 +20,11 @@ function AppRoutes() {
 
         {/* Protected Routes for User1 */}
         <Route
-          path="/user1/*"
+          path="/Organizer/*"
           element={
             <ProtectedRoute>
-              <RoleRoute allowedRoles={[ROLES.USER1]}>
-                <User1Home />
+              <RoleRoute allowedRoles={[ROLES.ORGANIZER]}>
+                <OrganizerHome />
               </RoleRoute>
             </ProtectedRoute>
           }
@@ -32,11 +32,11 @@ function AppRoutes() {
 
         {/* Protected Routes for User2 */}
         <Route
-          path="/user2/*"
+          path="/Attendee/*"
           element={
             <ProtectedRoute>
-              <RoleRoute allowedRoles={[ROLES.USER2]}>
-                <User2Home />
+              <RoleRoute allowedRoles={[ROLES.ATTENDEE]}>
+                <AttendeeHome />
               </RoleRoute>
             </ProtectedRoute>
           }
