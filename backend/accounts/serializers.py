@@ -9,18 +9,38 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for user registration with validation"""
     
-    password = serializers.CharField(write_only=True, required=True)
-    confirm_password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(
+        write_only=True, 
+        required=True,
+        style={'input_type': 'password'}
+    )
+    confirm_password = serializers.CharField(
+        write_only=True, 
+        required=True,
+        style={'input_type': 'password'}
+    )
     
     class Meta:
         model = User
-        fields = ['id', 'role', 'username', 'email', 'password', 'confirm_password', 'date_joined']
+        fields = [
+            'role',
+            'username',
+            'email',
+            'password',
+            'confirm_password',
+            'id',
+            'date_joined'
+        ]
         read_only_fields = ['id', 'date_joined']
     
     def validate_username(self, value):
         """Check if username already exists"""
         if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError("Username already exists.")
+        
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Username must be at least 3 characters long.")
+        
         return value.strip()
     
     def validate_email(self, value):
@@ -34,7 +54,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """Validate role is valid choice"""
         valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
         if value not in valid_roles:
-            raise serializers.ValidationError(f"Invalid role. Choose: {', '.join(valid_roles)}")
+            raise serializers.ValidationError(
+                f"Invalid role. Choose from: {', '.join(valid_roles)}"
+            )
         return value
     
     def validate_password(self, value):
@@ -48,7 +70,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Check if passwords match"""
         if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+            raise serializers.ValidationError({
+                'confirm_password': 'Passwords do not match.'
+            })
         attrs.pop('confirm_password')
         return attrs
     
@@ -68,7 +92,11 @@ class UserLoginSerializer(serializers.Serializer):
     """Serializer for user login"""
     
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(
+        required=True, 
+        write_only=True,
+        style={'input_type': 'password'}
+    )
     
     def validate(self, attrs):
         """Validate user credentials"""
@@ -95,3 +123,17 @@ class UserLoginSerializer(serializers.Serializer):
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for user profile (read operations)"""
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'username', 'role',
+            'is_active', 'date_joined', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'email', 'date_joined', 'updated_at', 'role'
+        ]
