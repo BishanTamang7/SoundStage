@@ -95,8 +95,12 @@ const Register = () => {
             ✕
           </a>
 
-          <h2 className="mt-2 text-2xl font-bold">Register</h2>
-          <p className="mb-6 text-[0.95rem] text-[#4B5563]">Fill the details to create a new account</p>
+          <div className="text-center">
+            <h2 className="mt-2 text-2xl font-bold">Register</h2>
+            <p className="mb-6 text-[0.95rem] text-[#4B5563]">
+              Fill the details to create a new account
+            </p>
+          </div>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col">
@@ -219,6 +223,12 @@ const Register = () => {
             >
               {submitting ? 'Creating...' : 'Create Account'}
             </button>
+
+            <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#9CA3AF]">
+              <span className="h-px flex-1 bg-[#E5E7EB]" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-[#E5E7EB]" />
+            </div>
 
             <p className="text-center text-[0.95rem] text-[#4B5563]">
               Already have an account?{' '}

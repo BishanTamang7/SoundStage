@@ -9,6 +9,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -77,8 +78,12 @@ const Login = () => {
             ✕
           </a>
 
-          <h2 className="mt-2 text-2xl font-bold">Login</h2>
-          <p className="mb-6 text-[0.95rem] text-[#4B5563]">Enter your credentials to continue</p>
+          <div className="text-center">
+            <h2 className="mt-2 text-2xl font-bold">Login</h2>
+            <p className="mb-6 text-[0.95rem] text-[#4B5563]">
+              Enter your credentials to continue
+            </p>
+          </div>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col">
@@ -96,15 +101,24 @@ const Login = () => {
 
             <div className="flex flex-col">
               <label className="mb-1 text-sm font-semibold">Password</label>
-              <input
-                className="rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <input
+                  className="w-full rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 pr-14 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#4F46E5]"
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[0.92rem] text-[#4B5563]">
@@ -126,6 +140,12 @@ const Login = () => {
             >
               {submitting ? 'Signing in...' : 'Login'}
             </button>
+
+            <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#9CA3AF]">
+              <span className="h-px flex-1 bg-[#E5E7EB]" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-[#E5E7EB]" />
+            </div>
 
             <p className="text-center text-[0.95rem] text-[#4B5563]">
               Don’t have an account?{' '}

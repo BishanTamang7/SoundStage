@@ -14,21 +14,45 @@ const formatErrorMessage = (data) => {
   if (!data) return 'Request failed'
   if (typeof data === 'string') return data
   if (data.detail) return data.detail
-  if (data.message && typeof data.message === 'string') {
-    if (data.message === 'Authentication failed') {
-      return 'Invalid email or password.'
-    }
-    return data.message
-  }
   if (data.errors) {
     if (typeof data.errors === 'string') return data.errors
     if (Array.isArray(data.errors)) return data.errors.join(', ')
     if (typeof data.errors === 'object') {
-      const firstKey = Object.keys(data.errors)[0]
-      const firstVal = data.errors[firstKey]
-      if (Array.isArray(firstVal)) return `${firstKey}: ${firstVal.join(', ')}`
-      return `${firstKey}: ${String(firstVal)}`
+      if (data.errors.username) {
+        const usernameErrors = Array.isArray(data.errors.username)
+          ? data.errors.username
+          : [data.errors.username]
+        return usernameErrors.map((item) => String(item)).join(', ')
+      }
+      if (data.errors.email) {
+        const emailErrors = Array.isArray(data.errors.email) ? data.errors.email : [data.errors.email]
+        return emailErrors
+          .map((item) => String(item))
+          .map((item) =>
+            item === 'User with this email already exists.' ? 'Email already exists.' : item
+          )
+          .join(', ')
+      }
+      const messages = Object.entries(data.errors).flatMap(([key, value]) => {
+        if (Array.isArray(value)) {
+          return value.map((item) => String(item))
+        }
+        if (typeof value === 'string') {
+          return [value]
+        }
+        return [`${key}: ${String(value)}`]
+      })
+      if (messages.length > 0) return messages.join(', ')
     }
+  }
+  if (data.message && typeof data.message === 'string') {
+    if (data.message === 'Authentication failed') {
+      return 'Invalid email or password.'
+    }
+    if (data.message === 'Validation error') {
+      return 'Validation error.'
+    }
+    return data.message
   }
   return 'Request failed'
 }
