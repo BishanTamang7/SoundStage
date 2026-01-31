@@ -1,19 +1,19 @@
+import axios from 'axios'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
-const buildHeaders = (token) => {
-  const headers = {
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
     'Content-Type': 'application/json',
-  }
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-  return headers
-}
+  },
+})
 
 const formatErrorMessage = (data) => {
   if (!data) return 'Request failed'
   if (typeof data === 'string') return data
   if (data.detail) return data.detail
+
   if (data.errors) {
     if (typeof data.errors === 'string') return data.errors
     if (Array.isArray(data.errors)) return data.errors.join(', ')
@@ -45,6 +45,7 @@ const formatErrorMessage = (data) => {
       if (messages.length > 0) return messages.join(', ')
     }
   }
+
   if (data.message && typeof data.message === 'string') {
     if (data.message === 'Authentication failed') {
       return 'Invalid email or password.'
@@ -54,70 +55,86 @@ const formatErrorMessage = (data) => {
     }
     return data.message
   }
+
   return 'Request failed'
 }
 
-const handleResponse = async (response) => {
-  const contentType = response.headers.get('content-type') || ''
-  const data = contentType.includes('application/json') ? await response.json() : null
+const withAuth = (token) => {
+  if (!token) return {}
+  return { Authorization: `Bearer ${token}` }
+}
 
-  if (!response.ok) {
-    const message = formatErrorMessage(data)
-    const error = new Error(message)
-    error.status = response.status
-    error.data = data
-    throw error
+const handleError = (error) => {
+  if (error.response) {
+    const message = formatErrorMessage(error.response.data)
+    const err = new Error(message)
+    err.status = error.response.status
+    err.data = error.response.data
+    throw err
   }
 
-  return data
+  if (error.request) {
+    const err = new Error('Network error. Please try again.')
+    err.status = 0
+    throw err
+  }
+
+  throw error
 }
 
 export const api = {
   register: async (payload) => {
-    const response = await fetch(`${BASE_URL}/accounts/register/`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      body: JSON.stringify(payload),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.post('/accounts/register/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
   login: async (payload) => {
-    const response = await fetch(`${BASE_URL}/accounts/login/`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      body: JSON.stringify(payload),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.post('/accounts/login/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
   logout: async (token, refresh) => {
-    const response = await fetch(`${BASE_URL}/accounts/logout/`, {
-      method: 'POST',
-      headers: buildHeaders(token),
-      body: JSON.stringify({ refresh }),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.post(
+        '/accounts/logout/',
+        { refresh },
+        { headers: withAuth(token) }
+      )
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
   refreshToken: async (refresh) => {
-    const response = await fetch(`${BASE_URL}/accounts/token/refresh/`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      body: JSON.stringify({ refresh }),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.post('/accounts/token/refresh/', { refresh })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
   verifyToken: async (token) => {
-    const response = await fetch(`${BASE_URL}/accounts/token/verify/`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      body: JSON.stringify({ token }),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.post('/accounts/token/verify/', { token })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
   profile: async (token) => {
-    const response = await fetch(`${BASE_URL}/accounts/profile/`, {
-      method: 'GET',
-      headers: buildHeaders(token),
-    })
-    return handleResponse(response)
+    try {
+      const { data } = await apiClient.get('/accounts/profile/', {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
   },
 }

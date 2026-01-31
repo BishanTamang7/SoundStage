@@ -1,16 +1,15 @@
-import React, { createContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api'
+import { AuthContext } from './AuthContextStore'
 import { normalizeRole } from '../utils/roles'
 
 const STORAGE_KEY = 'soundstage_auth'
-
-export const AuthContext = createContext(null)
 
 const readStoredAuth = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -62,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [tokens])
 
-  const login = async (payload) => {
+  const login = useCallback(async (payload) => {
     const data = await api.login(payload)
     const access = data?.data?.tokens?.access || data?.access || data?.tokens?.access
     const refresh = data?.data?.tokens?.refresh || data?.refresh || data?.tokens?.refresh
@@ -83,14 +82,11 @@ export const AuthProvider = ({ children }) => {
     const resolvedProfile = fetchedProfile?.data || fetchedProfile
     setUser(resolvedProfile)
     return resolvedProfile
-  }
+  }, [])
 
-  const register = async (payload) => {
-    const data = await api.register(payload)
-    return data
-  }
+  const register = useCallback(async (payload) => api.register(payload), [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     const token = tokens?.access
     const refresh = tokens?.refresh
     try {
@@ -102,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       setTokens(null)
       writeStoredAuth(null)
     }
-  }
+  }, [tokens?.access, tokens?.refresh])
 
   const value = useMemo(
     () => ({
@@ -115,7 +111,7 @@ export const AuthProvider = ({ children }) => {
       register,
       logout,
     }),
-    [user, tokens, loading]
+    [user, tokens, loading, login, register, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
