@@ -1,7 +1,7 @@
 from django.db import models
 
 # Create your models here.
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 
 
@@ -22,15 +22,12 @@ class UserManager(BaseUserManager):
         return user
     
     def create_superuser(self, email, username, password=None, **extra_fields):
-        """Create and save a superuser"""
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        """Create and save an organizer account"""
         extra_fields.setdefault('role', self.model.ORGANIZER)
-        
         return self.create_user(email, username, password, **extra_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser):
     """Custom user model with email as unique identifier"""
     
     # Role choices
@@ -46,14 +43,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=150, unique=True, db_index=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ATTENDEE)
     
-    # Additional useful fields
-    first_name = models.CharField(max_length=150, blank=True)
-    last_name = models.CharField(max_length=150, blank=True)
-    
     # Status fields
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)  # Needed for admin access
-    
     # Timestamps
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -72,12 +63,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
     
     def get_full_name(self):
-        """Return the first_name plus the last_name, with a space in between"""
-        return f"{self.first_name} {self.last_name}".strip() or self.username
+        """Return the display name for the user"""
+        return self.username
     
     def get_short_name(self):
         """Return the short name for the user"""
-        return self.first_name or self.username
+        return self.username
     
     @property
     def is_organizer(self):
