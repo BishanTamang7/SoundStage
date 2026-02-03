@@ -26,6 +26,12 @@ const getRoleFromUser = (user) => {
   return normalizeRole(user?.role || user?.user_type || user?.userType)
 }
 
+const resolveProfile = (response) => {
+  if (!response) return null
+  const data = response?.data ?? response
+  return data?.user || data?.profile || data
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [tokens, setTokens] = useState(null)
@@ -42,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     api
       .profile(stored.access)
       .then((data) => {
-        const resolvedProfile = data?.data || data
+        const resolvedProfile = resolveProfile(data)
         setUser(resolvedProfile)
       })
       .catch(() => {
@@ -79,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     const fetchedProfile = await api.profile(access)
-    const resolvedProfile = fetchedProfile?.data || fetchedProfile
+    const resolvedProfile = resolveProfile(fetchedProfile)
     setUser(resolvedProfile)
     return resolvedProfile
   }, [])
