@@ -35,7 +35,7 @@ const AttendeeHome = () => {
     try {
       await logout()
     } finally {
-      navigate('/', { replace: true })
+      navigate('/signin', { replace: true })
     }
   }
 
@@ -85,14 +85,14 @@ const AttendeeHome = () => {
                 <span className="text-lg">⚙️</span>
                 <span>Settings</span>
               </a>
-              <button
+              <a
                 className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                type="button"
-                onClick={handleLogout}
+                href="/"
+                title="Logout"
               >
                 <span className="text-lg">🚪</span>
                 <span>Logout</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>

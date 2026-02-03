@@ -123,7 +123,10 @@ const Login = () => {
 
             <div className="flex items-center justify-between text-[0.92rem] text-[#4B5563]">
               <label className="flex items-center gap-2">
-                <input className="h-4 w-4" type="checkbox" />
+                <input
+                  className="h-4 w-4"
+                  type="checkbox"
+                />
                 Remember me
               </label>
               <a className="font-bold text-[#4F46E5]" href="#">
