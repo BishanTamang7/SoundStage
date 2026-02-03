@@ -32,8 +32,11 @@ const AttendeeHome = () => {
   }, [])
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/', { replace: true })
+    try {
+      await logout()
+    } finally {
+      navigate('/', { replace: true })
+    }
   }
 
   return (
@@ -72,27 +75,18 @@ const AttendeeHome = () => {
                 <span className="text-lg">👤</span>
                 <span>My Profile</span>
               </a>
-              <a className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
-                <span className="text-lg">🎫</span>
-                <span>My Tickets</span>
-              </a>
-              <a className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
-                <span className="text-lg">📅</span>
-                <span>My Bookings</span>
-              </a>
               <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
               <a className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
                 <span className="text-lg">⚙️</span>
                 <span>Settings</span>
               </a>
-              <button
+              <a
                 className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                type="button"
-                onClick={handleLogout}
+                href="/"
               >
                 <span className="text-lg">🚪</span>
                 <span>Logout</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>
