@@ -25,7 +25,7 @@ const OrganizerHome = () => {
 
         <nav className="flex flex-col">
           <a
-            className="border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-sm font-semibold text-[#7C3AED]"
+            className="border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-base font-semibold text-[#7C3AED]"
             href="#"
           >
             Dashboard
@@ -33,7 +33,7 @@ const OrganizerHome = () => {
           {['My Events', 'Tickets', 'Scan QR', 'Analytics', 'Settings'].map((item) => (
             <a
               key={item}
-              className="border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+              className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
               href="#"
             >
               {item}
@@ -70,7 +70,7 @@ const OrganizerHome = () => {
         </div>
       </aside>
 
-      <main className="ml-[240px] px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0">
+      <main className="ml-[240px] px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
         <header className="mb-8">
           <h1 className="text-2xl font-black text-[#312E81]">Dashboard</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
