@@ -3,16 +3,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from .models import Concert
+from .models import Concert, TicketCategory
 from .serializers import (
     ConcertCreateSerializer,
+    ConcertListSerializer,
 )
-# Import permissions from accounts app
+# Import permissions from accounts app (already exists there)
 from accounts.permissions import IsOrganizer
 
 
 class ConcertViewSet(viewsets.ModelViewSet):
-    """ViewSet for Concert CRUD operations"""
+    """ViewSet for Concert CRUD operations - MVP"""
     
     queryset = Concert.objects.all()
     
@@ -52,6 +53,29 @@ class ConcertViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED
         )
+    
+    def list(self, request, *args, **kwargs):
+        """List all concerts"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            'success': True,
+            'data': {
+                'concerts': serializer.data
+            }
+        })
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Get concert details"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated, IsOrganizer])
     def my_events(self, request):
