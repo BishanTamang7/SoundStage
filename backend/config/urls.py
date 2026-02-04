@@ -8,6 +8,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     # Accounts API
     path('api/accounts/', include('accounts.urls')),
+    # Concerts API
+    path('api/concerts/', include('concerts.urls')),
 ]
 
 # Serve media and static files in development
