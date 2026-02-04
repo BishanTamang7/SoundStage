@@ -7,6 +7,7 @@ from .models import Concert, TicketCategory
 from .serializers import (
     ConcertCreateSerializer,
     ConcertListSerializer,
+    ConcertDetailSerializer
 )
 # Import permissions from accounts app (already exists there)
 from accounts.permissions import IsOrganizer
@@ -75,7 +76,58 @@ class ConcertViewSet(viewsets.ModelViewSet):
             'success': True,
             'data': serializer.data
         })
-
+    
+    def update(self, request, *args, **kwargs):
+        """Update concert"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Check if user is the organizer
+        if instance.organizer != request.user:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'You do not have permission to edit this concert'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Concert updated successfully',
+            'data': {
+                'concert_id': str(instance.id),
+                'updated_at': instance.updated_at
+            }
+        })
+    
+    def destroy(self, request, *args, **kwargs):
+        """Delete concert"""
+        instance = self.get_object()
+        
+        # Check if user is the organizer
+        if instance.organizer != request.user:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'You do not have permission to delete this concert'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        instance.delete()
+        
+        return Response(
+            {
+                'success': True,
+                'message': 'Concert deleted successfully'
+            },
+            status=status.HTTP_200_OK
+        )
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated, IsOrganizer])
     def my_events(self, request):

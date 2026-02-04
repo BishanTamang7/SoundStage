@@ -1,6 +1,3 @@
-
-Copy
-
 from rest_framework import serializers
 from .models import Concert, TicketCategory
 
@@ -50,3 +47,18 @@ class ConcertListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'date_time', 'venue', 'main_artist'
         ]
+
+
+class ConcertDetailSerializer(serializers.ModelSerializer):
+    """Serializer for concert details - MVP"""
+    
+    ticket_categories = TicketCategorySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Concert
+        fields = [
+            'id', 'title', 'description', 'date_time', 'venue',
+            'main_artist', 'organizer_name', 'contact_email',
+            'ticket_categories', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
