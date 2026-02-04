@@ -32,11 +32,8 @@ const MyTickets = () => {
   }, [])
 
   const handleLogout = async () => {
-    try {
-      await logout()
-    } finally {
-      navigate('/', { replace: true })
-    }
+    navigate('/', { replace: true })
+    await logout()
   }
 
   return (
@@ -85,14 +82,15 @@ const MyTickets = () => {
                 <span className="text-lg">⚙️</span>
                 <span>Settings</span>
               </a>
-              <a
+              <button
                 className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                href="/"
+                type="button"
+                onClick={handleLogout}
                 title="Logout"
               >
                 <span className="text-lg">🚪</span>
                 <span>Logout</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>
