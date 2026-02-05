@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -19,7 +18,7 @@ const OrganizerHome = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
-      <aside className="fixed left-0 top-0 h-screen w-[240px] border-r border-[#E5E7EB] bg-white py-6">
+      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6">
         <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
           SoundStage
         </div>
@@ -77,7 +76,7 @@ const OrganizerHome = () => {
         </div>
       </aside>
 
-      <main className="ml-[240px] px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
+      <main className="ml-60 px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
         <header className="mb-8">
           <h1 className="text-2xl font-black text-[#312E81]">Dashboard</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">

@@ -71,7 +71,7 @@ const AttendeeHome = () => {
               </span>
             </button>
             <div
-              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-[200px] rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
+              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
                 open ? 'block' : 'hidden'
               }`}
               role="menu"
@@ -85,21 +85,22 @@ const AttendeeHome = () => {
                 <span className="text-lg">⚙️</span>
                 <span>Settings</span>
               </a>
-              <a
+              <button
                 className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                href="/"
+                onClick={handleLogout}
                 title="Logout"
+                type="button"
               >
                 <span className="text-lg">🚪</span>
                 <span>Logout</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="flex-1 pt-20">
-        <section className="bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] px-[5%] py-12 text-center text-white">
+        <section className="bg-linear-to-br from-[#7C3AED] to-[#4F46E5] px-[5%] py-12 text-center text-white">
           <div className="mx-auto max-w-3xl">
             <h1 className="font-['Playfair_Display'] text-4xl font-black sm:text-5xl lg:text-6xl">
               Welcome to SoundStage
@@ -126,7 +127,7 @@ const AttendeeHome = () => {
 
             <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-xl bg-white px-6 py-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
                   🎫
                 </div>
                 <h3 className="text-2xl font-black text-[#312E81]">Easy Booking</h3>
@@ -136,7 +137,7 @@ const AttendeeHome = () => {
               </div>
 
               <div className="rounded-xl bg-white px-6 py-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
                   🎵
                 </div>
                 <h3 className="text-2xl font-black text-[#312E81]">Live Events</h3>
@@ -146,7 +147,7 @@ const AttendeeHome = () => {
               </div>
 
               <div className="rounded-xl bg-white px-6 py-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl">
                   📱
                 </div>
                 <h3 className="text-2xl font-black text-[#312E81]">Digital Tickets</h3>

@@ -85,7 +85,7 @@ const MyConcerts = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
-      <aside className="fixed left-0 top-0 h-screen w-[240px] border-r border-[#E5E7EB] bg-white py-6 transition-transform max-[768px]:-translate-x-full">
+      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6 transition-transform max-[768px]:-translate-x-full">
         <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
           SoundStage
         </div>
@@ -143,7 +143,7 @@ const MyConcerts = () => {
         </div>
       </aside>
 
-      <main className="ml-[240px] px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
+      <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-black text-[#312E81]">My Concerts</h1>
           <Link
@@ -194,7 +194,7 @@ const MyConcerts = () => {
                 key={concert.id}
                 className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
               >
-                <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
+                <div className="flex h-40 items-center justify-center bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
                   {emojiSet[index % emojiSet.length]}
                 </div>
                 <div className="p-6">

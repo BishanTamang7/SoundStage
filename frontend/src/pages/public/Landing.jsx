@@ -20,10 +20,10 @@ const Landing = () => {
         </div>
       </nav>
 
-      <section className="relative flex flex-1 items-center justify-between overflow-hidden px-[5%] pb-[4.5rem] pt-[calc(80px+2rem)] max-[1024px]:flex-col max-[1024px]:text-center">
-        <div className="absolute right-[-20%] top-[-50%] h-[800px] w-[800px] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.15)_0%,transparent_70%)]" />
+      <section className="relative flex flex-1 items-center justify-between overflow-hidden px-[5%] pb-18 pt-28 max-[1024px]:flex-col max-[1024px]:text-center">
+        <div className="absolute right-[-20%] top-[-50%] h-200 w-200 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.15)_0%,transparent_70%)]" />
 
-        <div className="relative z-10 max-w-[600px]">
+        <div className="relative z-10 max-w-150">
           <h1 className="mb-6 font-['Playfair_Display'] text-[5rem] font-black leading-[1.1] max-[1024px]:text-[4rem] max-[768px]:text-[3rem]">
             Music meets <span className="text-[#7C3AED]">digital</span> experience
           </h1>
@@ -39,10 +39,10 @@ const Landing = () => {
           </a>
         </div>
 
-        <div className="relative z-10 h-[500px] w-[500px] max-[1024px]:mt-12 max-[1024px]:h-[400px] max-[1024px]:w-[400px] max-[768px]:h-[300px] max-[768px]:w-[300px]">
-          <div className="absolute left-1/2 top-1/2 h-[350px] w-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]" />
-          <div className="absolute left-[55%] top-[45%] h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#C4B5FD] to-[#4F46E5]" />
-          <div className="absolute left-[45%] top-[55%] h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#C4B5FD]" />
+        <div className="relative z-10 h-125 w-125 max-[1024px]:mt-12 max-[1024px]:h-100 max-[1024px]:w-100 max-[768px]:h-75 max-[768px]:w-75">
+          <div className="absolute left-1/2 top-1/2 h-87.5 w-87.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5]" />
+          <div className="absolute left-[55%] top-[45%] h-70 w-70 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-br from-[#C4B5FD] to-[#4F46E5]" />
+          <div className="absolute left-[45%] top-[55%] h-50 w-50 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-br from-[#7C3AED] to-[#C4B5FD]" />
           <div className="absolute left-[10%] top-[10%] text-3xl">🎵</div>
           <div className="absolute right-[10%] top-[15%] text-3xl">🎤</div>
           <div className="absolute bottom-[10%] right-[10%] text-3xl">🎸</div>

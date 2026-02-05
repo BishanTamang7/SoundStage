@@ -68,7 +68,7 @@ const MyTickets = () => {
               </span>
             </button>
             <div
-              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-[200px] rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
+              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
                 open ? 'block' : 'hidden'
               }`}
               role="menu"

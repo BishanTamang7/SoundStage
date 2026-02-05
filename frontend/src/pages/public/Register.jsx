@@ -59,14 +59,14 @@ const Register = () => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] text-[#312E81]">
-      <div className="pointer-events-none absolute left-[-20%] top-[-40%] h-[900px] w-[900px] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18)_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute left-[-20%] top-[-40%] h-screen w-screen rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18)_0%,transparent_70%)]" />
 
-      <main className="relative z-10 grid w-full max-w-[1100px] grid-cols-1 items-center gap-10 px-8 py-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <main className="relative z-10 grid w-full max-w-275 grid-cols-1 items-center gap-10 px-8 py-10 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="text-center lg:text-left">
           <h1 className="mb-4 font-['Playfair_Display'] text-[2.4rem] font-black leading-[1.12] md:text-[3rem] lg:text-[3.3rem]">
             Create your <span className="text-[#7C3AED]">SoundStage</span> account
           </h1>
-          <p className="mx-auto max-w-[540px] text-[1.1rem] leading-[1.7] text-[#4B5563] lg:mx-0">
+          <p className="mx-auto max-w-135 text-[1.1rem] leading-[1.7] text-[#4B5563] lg:mx-0">
             Register to book concerts, manage tickets, and use secure QR entry. This platform is
             built for audiences and organizers in one digital system.
           </p>
@@ -87,7 +87,7 @@ const Register = () => {
           </div>
         </section>
 
-        <section className="relative rounded-[24px] border border-[rgba(49,46,129,0.18)] bg-white p-6 shadow-[0_20px_45px_rgba(49,46,129,0.08)] md:p-8">
+        <section className="relative rounded-3xl border border-[rgba(49,46,129,0.18)] bg-white p-6 shadow-[0_20px_45px_rgba(49,46,129,0.08)] md:p-8">
           <a
             className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(196,181,253,0.7)] bg-[rgba(196,181,253,0.35)] text-lg font-bold text-[#312E81]"
             href="/"
