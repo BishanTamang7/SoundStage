@@ -1,48 +1,13 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-
-const concerts = [
-  {
-    id: 1,
-    emoji: '🎸',
-    title: 'Rock Night 2026',
-    date: 'Feb 15, 2026',
-    time: '7:00 PM',
-    location: 'Kathmandu Valley',
-    artist: 'The Rockers Band',
-  },
-  {
-    id: 2,
-    emoji: '🎤',
-    title: 'Jazz Evening',
-    date: 'Feb 22, 2026',
-    time: '6:30 PM',
-    location: 'Pokhara Lakeside',
-    artist: 'Jazz Masters',
-  },
-  {
-    id: 3,
-    emoji: '🎹',
-    title: 'EDM Festival',
-    date: 'Mar 5, 2026',
-    time: '8:00 PM',
-    location: 'Chitwan Stadium',
-    artist: 'DJ Supreme',
-  },
-  {
-    id: 4,
-    emoji: '🎵',
-    title: 'Classical Night',
-    date: 'Mar 12, 2026',
-    time: '7:30 PM',
-    location: 'Kathmandu Concert Hall',
-    artist: 'Symphony Orchestra',
-  },
-]
+import { api } from '../../services/api'
 
 const MyConcerts = () => {
-  const { user, role } = useAuth()
+  const { user, role, tokens } = useAuth()
+  const [concerts, setConcerts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -55,6 +20,53 @@ const MyConcerts = () => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
   }
   const initials = getInitials(initialsSource)
+
+  const emojiSet = useMemo(() => ['🎸', '🎤', '🎹', '🎵', '🥁', '🎺', '🎷', '🎻'], [])
+
+  const formatDateTime = (value) => {
+    if (!value) return 'TBD'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return 'TBD'
+    const datePart = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date)
+    const timePart = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date)
+    return `${datePart} • ${timePart}`
+  }
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadConcerts = async () => {
+      if (!tokens?.access) {
+        if (isActive) setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+        const data = await api.organizerConcerts(tokens.access)
+        const list = data?.data?.concerts || data?.concerts || []
+        if (isActive) setConcerts(Array.isArray(list) ? list : [])
+      } catch (err) {
+        if (isActive) setError(err?.message || 'Failed to load concerts.')
+      } finally {
+        if (isActive) setLoading(false)
+      }
+    }
+
+    loadConcerts()
+
+    return () => {
+      isActive = false
+    }
+  }, [tokens?.access])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -138,7 +150,15 @@ const MyConcerts = () => {
           </a>
         </div>
 
-        {concerts.length === 0 ? (
+        {loading ? (
+          <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+            Loading concerts...
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+            {error}
+          </div>
+        ) : concerts.length === 0 ? (
           <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
             <div className="text-5xl">🎵</div>
             <h2 className="mt-4 text-2xl font-black text-[#312E81]">No Concerts Yet</h2>
@@ -154,13 +174,13 @@ const MyConcerts = () => {
           </div>
         ) : (
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
-            {concerts.map((concert) => (
+            {concerts.map((concert, index) => (
               <div
                 key={concert.id}
                 className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
               >
                 <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
-                  {concert.emoji}
+                  {emojiSet[index % emojiSet.length]}
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-black text-[#312E81]">{concert.title}</h3>
@@ -168,17 +188,15 @@ const MyConcerts = () => {
                   <div className="mt-4 flex flex-col gap-2 text-sm font-semibold text-[#6B7280]">
                     <div className="flex items-center gap-2">
                       <span>📅</span>
-                      <span>
-                        {concert.date} • {concert.time}
-                      </span>
+                      <span>{formatDateTime(concert.date_time)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span>📍</span>
-                      <span>{concert.location}</span>
+                      <span>{concert.venue || 'TBD'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span>🎤</span>
-                      <span>{concert.artist}</span>
+                      <span>{concert.main_artist || 'TBD'}</span>
                     </div>
                   </div>
 
