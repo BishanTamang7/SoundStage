@@ -147,4 +147,14 @@ export const api = {
       handleError(error)
     }
   },
+  deleteConcert: async (token, concertId) => {
+    try {
+      const { data } = await apiClient.delete(`/concerts/concerts/${concertId}/`, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }

@@ -8,6 +8,7 @@ const MyConcerts = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -67,6 +68,22 @@ const MyConcerts = () => {
       isActive = false
     }
   }, [tokens?.access])
+
+  const handleDelete = async (concertId) => {
+    if (!tokens?.access) return
+    const confirmed = window.confirm('Delete this concert? This action cannot be undone.')
+    if (!confirmed) return
+
+    try {
+      setDeletingId(concertId)
+      await api.deleteConcert(tokens.access, concertId)
+      setConcerts((prev) => prev.filter((item) => item.id !== concertId))
+    } catch (err) {
+      setError(err?.message || 'Failed to delete concert.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -215,9 +232,15 @@ const MyConcerts = () => {
                     </a>
                     <button
                       type="button"
-                      className="flex-1 rounded-lg border border-[#EF4444] px-4 py-2 text-center text-xs font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                      onClick={() => handleDelete(concert.id)}
+                      disabled={deletingId === concert.id}
+                      className={`flex-1 rounded-lg border px-4 py-2 text-center text-xs font-bold transition ${
+                        deletingId === concert.id
+                          ? 'cursor-not-allowed border-[#FCA5A5] text-[#FCA5A5]'
+                          : 'border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2]'
+                      }`}
                     >
-                      Delete
+                      {deletingId === concert.id ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
