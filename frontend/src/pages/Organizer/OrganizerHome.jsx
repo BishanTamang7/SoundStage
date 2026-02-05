@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
+import React from "react";
+
 const OrganizerHome = () => {
   const { user, role } = useAuth()
 

@@ -5,12 +5,24 @@ import { api } from "../../services/api";
 
 const CreateConcert = () => {
   const navigate = useNavigate();
-  const { tokens } = useAuth();
+  const { tokens, user, role } = useAuth();
   const [tickets, setTickets] = useState([
     { name: "", price: "", quantity: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const displayName = user?.username || user?.email || "User";
+  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
+  const initialsSource = user?.username || user?.email || "";
+  const getInitials = (value) => {
+    if (!value) return "UU";
+    const base = value.split("@")[0];
+    const parts = base.split(/[\s._-]+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  };
+  const initials = getInitials(initialsSource);
 
   const addTicket = () => {
     setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
@@ -71,63 +83,46 @@ const CreateConcert = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
-      <aside className="fixed left-0 top-0 z-10 h-screen w-60 overflow-y-auto border-r border-[#E5E7EB] bg-white py-6">
+      <aside className="fixed left-0 top-0 z-10 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6">
         <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
           SoundStage
         </div>
         <nav className="flex flex-col">
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+            to="/organizer"
           >
             Dashboard
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-sm font-semibold text-[#7C3AED]"
+          </Link>
+          <Link
+            className="border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-base font-semibold text-[#7C3AED]"
+            to="/organizer/concerts"
           >
             My Concerts
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-          >
-            Tickets
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-          >
-            Scan QR
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-          >
-            Analytics
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 border-l-4 border-transparent px-6 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-          >
-            Settings
-          </a>
+          </Link>
+          {["Tickets", "Scan QR", "Analytics", "Settings"].map((item) => (
+            <a
+              key={item}
+              className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+              href="#"
+            >
+              {item}
+            </a>
+          ))}
         </nav>
         <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-lg border border-[rgba(124,58,237,0.12)] bg-[#F3F4F6] p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-extrabold text-white">
-            BT
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-xs font-extrabold text-white">
+            {initials}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-extrabold text-[#312E81]">
-              Bishan Tamang
-            </div>
+            <div className="text-sm font-extrabold leading-tight">{displayName}</div>
             <div className="mt-0.5 text-xs font-bold text-[#6B7280]">
-              Organizer
+              {displayRole}
             </div>
           </div>
           <a
-            className="flex items-center justify-center rounded-lg p-1 text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            href="#"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
+            href="/"
             title="Logout"
           >
             <svg
@@ -147,23 +142,6 @@ const CreateConcert = () => {
       </aside>
 
       <main className="ml-60 max-w-5xl px-12 py-8 md:px-6">
-        <Link
-          to="/organizer/concerts"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back to My Concerts
-        </Link>
-
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-black text-[#312E81]">
             Create New Concert
