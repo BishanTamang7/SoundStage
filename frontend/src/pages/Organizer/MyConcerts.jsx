@@ -216,12 +216,12 @@ const MyConcerts = () => {
                   </div>
 
                   <div className="mt-6 flex gap-3 border-t border-[#E5E7EB] pt-4">
-                    <a
-                      href="event-details-simple.html"
+                    <Link
+                      to={`/organizer/concerts/${concert.id}`}
                       className="flex-1 rounded-lg bg-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-white transition hover:bg-[#4F46E5]"
                     >
                       View
-                    </a>
+                    </Link>
                     <a
                       href="#"
                       className="flex-1 rounded-lg border border-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"

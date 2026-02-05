@@ -167,4 +167,14 @@ export const api = {
       handleError(error)
     }
   },
+  getConcert: async (token, concertId) => {
+    try {
+      const { data } = await apiClient.get(`/concerts/concerts/${concertId}/`, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }
