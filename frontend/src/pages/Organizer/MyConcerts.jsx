@@ -146,9 +146,9 @@ const MyConcerts = () => {
       <main className="ml-[240px] px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-black text-[#312E81]">My Concerts</h1>
-          <a
+          <Link
             className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
-            href="create-concert.html"
+            to="/organizer/concerts/new"
           >
             <svg
               width="20"
@@ -162,7 +162,7 @@ const MyConcerts = () => {
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Create New Concert
-          </a>
+          </Link>
         </div>
 
         {loading ? (
@@ -180,12 +180,12 @@ const MyConcerts = () => {
             <p className="mt-2 text-sm font-semibold text-[#6B7280]">
               Create your first concert to get started!
             </p>
-            <a
+            <Link
               className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
-              href="create-concert.html"
+              to="/organizer/concerts/new"
             >
               Create New Concert
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">

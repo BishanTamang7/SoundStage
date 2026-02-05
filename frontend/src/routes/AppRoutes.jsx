@@ -5,6 +5,7 @@ import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
 import OrganizerHome from '../pages/Organizer/OrganizerHome'
 import MyConcerts from '../pages/Organizer/MyConcerts'
+import CreateConcert from '../pages/Organizer/CreateConcert'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import Bookings from '../pages/Attendee/Bookings'
 import BrowseConcerts from '../pages/Attendee/BrowseConcerts'
@@ -24,6 +25,7 @@ const AppRoutes = () => {
         <Route element={<RoleRoute allowedRoles={[ROLES.ORGANIZER]} />}> 
           <Route path="/organizer" element={<OrganizerHome />} />
           <Route path="/organizer/concerts" element={<MyConcerts />} />
+          <Route path="/organizer/concerts/new" element={<CreateConcert />} />
         </Route>
         <Route element={<RoleRoute allowedRoles={[ROLES.ATTENDEE]} />}>
           <Route path="/attendee" element={<AttendeeHome />} />
