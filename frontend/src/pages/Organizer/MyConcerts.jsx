@@ -9,6 +9,7 @@ const MyConcerts = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmTarget, setConfirmTarget] = useState(null)
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -71,9 +72,6 @@ const MyConcerts = () => {
 
   const handleDelete = async (concertId) => {
     if (!tokens?.access) return
-    const confirmed = window.confirm('Delete this concert? This action cannot be undone.')
-    if (!confirmed) return
-
     try {
       setDeletingId(concertId)
       await api.deleteConcert(tokens.access, concertId)
@@ -232,7 +230,7 @@ const MyConcerts = () => {
                     </a>
                     <button
                       type="button"
-                      onClick={() => handleDelete(concert.id)}
+                      onClick={() => setConfirmTarget(concert)}
                       disabled={deletingId === concert.id}
                       className={`flex-1 rounded-lg border px-4 py-2 text-center text-xs font-bold transition ${
                         deletingId === concert.id
@@ -249,6 +247,39 @@ const MyConcerts = () => {
           </div>
         )}
       </main>
+
+      {confirmTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-black text-[#312E81]">Delete Concert</h3>
+            <p className="mt-2 text-sm font-semibold text-[#6B7280]">
+              Are you sure you want to delete{' '}
+              <span className="font-bold text-[#312E81]">{confirmTarget.title}</span>? This action
+              cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
+                onClick={() => setConfirmTarget(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-[#EF4444] bg-[#EF4444] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#DC2626]"
+                onClick={() => {
+                  const targetId = confirmTarget.id
+                  setConfirmTarget(null)
+                  handleDelete(targetId)
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
