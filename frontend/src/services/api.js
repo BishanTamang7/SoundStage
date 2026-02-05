@@ -177,4 +177,14 @@ export const api = {
       handleError(error)
     }
   },
+  updateConcert: async (token, concertId, payload) => {
+    try {
+      const { data } = await apiClient.put(`/concerts/concerts/${concertId}/`, payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }

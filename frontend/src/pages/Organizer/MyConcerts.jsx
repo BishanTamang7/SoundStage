@@ -222,12 +222,12 @@ const MyConcerts = () => {
                     >
                       View
                     </Link>
-                    <a
-                      href="#"
+                    <Link
+                      to={`/organizer/concerts/${concert.id}/edit`}
                       className="flex-1 rounded-lg border border-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                     >
                       Edit
-                    </a>
+                    </Link>
                     <button
                       type="button"
                       onClick={() => setConfirmTarget(concert)}

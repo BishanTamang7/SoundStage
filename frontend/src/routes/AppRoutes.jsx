@@ -7,6 +7,7 @@ import OrganizerHome from '../pages/Organizer/OrganizerHome'
 import MyConcerts from '../pages/Organizer/MyConcerts'
 import CreateConcert from '../pages/Organizer/CreateConcert'
 import ViewConcert from '../pages/Organizer/ViewConcert'
+import EditConcert from '../pages/Organizer/EditConcert'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import Bookings from '../pages/Attendee/Bookings'
 import BrowseConcerts from '../pages/Attendee/BrowseConcerts'
@@ -27,6 +28,7 @@ const AppRoutes = () => {
           <Route path="/organizer" element={<OrganizerHome />} />
           <Route path="/organizer/concerts" element={<MyConcerts />} />
           <Route path="/organizer/concerts/new" element={<CreateConcert />} />
+          <Route path="/organizer/concerts/:id/edit" element={<EditConcert />} />
           <Route path="/organizer/concerts/:id" element={<ViewConcert />} />
         </Route>
         <Route element={<RoleRoute allowedRoles={[ROLES.ATTENDEE]} />}>
