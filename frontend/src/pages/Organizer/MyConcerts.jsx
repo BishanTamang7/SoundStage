@@ -1,0 +1,215 @@
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+
+const concerts = [
+  {
+    id: 1,
+    emoji: '🎸',
+    title: 'Rock Night 2026',
+    date: 'Feb 15, 2026',
+    time: '7:00 PM',
+    location: 'Kathmandu Valley',
+    artist: 'The Rockers Band',
+  },
+  {
+    id: 2,
+    emoji: '🎤',
+    title: 'Jazz Evening',
+    date: 'Feb 22, 2026',
+    time: '6:30 PM',
+    location: 'Pokhara Lakeside',
+    artist: 'Jazz Masters',
+  },
+  {
+    id: 3,
+    emoji: '🎹',
+    title: 'EDM Festival',
+    date: 'Mar 5, 2026',
+    time: '8:00 PM',
+    location: 'Chitwan Stadium',
+    artist: 'DJ Supreme',
+  },
+  {
+    id: 4,
+    emoji: '🎵',
+    title: 'Classical Night',
+    date: 'Mar 12, 2026',
+    time: '7:30 PM',
+    location: 'Kathmandu Concert Hall',
+    artist: 'Symphony Orchestra',
+  },
+]
+
+const MyConcerts = () => {
+  const { user, role } = useAuth()
+
+  const displayName = user?.username || user?.email || 'User'
+  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
+  const initialsSource = user?.username || user?.email || ''
+  const getInitials = (value) => {
+    if (!value) return 'UU'
+    const base = value.split('@')[0]
+    const parts = base.split(/[\s._-]+/).filter(Boolean)
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  const initials = getInitials(initialsSource)
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
+      <aside className="fixed left-0 top-0 h-screen w-[240px] border-r border-[#E5E7EB] bg-white py-6 transition-transform max-[768px]:-translate-x-full">
+        <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
+          SoundStage
+        </div>
+
+        <nav className="flex flex-col">
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+            to="/organizer"
+          >
+            Dashboard
+          </Link>
+          <Link
+            className="border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-base font-semibold text-[#7C3AED]"
+            to="/organizer/concerts"
+          >
+            My Concerts
+          </Link>
+          {['Tickets', 'Scan QR', 'Analytics', 'Settings'].map((item) => (
+            <a
+              key={item}
+              className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+              href="#"
+            >
+              {item}
+            </a>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-lg border border-[rgba(124,58,237,0.12)] bg-[#F3F4F6] p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-xs font-extrabold text-white">
+            {initials}
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-extrabold leading-tight">{displayName}</div>
+            <div className="mt-0.5 text-xs font-bold text-[#6B7280]">{displayRole}</div>
+          </div>
+          <a
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
+            href="/"
+            title="Logout"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </a>
+        </div>
+      </aside>
+
+      <main className="ml-[240px] px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl font-black text-[#312E81]">My Concerts</h1>
+          <a
+            className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+            href="create-concert.html"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create New Concert
+          </a>
+        </div>
+
+        {concerts.length === 0 ? (
+          <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
+            <div className="text-5xl">🎵</div>
+            <h2 className="mt-4 text-2xl font-black text-[#312E81]">No Concerts Yet</h2>
+            <p className="mt-2 text-sm font-semibold text-[#6B7280]">
+              Create your first concert to get started!
+            </p>
+            <a
+              className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+              href="create-concert.html"
+            >
+              Create New Concert
+            </a>
+          </div>
+        ) : (
+          <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
+            {concerts.map((concert) => (
+              <div
+                key={concert.id}
+                className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+              >
+                <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
+                  {concert.emoji}
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-black text-[#312E81]">{concert.title}</h3>
+
+                  <div className="mt-4 flex flex-col gap-2 text-sm font-semibold text-[#6B7280]">
+                    <div className="flex items-center gap-2">
+                      <span>📅</span>
+                      <span>
+                        {concert.date} • {concert.time}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>📍</span>
+                      <span>{concert.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🎤</span>
+                      <span>{concert.artist}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3 border-t border-[#E5E7EB] pt-4">
+                    <a
+                      href="event-details-simple.html"
+                      className="flex-1 rounded-lg bg-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-white transition hover:bg-[#4F46E5]"
+                    >
+                      View
+                    </a>
+                    <a
+                      href="#"
+                      className="flex-1 rounded-lg border border-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                    >
+                      Edit
+                    </a>
+                    <button
+                      type="button"
+                      className="flex-1 rounded-lg border border-[#EF4444] px-4 py-2 text-center text-xs font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+export default MyConcerts
