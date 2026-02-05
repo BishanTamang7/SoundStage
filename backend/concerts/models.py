@@ -16,16 +16,16 @@ class Concert(models.Model):
         related_name='concerts'
     )
     
-    # Basic Info
+    # Basic Info (MVP)
     title = models.CharField(max_length=255)
     description = models.TextField()
     date_time = models.DateTimeField()
     venue = models.CharField(max_length=255)
     
-    # Artist Info
+    # Artist Info (MVP)
     main_artist = models.CharField(max_length=255)
     
-    # Organizer Contact
+    # Organizer Contact (MVP)
     organizer_name = models.CharField(max_length=255)
     contact_email = models.EmailField()
     
@@ -44,11 +44,7 @@ class Concert(models.Model):
 
 
 class TicketCategory(models.Model):
-    """Ticket categories"""
-
-    class Category(models.TextChoices):
-        VIP = "VIP", "VIP"
-        REGULAR = "Regular", "Regular"
+    """Ticket categories - MVP version"""
     
     # Primary Key
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -60,8 +56,8 @@ class TicketCategory(models.Model):
         related_name='ticket_categories'
     )
     
-    # Category Details
-    name = models.CharField(max_length=100, choices=Category.choices)
+    # Category Details (MVP)
+    name = models.CharField(max_length=100)  # VIP, Regular
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     
