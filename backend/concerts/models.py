@@ -45,6 +45,10 @@ class Concert(models.Model):
 
 class TicketCategory(models.Model):
     """Ticket categories"""
+
+    class Category(models.TextChoices):
+        VIP = "VIP", "VIP"
+        REGULAR = "Regular", "Regular"
     
     # Primary Key
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -57,7 +61,7 @@ class TicketCategory(models.Model):
     )
     
     # Category Details
-    name = models.CharField(max_length=100)  # VIP, Regular, Student
+    name = models.CharField(max_length=100, choices=Category.choices)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     
