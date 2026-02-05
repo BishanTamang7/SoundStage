@@ -157,4 +157,14 @@ export const api = {
       handleError(error)
     }
   },
+  createConcert: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/concerts/concerts/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }

@@ -1,10 +1,16 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/api";
 
 const CreateConcert = () => {
+  const navigate = useNavigate();
+  const { tokens } = useAuth();
   const [tickets, setTickets] = useState([
     { name: "", price: "", quantity: "" },
   ]);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const addTicket = () => {
     setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
@@ -28,8 +34,14 @@ const CreateConcert = () => {
     );
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setFormError("");
+
+    if (!tokens?.access) {
+      setFormError("You must be logged in as an organizer.");
+      return;
+    }
 
     const formData = {
       title: event.target["concert-title"].value,
@@ -46,7 +58,15 @@ const CreateConcert = () => {
       })),
     };
 
-    console.log("Create concert payload", formData);
+    try {
+      setSubmitting(true);
+      await api.createConcert(tokens.access, formData);
+      navigate("/organizer/concerts");
+    } catch (error) {
+      setFormError(error?.message || "Failed to create concert.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -154,6 +174,11 @@ const CreateConcert = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {formError ? (
+            <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
+              {formError}
+            </div>
+          ) : null}
           <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
             <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
               1. Basic Info
@@ -384,9 +409,10 @@ const CreateConcert = () => {
             </Link>
             <button
               type="submit"
+              disabled={submitting}
               className="inline-flex justify-center rounded-lg bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
             >
-              Create Concert
+              {submitting ? "Creating..." : "Create Concert"}
             </button>
           </div>
         </form>
