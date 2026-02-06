@@ -479,7 +479,7 @@ const EditConcert = () => {
 
             <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-end">
               <Link
-                to={`/organizer/concerts/${id}`}
+                to="/organizer/concerts"
                 className="inline-flex justify-center rounded-lg border border-[#E5E7EB] bg-white px-8 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
               >
                 Cancel
