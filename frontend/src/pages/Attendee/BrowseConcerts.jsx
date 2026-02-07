@@ -236,7 +236,7 @@ const BrowseConcerts = () => {
 
                 <div className="flex flex-wrap items-center justify-center gap-4">
                   <select
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#22C55E]"
+                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={city}
                     onChange={(event) => setCity(event.target.value)}
                   >
