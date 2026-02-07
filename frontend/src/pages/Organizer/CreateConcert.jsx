@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
@@ -13,6 +13,8 @@ const CreateConcert = () => {
   const [formError, setFormError] = useState("");
   const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
+  const [organizerName, setOrganizerName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
 
   const displayName = user?.username || user?.email || "User";
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -25,6 +27,12 @@ const CreateConcert = () => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   };
   const initials = getInitials(initialsSource);
+
+  useEffect(() => {
+    const fallbackName = user?.username || user?.email || "";
+    setOrganizerName((prev) => (prev ? prev : fallbackName));
+    setContactEmail((prev) => (prev ? prev : user?.email || ""));
+  }, [user]);
 
   const addTicket = () => {
     setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
@@ -134,8 +142,8 @@ const CreateConcert = () => {
     formData.append("description", event.target.description.value);
     formData.append("date_time", event.target["date-time"].value);
     formData.append("venue", event.target.venue.value);
-    formData.append("organizer_name", event.target["organizer-name"].value);
-    formData.append("contact_email", event.target["contact-email"].value);
+    formData.append("organizer_name", organizerName);
+    formData.append("contact_email", contactEmail);
     formData.append("contact_phone", event.target["contact-phone"].value);
     formData.append("main_artist", event.target["main-artist"].value);
     formData.append(
@@ -358,6 +366,9 @@ const CreateConcert = () => {
                   type="text"
                   required
                   placeholder="e.g., SoundStage Events"
+                  value={organizerName}
+                  readOnly
+                  aria-readonly="true"
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
               </div>
@@ -374,6 +385,9 @@ const CreateConcert = () => {
                   type="email"
                   required
                   placeholder="contact@example.com"
+                  value={contactEmail}
+                  readOnly
+                  aria-readonly="true"
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
               </div>

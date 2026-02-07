@@ -465,7 +465,8 @@ const EditConcert = () => {
                     required
                     placeholder="e.g., SoundStage Events"
                     value={formState.organizer_name}
-                    onChange={handleFieldChange("organizer_name")}
+                    readOnly
+                    aria-readonly="true"
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
                 </div>
@@ -483,7 +484,8 @@ const EditConcert = () => {
                     required
                     placeholder="contact@example.com"
                     value={formState.contact_email}
-                    onChange={handleFieldChange("contact_email")}
+                    readOnly
+                    aria-readonly="true"
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
                 </div>
