@@ -52,9 +52,6 @@ const MyTickets = () => {
           <Link className="text-base font-semibold text-[#7C3AED]" to="/attendee/tickets">
             My Tickets
           </Link>
-          <Link className="text-base font-medium text-[#312E81]" to="/attendee/bookings">
-            Bookings
-          </Link>
           <div className="relative" ref={menuRef}>
             <button
               className="flex items-center"

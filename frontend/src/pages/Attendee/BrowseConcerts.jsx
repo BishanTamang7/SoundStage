@@ -182,9 +182,6 @@ const BrowseConcerts = () => {
           <Link className="text-base font-medium text-[#312E81]" to="/attendee/tickets">
             My Tickets
           </Link>
-          <Link className="text-base font-medium text-[#312E81]" to="/attendee/bookings">
-            Bookings
-          </Link>
           <div className="relative" ref={menuRef}>
             <button
               className="flex items-center"
@@ -319,12 +316,23 @@ const BrowseConcerts = () => {
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {filteredConcerts.map((concert) => {
                     const imageUrl = resolveMediaUrl(concert?.cover_image)
+                    const ticketPrices = Array.isArray(concert?.tickets)
+                      ? concert.tickets
+                          .map((ticket) => Number(ticket?.price))
+                          .filter((price) => Number.isFinite(price) && price > 0)
+                      : []
+                    const fallbackPrice = Number(concert?.price || concert?.ticket_price)
+                    const startingPrice = ticketPrices.length
+                      ? Math.min(...ticketPrices)
+                      : Number.isFinite(fallbackPrice) && fallbackPrice > 0
+                        ? fallbackPrice
+                        : null
                     return (
                       <article
                         key={concert.id}
                         className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_10px_30px_rgba(49,46,129,0.08)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(49,46,129,0.12)]"
                       >
-                        <div className="relative h-48 bg-linear-to-br from-[#7C3AED] via-[#5B21B6] to-[#4F46E5]">
+                        <div className="relative h-40 bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5]">
                           {imageUrl ? (
                             <img
                               src={imageUrl}
@@ -334,42 +342,44 @@ const BrowseConcerts = () => {
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-4xl text-white">
-                              🎤
+                              🎹
                             </div>
                           )}
-                          <div className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#312E81]">
-                            {formatDate(concert?.date_time)}
-                          </div>
                         </div>
                         <div className="p-5">
-                          <h3 className="text-lg font-black text-[#312E81]">
+                          <h3 className="text-lg font-black text-[#2C2E83]">
                             {concert?.title || 'Untitled Concert'}
                           </h3>
-                          <p className="mt-2 text-sm font-semibold text-[#6B7280]">
-                            {concert?.main_artist || 'Artist lineup TBD'}
-                          </p>
-                          <div className="mt-4 space-y-2 text-xs font-semibold text-[#6B7280]">
+                          <div className="mt-3 space-y-2 text-sm font-semibold text-[#6B7280]">
+                            <div className="flex items-center gap-2">
+                              <span>📅</span>
+                              <span>
+                                {formatDate(concert?.date_time)} · {formatTime(concert?.date_time)}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-2">
                               <span>📍</span>
                               <span>{concert?.venue || 'Venue TBD'}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span>🗓️</span>
-                              <span>
-                                {formatDate(concert?.date_time)} · {formatTime(concert?.date_time)}
-                              </span>
+                              <span>🎤</span>
+                              <span>{concert?.main_artist || 'Artist lineup TBD'}</span>
                             </div>
                           </div>
-                          <div className="mt-6 flex items-center justify-between">
-                            <span className="text-xs font-bold uppercase tracking-wide text-[#7C3AED]">
-                              {extractCity(concert?.venue) || 'City'}
-                            </span>
-                            <button
-                              className="rounded-full bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#5B21B6]"
-                              type="button"
+                          <div className="my-4 h-px bg-[#E5E7EB]" />
+                          <div className="flex items-center justify-between gap-3">
+                            <Link
+                              className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-xs font-bold text-[#6B7280] transition hover:border-[#CBD5F5] hover:text-[#1F2937]"
+                              to={`/attendee/concerts/${concert.id}`}
                             >
-                              Book Tickets
-                            </button>
+                              View Details
+                            </Link>
+                            <Link
+                              className="rounded-lg bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white shadow-[0_8px_18px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
+                              to={`/attendee/checkout/${concert.id}`}
+                            >
+                              Book Now
+                            </Link>
                           </div>
                         </div>
                       </article>
