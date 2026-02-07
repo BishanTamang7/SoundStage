@@ -170,7 +170,7 @@ const ConcertDetails = () => {
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
-                  <div className="h-64 bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5] sm:h-72">
+                  <div className="h-64 bg-linear-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5] sm:h-72">
                     {coverImage ? (
                       <img
                         src={coverImage}

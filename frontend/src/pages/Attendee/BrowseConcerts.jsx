@@ -255,7 +255,7 @@ const BrowseConcerts = () => {
 
                 <div className="flex flex-wrap items-center justify-center gap-4">
                   <select
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
+                    className="min-w-45 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={city}
                     onChange={(event) => setCity(event.target.value)}
                   >
@@ -267,7 +267,7 @@ const BrowseConcerts = () => {
                     ))}
                   </select>
                   <select
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
+                    className="min-w-45 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={genre}
                     onChange={(event) => setGenre(event.target.value)}
                   >
@@ -279,7 +279,7 @@ const BrowseConcerts = () => {
                     <option value="hip hop">Hip Hop</option>
                   </select>
                   <select
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
+                    className="min-w-45 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={dateRange}
                     onChange={(event) => setDateRange(event.target.value)}
                   >
@@ -316,23 +316,12 @@ const BrowseConcerts = () => {
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {filteredConcerts.map((concert) => {
                     const imageUrl = resolveMediaUrl(concert?.cover_image)
-                    const ticketPrices = Array.isArray(concert?.tickets)
-                      ? concert.tickets
-                          .map((ticket) => Number(ticket?.price))
-                          .filter((price) => Number.isFinite(price) && price > 0)
-                      : []
-                    const fallbackPrice = Number(concert?.price || concert?.ticket_price)
-                    const startingPrice = ticketPrices.length
-                      ? Math.min(...ticketPrices)
-                      : Number.isFinite(fallbackPrice) && fallbackPrice > 0
-                        ? fallbackPrice
-                        : null
                     return (
                       <article
                         key={concert.id}
                         className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_10px_30px_rgba(49,46,129,0.08)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(49,46,129,0.12)]"
                       >
-                        <div className="relative h-40 bg-gradient-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5]">
+                        <div className="relative h-40 bg-linear-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5]">
                           {imageUrl ? (
                             <img
                               src={imageUrl}

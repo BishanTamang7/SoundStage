@@ -130,7 +130,7 @@ const EditConcert = () => {
       if (coverPreview) URL.revokeObjectURL(coverPreview);
       setCoverImage(resizedFile);
       setCoverPreview(URL.createObjectURL(resizedFile));
-    } catch (error) {
+    } catch {
       if (coverPreview) URL.revokeObjectURL(coverPreview);
       setCoverImage(file);
       setCoverPreview(URL.createObjectURL(file));

@@ -32,7 +32,7 @@ const OrganizerHome = () => {
         const data = await api.organizerConcerts(tokens.access)
         const list = data?.data?.concerts || data?.concerts || []
         if (isActive) setTotalConcerts(Array.isArray(list) ? list.length : 0)
-      } catch (err) {
+      } catch {
         if (isActive) setTotalConcerts(0)
       }
     }
