@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-
-import React from "react";
+import { api } from '../../services/api'
 
 const OrganizerHome = () => {
-  const { user, role } = useAuth()
+  const { user, role, tokens } = useAuth()
+  const [totalConcerts, setTotalConcerts] = useState(0)
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -17,6 +18,31 @@ const OrganizerHome = () => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
   }
   const initials = getInitials(initialsSource)
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadTotalConcerts = async () => {
+      if (!tokens?.access) {
+        if (isActive) setTotalConcerts(0)
+        return
+      }
+
+      try {
+        const data = await api.organizerConcerts(tokens.access)
+        const list = data?.data?.concerts || data?.concerts || []
+        if (isActive) setTotalConcerts(Array.isArray(list) ? list.length : 0)
+      } catch (err) {
+        if (isActive) setTotalConcerts(0)
+      }
+    }
+
+    loadTotalConcerts()
+
+    return () => {
+      isActive = false
+    }
+  }, [tokens?.access])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -88,7 +114,7 @@ const OrganizerHome = () => {
 
         <section className="mb-8 grid grid-cols-1 gap-6 min-[1024px]:grid-cols-2 min-[1280px]:grid-cols-4">
           {[
-            { label: 'Total Events', value: '12' },
+            { label: 'Total Concerts', value: String(totalConcerts) },
             { label: 'Tickets Sold', value: '2,847' },
             { label: 'Total Revenue', value: 'Rs 4.2M' },
             { label: 'Attendees', value: '2,654' },
