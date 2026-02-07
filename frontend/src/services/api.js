@@ -155,6 +155,14 @@ export const api = {
       handleError(error)
     }
   },
+  listConcerts: async () => {
+    try {
+      const { data } = await apiClient.get('/concerts/concerts/')
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   deleteConcert: async (token, concertId) => {
     try {
       const { data } = await apiClient.delete(`/concerts/concerts/${concertId}/`, {
