@@ -26,6 +26,10 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
             'ticket_categories', 'cover_image'
         ]
         read_only_fields = ['id']
+        extra_kwargs = {
+            'organizer_name': {'required': False},
+            'contact_email': {'required': False},
+        }
 
     def to_internal_value(self, data):
         if isinstance(data, (dict,)):
@@ -46,6 +50,12 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create concert with ticket categories"""
         ticket_categories_data = validated_data.pop('ticket_categories')
+
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user and request.user.is_authenticated:
+            organizer_name = request.user.get_full_name() or request.user.username or request.user.email
+            validated_data.setdefault('organizer_name', organizer_name)
+            validated_data.setdefault('contact_email', request.user.email)
         
         # Create concert
         concert = Concert.objects.create(**validated_data)
