@@ -20,7 +20,7 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
         model = Concert
         fields = [
             'id', 'title', 'description', 'date_time', 'venue',
-            'main_artist', 'organizer_name', 'contact_email',
+            'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories'
         ]
         read_only_fields = ['id']
@@ -58,7 +58,7 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
         model = Concert
         fields = [
             'id', 'title', 'description', 'date_time', 'venue',
-            'main_artist', 'organizer_name', 'contact_email',
+            'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
