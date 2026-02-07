@@ -152,7 +152,7 @@ const ConcertDetails = () => {
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
             >
               <span>←</span>
-              Back to Browse
+              Back to Browse Concerts
             </Link>
 
             <div className="mt-6">
@@ -255,6 +255,23 @@ const ConcertDetails = () => {
           </div>
         </section>
       </main>
+
+      <footer className="bg-[#312E81] px-[5%] py-6 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-6 text-base">
+          <div className="flex gap-8">
+            <a className="text-white/75" href="#">
+              About
+            </a>
+            <a className="text-white/75" href="#">
+              Privacy
+            </a>
+            <a className="text-white/75" href="#">
+              Terms
+            </a>
+          </div>
+          <div>© 2026 SoundStage. All rights reserved.</div>
+        </div>
+      </footer>
     </div>
   )
 }
