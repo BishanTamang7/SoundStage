@@ -201,6 +201,12 @@ const ViewConcert = () => {
                     {concert.contact_email || "TBD"}
                   </span>
                 </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-[#6B7280]">Contact Phone</span>
+                  <span className="text-base font-bold text-[#312E81]">
+                    {concert.contact_phone || "TBD"}
+                  </span>
+                </div>
               </div>
             </section>
 

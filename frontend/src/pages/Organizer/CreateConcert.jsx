@@ -62,6 +62,7 @@ const CreateConcert = () => {
       venue: event.target.venue.value,
       organizer_name: event.target["organizer-name"].value,
       contact_email: event.target["contact-email"].value,
+      contact_phone: event.target["contact-phone"].value,
       main_artist: event.target["main-artist"].value,
       ticket_categories: tickets.map((ticket) => ({
         name: ticket.name,
@@ -261,6 +262,21 @@ const CreateConcert = () => {
                   type="email"
                   required
                   placeholder="contact@example.com"
+                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="contact-phone"
+                  className="text-sm font-bold text-[#312E81]"
+                >
+                  Contact Phone
+                </label>
+                <input
+                  id="contact-phone"
+                  name="contact-phone"
+                  type="tel"
+                  placeholder="e.g., +977 9812345678"
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
               </div>

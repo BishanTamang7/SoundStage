@@ -15,6 +15,7 @@ const EditConcert = () => {
     venue: "",
     organizer_name: "",
     contact_email: "",
+    contact_phone: "",
     main_artist: "",
   });
   const [loading, setLoading] = useState(true);
@@ -96,6 +97,7 @@ const EditConcert = () => {
             venue: payload.venue || "",
             organizer_name: payload.organizer_name || "",
             contact_email: payload.contact_email || "",
+            contact_phone: payload.contact_phone || "",
             main_artist: payload.main_artist || "",
           });
           const ticketList = Array.isArray(payload.ticket_categories)
@@ -143,6 +145,7 @@ const EditConcert = () => {
       venue: formState.venue,
       organizer_name: formState.organizer_name,
       contact_email: formState.contact_email,
+      contact_phone: formState.contact_phone,
       main_artist: formState.main_artist,
       ticket_categories: tickets.map((ticket) => ({
         name: ticket.name,
@@ -358,6 +361,23 @@ const EditConcert = () => {
                     placeholder="contact@example.com"
                     value={formState.contact_email}
                     onChange={handleFieldChange("contact_email")}
+                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="contact-phone"
+                    className="text-sm font-bold text-[#312E81]"
+                  >
+                    Contact Phone
+                  </label>
+                  <input
+                    id="contact-phone"
+                    name="contact-phone"
+                    type="tel"
+                    placeholder="e.g., +977 9812345678"
+                    value={formState.contact_phone}
+                    onChange={handleFieldChange("contact_phone")}
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
                 </div>
