@@ -28,6 +28,7 @@ class Concert(models.Model):
     # Organizer Contact (MVP)
     organizer_name = models.CharField(max_length=255)
     contact_email = models.EmailField()
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
