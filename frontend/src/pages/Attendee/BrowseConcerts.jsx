@@ -248,7 +248,7 @@ const BrowseConcerts = () => {
                     ))}
                   </select>
                   <select
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#22C55E]"
+                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={genre}
                     onChange={(event) => setGenre(event.target.value)}
                   >
@@ -259,14 +259,22 @@ const BrowseConcerts = () => {
                     <option value="acoustic">Acoustic</option>
                     <option value="hip hop">Hip Hop</option>
                   </select>
+                  <div className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-xs font-semibold text-[#6B7280] shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+                    <span className="uppercase tracking-wide">Dates</span>
+                    <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-[#1F2937]">
+                      {startDate || endDate
+                        ? `${formatDate(startDate)} - ${formatDate(endDate)}`
+                        : 'All Dates'}
+                    </span>
+                  </div>
                   <input
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#22C55E]"
+                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
                     type="date"
                   />
                   <input
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#22C55E]"
+                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
                     value={endDate}
                     onChange={(event) => setEndDate(event.target.value)}
                     type="date"
