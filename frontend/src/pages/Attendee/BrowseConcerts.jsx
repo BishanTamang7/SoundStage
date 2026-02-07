@@ -22,8 +22,7 @@ const BrowseConcerts = () => {
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('all')
   const [genre, setGenre] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [dateRange, setDateRange] = useState('all')
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
@@ -88,8 +87,7 @@ const BrowseConcerts = () => {
     const normalizedQuery = query.trim().toLowerCase()
     const normalizedGenre = genre.trim().toLowerCase()
     const normalizedCity = city === 'all' ? '' : city.toLowerCase()
-    const startValue = startDate ? new Date(`${startDate}T00:00:00`) : null
-    const endValue = endDate ? new Date(`${endDate}T23:59:59`) : null
+    const normalizedRange = dateRange
 
     return concerts.filter((concert) => {
       const title = concert?.title || ''
@@ -106,14 +104,39 @@ const BrowseConcerts = () => {
 
       if (!matchesQuery || !matchesCity || !matchesGenre) return false
 
-      if (!startValue && !endValue) return true
+      if (normalizedRange === 'all') return true
+
       const concertDate = concert?.date_time ? new Date(concert.date_time) : null
       if (!concertDate || Number.isNaN(concertDate.getTime())) return false
-      if (startValue && concertDate < startValue) return false
-      if (endValue && concertDate > endValue) return false
+
+      const now = new Date()
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+      if (normalizedRange === 'today') {
+        return concertDate >= startOfToday && concertDate <= endOfToday
+      }
+
+      if (normalizedRange === 'week') {
+        const day = startOfToday.getDay()
+        const diffToMonday = (day + 6) % 7
+        const startOfWeek = new Date(startOfToday)
+        startOfWeek.setDate(startOfWeek.getDate() - diffToMonday)
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(endOfWeek.getDate() + 6)
+        endOfWeek.setHours(23, 59, 59, 999)
+        return concertDate >= startOfWeek && concertDate <= endOfWeek
+      }
+
+      if (normalizedRange === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+        return concertDate >= startOfMonth && concertDate <= endOfMonth
+      }
+
       return true
     })
-  }, [city, concerts, endDate, genre, query, startDate])
+  }, [city, concerts, dateRange, genre, query])
 
   const formatDate = (value) => {
     if (!value) return 'TBD'
@@ -140,8 +163,7 @@ const BrowseConcerts = () => {
     setQuery('')
     setCity('all')
     setGenre('')
-    setStartDate('')
-    setEndDate('')
+    setDateRange('all')
   }
 
   return (
@@ -208,7 +230,7 @@ const BrowseConcerts = () => {
         <section className="px-[5%] py-12">
           <div className="mx-auto max-w-5xl">
             <div className="text-center">
-              <h1 className="text-3xl font-black text-[#1F2937] sm:text-4xl">
+              <h1 className="text-3xl font-black text-[#2C2E83] sm:text-4xl">
                 Browse Concerts
               </h1>
               <p className="mt-2 text-sm font-medium text-[#6B7280] sm:text-base">
@@ -218,19 +240,19 @@ const BrowseConcerts = () => {
 
             <div className="mt-8">
               <div className="flex flex-col gap-4">
-                <div className="flex w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+                <div className="flex w-full flex-col gap-4 md:flex-row md:items-center">
                   <input
-                    className="flex-1 px-5 py-4 text-sm font-semibold text-[#1F2937] outline-none placeholder:text-[#9CA3AF]"
-                    placeholder="Search concerts by name, artist, or venue..."
+                    className="w-full flex-1 rounded-lg border border-[#E5E7EB] bg-white px-5 py-4 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.08)] outline-none placeholder:text-[#9CA3AF] focus:border-[#7C3AED]"
+                    placeholder="Search by concert name, artist, or venue..."
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     type="text"
                   />
                   <button
-                    className="flex w-16 items-center justify-center bg-[#7C3AED] text-white transition hover:bg-[#6D28D9]"
+                    className="flex h-12 items-center justify-center rounded-lg bg-[#7C3AED] px-8 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(124,58,237,0.25)] transition hover:bg-[#6D28D9]"
                     type="button"
                   >
-                    <span className="text-lg">🔍</span>
+                    Search
                   </button>
                 </div>
 
@@ -259,26 +281,16 @@ const BrowseConcerts = () => {
                     <option value="acoustic">Acoustic</option>
                     <option value="hip hop">Hip Hop</option>
                   </select>
-                  <div className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-xs font-semibold text-[#6B7280] shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-                    <span className="uppercase tracking-wide">Dates</span>
-                    <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-[#1F2937]">
-                      {startDate || endDate
-                        ? `${formatDate(startDate)} - ${formatDate(endDate)}`
-                        : 'All Dates'}
-                    </span>
-                  </div>
-                  <input
+                  <select
                     className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
-                    type="date"
-                  />
-                  <input
-                    className="min-w-[180px] rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
-                    value={endDate}
-                    onChange={(event) => setEndDate(event.target.value)}
-                    type="date"
-                  />
+                    value={dateRange}
+                    onChange={(event) => setDateRange(event.target.value)}
+                  >
+                    <option value="all">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
                   <button
                     className="rounded-lg border border-[#E5E7EB] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#6B7280] transition hover:border-[#CBD5F5] hover:text-[#1F2937]"
                     onClick={handleResetFilters}
