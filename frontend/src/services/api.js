@@ -82,6 +82,14 @@ const handleError = (error) => {
   throw error
 }
 
+export const resolveMediaUrl = (path) => {
+  if (!path) return ''
+  if (typeof path === 'string' && path.startsWith('http')) return path
+  const base = BASE_URL.replace(/\/api\/?$/, '')
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${base}${normalized}`
+}
+
 export const api = {
   register: async (payload) => {
     try {
@@ -159,9 +167,11 @@ export const api = {
   },
   createConcert: async (token, payload) => {
     try {
-      const { data } = await apiClient.post('/concerts/concerts/', payload, {
-        headers: withAuth(token),
-      })
+      const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
+      const headers = isFormData
+        ? { ...withAuth(token), 'Content-Type': 'multipart/form-data' }
+        : withAuth(token)
+      const { data } = await apiClient.post('/concerts/concerts/', payload, { headers })
       return data
     } catch (error) {
       handleError(error)
@@ -179,8 +189,12 @@ export const api = {
   },
   updateConcert: async (token, concertId, payload) => {
     try {
+      const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
+      const headers = isFormData
+        ? { ...withAuth(token), 'Content-Type': 'multipart/form-data' }
+        : withAuth(token)
       const { data } = await apiClient.put(`/concerts/concerts/${concertId}/`, payload, {
-        headers: withAuth(token),
+        headers,
       })
       return data
     } catch (error) {

@@ -18,6 +18,10 @@ const EditConcert = () => {
     contact_phone: "",
     main_artist: "",
   });
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [existingCover, setExistingCover] = useState("");
+  const [removeCover, setRemoveCover] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -66,6 +70,81 @@ const EditConcert = () => {
     );
   };
 
+  const resizeCoverImage = (file) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const targetWidth = 1600;
+        const targetHeight = 900;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Canvas not supported."));
+          return;
+        }
+        const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const offsetX = (targetWidth - drawWidth) / 2;
+        const offsetY = (targetHeight - drawHeight) / 2;
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(objectUrl);
+            if (!blob) {
+              reject(new Error("Image processing failed."));
+              return;
+            }
+            resolve(
+              new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+                type: "image/jpeg",
+              })
+            );
+          },
+          "image/jpeg",
+          0.9
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Invalid image file."));
+      };
+      img.src = objectUrl;
+    });
+
+  const handleCoverChange = async (event) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(null);
+      setCoverPreview("");
+      setRemoveCover(false);
+      return;
+    }
+    try {
+      const resizedFile = await resizeCoverImage(file);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(resizedFile);
+      setCoverPreview(URL.createObjectURL(resizedFile));
+    } catch (error) {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
+    setRemoveCover(false);
+  };
+
+  const handleRemoveCover = () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverImage(null);
+    setCoverPreview("");
+    setRemoveCover(true);
+  };
+
   const handleFieldChange = (field) => (event) => {
     const { value } = event.target;
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -100,6 +179,10 @@ const EditConcert = () => {
             contact_phone: payload.contact_phone || "",
             main_artist: payload.main_artist || "",
           });
+          setExistingCover(payload.cover_image || "");
+          setCoverImage(null);
+          setCoverPreview("");
+          setRemoveCover(false);
           const ticketList = Array.isArray(payload.ticket_categories)
             ? payload.ticket_categories
             : [];
@@ -138,21 +221,30 @@ const EditConcert = () => {
       return;
     }
 
-    const payload = {
-      title: formState.title,
-      description: formState.description,
-      date_time: formState.date_time,
-      venue: formState.venue,
-      organizer_name: formState.organizer_name,
-      contact_email: formState.contact_email,
-      contact_phone: formState.contact_phone,
-      main_artist: formState.main_artist,
-      ticket_categories: tickets.map((ticket) => ({
-        name: ticket.name,
-        price: parseFloat(ticket.price || 0),
-        quantity: parseInt(ticket.quantity || 0, 10),
-      })),
-    };
+    const payload = new FormData();
+    payload.append("title", formState.title);
+    payload.append("description", formState.description);
+    payload.append("date_time", formState.date_time);
+    payload.append("venue", formState.venue);
+    payload.append("organizer_name", formState.organizer_name);
+    payload.append("contact_email", formState.contact_email);
+    payload.append("contact_phone", formState.contact_phone);
+    payload.append("main_artist", formState.main_artist);
+    payload.append(
+      "ticket_categories",
+      JSON.stringify(
+        tickets.map((ticket) => ({
+          name: ticket.name,
+          price: parseFloat(ticket.price || 0),
+          quantity: parseInt(ticket.quantity || 0, 10),
+        }))
+      )
+    );
+    if (coverImage) {
+      payload.append("cover_image", coverImage);
+    } else if (removeCover) {
+      payload.append("cover_image", "");
+    }
 
     try {
       setSubmitting(true);
@@ -325,7 +417,38 @@ const EditConcert = () => {
 
             <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                2. Organizer Info
+                2. Cover Image
+              </h2>
+              <div className="flex flex-col gap-3">
+                <label
+                  htmlFor="cover-image"
+                  className="text-sm font-bold text-[#312E81]"
+                >
+                  Cover Image
+                </label>
+                <input
+                  id="cover-image"
+                  name="cover-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverChange}
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                />
+                {(coverImage || (existingCover && !removeCover)) ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCover}
+                    className="w-fit rounded-lg border border-[#FCA5A5] bg-white px-4 py-2 text-xs font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                  >
+                    Remove Image
+                  </button>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                3. Organizer Info
               </h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
@@ -386,7 +509,7 @@ const EditConcert = () => {
 
             <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                3. Artist
+                4. Artist
               </h2>
               <div className="grid grid-cols-1 gap-6">
                 <div>
@@ -412,7 +535,7 @@ const EditConcert = () => {
 
             <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                4. Ticket Categories
+                5. Ticket Categories
               </h2>
               <div className="flex flex-col gap-4">
                 {tickets.map((ticket, index) => (

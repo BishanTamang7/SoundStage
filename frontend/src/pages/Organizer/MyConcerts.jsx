@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { api } from '../../services/api'
+import { api, resolveMediaUrl } from '../../services/api'
 
 const MyConcerts = () => {
   const { user, role, tokens } = useAuth()
@@ -194,9 +194,19 @@ const MyConcerts = () => {
                 key={concert.id}
                 className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
               >
-                <div className="flex h-40 items-center justify-center bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
-                  {emojiSet[index % emojiSet.length]}
-                </div>
+                {concert.cover_image ? (
+                  <div className="h-40 w-full bg-[#F3F4F6]">
+                    <img
+                      src={resolveMediaUrl(concert.cover_image)}
+                      alt={`${concert.title || 'Concert'} cover`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-40 items-center justify-center bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-5xl">
+                    {emojiSet[index % emojiSet.length]}
+                  </div>
+                )}
                 <div className="p-6">
                   <h3 className="text-xl font-black text-[#312E81]">{concert.title}</h3>
 

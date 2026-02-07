@@ -166,6 +166,22 @@ const ViewConcert = () => {
           </div>
         ) : (
           <>
+            <section className="mb-8 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
+              <div className="relative h-64 bg-[#F3F4F6] sm:h-72">
+                {concert.cover_image ? (
+                  <img
+                    src={concert.cover_image}
+                    alt={`${concert.title || "Concert"} cover`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-semibold text-[#9CA3AF]">
+                    No cover image uploaded.
+                  </div>
+                )}
+              </div>
+            </section>
+
             <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-8">
               <h1 className="mb-6 text-3xl font-black text-[#312E81]">
                 {concert.title || "Untitled Concert"}

@@ -11,6 +11,8 @@ const CreateConcert = () => {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
 
   const displayName = user?.username || user?.email || "User";
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -46,6 +48,78 @@ const CreateConcert = () => {
     );
   };
 
+  const resizeCoverImage = (file) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const targetWidth = 1600;
+        const targetHeight = 900;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Canvas not supported."));
+          return;
+        }
+        const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const offsetX = (targetWidth - drawWidth) / 2;
+        const offsetY = (targetHeight - drawHeight) / 2;
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(objectUrl);
+            if (!blob) {
+              reject(new Error("Image processing failed."));
+              return;
+            }
+            resolve(
+              new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+                type: "image/jpeg",
+              })
+            );
+          },
+          "image/jpeg",
+          0.9
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Invalid image file."));
+      };
+      img.src = objectUrl;
+    });
+
+  const handleCoverChange = async (event) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(null);
+      setCoverPreview("");
+      return;
+    }
+    try {
+      const resizedFile = await resizeCoverImage(file);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(resizedFile);
+      setCoverPreview(URL.createObjectURL(resizedFile));
+    } catch (error) {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverImage(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearCoverImage = () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverImage(null);
+    setCoverPreview("");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setFormError("");
@@ -55,21 +129,28 @@ const CreateConcert = () => {
       return;
     }
 
-    const formData = {
-      title: event.target["concert-title"].value,
-      description: event.target.description.value,
-      date_time: event.target["date-time"].value,
-      venue: event.target.venue.value,
-      organizer_name: event.target["organizer-name"].value,
-      contact_email: event.target["contact-email"].value,
-      contact_phone: event.target["contact-phone"].value,
-      main_artist: event.target["main-artist"].value,
-      ticket_categories: tickets.map((ticket) => ({
-        name: ticket.name,
-        price: parseFloat(ticket.price || 0),
-        quantity: parseInt(ticket.quantity || 0, 10),
-      })),
-    };
+    const formData = new FormData();
+    formData.append("title", event.target["concert-title"].value);
+    formData.append("description", event.target.description.value);
+    formData.append("date_time", event.target["date-time"].value);
+    formData.append("venue", event.target.venue.value);
+    formData.append("organizer_name", event.target["organizer-name"].value);
+    formData.append("contact_email", event.target["contact-email"].value);
+    formData.append("contact_phone", event.target["contact-phone"].value);
+    formData.append("main_artist", event.target["main-artist"].value);
+    formData.append(
+      "ticket_categories",
+      JSON.stringify(
+        tickets.map((ticket) => ({
+          name: ticket.name,
+          price: parseFloat(ticket.price || 0),
+          quantity: parseInt(ticket.quantity || 0, 10),
+        }))
+      )
+    );
+    if (coverImage) {
+      formData.append("cover_image", coverImage);
+    }
 
     try {
       setSubmitting(true);
@@ -230,7 +311,38 @@ const CreateConcert = () => {
 
           <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
             <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-              2. Organizer Info
+              2. Cover Image
+            </h2>
+            <div className="flex flex-col gap-3">
+              <label
+                htmlFor="cover-image"
+                className="text-sm font-bold text-[#312E81]"
+              >
+                Cover Image
+              </label>
+              <input
+                id="cover-image"
+                name="cover-image"
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+              />
+              {coverImage ? (
+                <button
+                  type="button"
+                  onClick={clearCoverImage}
+                  className="w-fit rounded-lg border border-[#FCA5A5] bg-white px-4 py-2 text-xs font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                >
+                  Remove Image
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+              3. Organizer Info
             </h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
@@ -285,7 +397,7 @@ const CreateConcert = () => {
 
           <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
             <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-              3. Artist
+              4. Artist
             </h2>
             <div className="grid grid-cols-1 gap-6">
               <div>
@@ -309,7 +421,7 @@ const CreateConcert = () => {
 
           <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
             <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-              4. Ticket Categories
+              5. Ticket Categories
             </h2>
             <div className="flex flex-col gap-4">
               {tickets.map((ticket, index) => (
