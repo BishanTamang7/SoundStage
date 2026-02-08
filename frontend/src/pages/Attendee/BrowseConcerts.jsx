@@ -3,6 +3,25 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
 
+const CITY_OPTIONS = [
+  'New York, NY',
+  'Los Angeles, CA',
+  'Chicago, IL',
+  'Austin, TX',
+  'Nashville, TN',
+  'Seattle, WA',
+  'Miami, FL',
+  'Kathmandu, Nepal',
+]
+
+const GENRE_OPTIONS = [
+  { value: 'rock', label: 'Rock' },
+  { value: 'jazz', label: 'Jazz' },
+  { value: 'edm', label: 'EDM' },
+  { value: 'acoustic', label: 'Acoustic' },
+  { value: 'hip hop', label: 'Hip Hop' },
+]
+
 const getInitials = (name) => {
   if (!name) return ''
   const parts = name.trim().split(/\s+/)
@@ -74,14 +93,7 @@ const BrowseConcerts = () => {
     return parts.length > 1 ? parts[parts.length - 1] : venue.trim()
   }
 
-  const cityOptions = useMemo(() => {
-    const options = new Map()
-    concerts.forEach((concert) => {
-      const value = extractCity(concert?.venue)
-      if (value) options.set(value.toLowerCase(), value)
-    })
-    return Array.from(options.values()).sort((a, b) => a.localeCompare(b))
-  }, [concerts])
+  const cityOptions = CITY_OPTIONS
 
   const filteredConcerts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -272,11 +284,11 @@ const BrowseConcerts = () => {
                     onChange={(event) => setGenre(event.target.value)}
                   >
                     <option value="">All Genres</option>
-                    <option value="rock">Rock</option>
-                    <option value="jazz">Jazz</option>
-                    <option value="edm">EDM</option>
-                    <option value="acoustic">Acoustic</option>
-                    <option value="hip hop">Hip Hop</option>
+                    {GENRE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <select
                     className="min-w-45 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none focus:border-[#7C3AED]"
