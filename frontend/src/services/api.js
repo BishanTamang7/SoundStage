@@ -4,9 +4,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 })
 
 const formatErrorMessage = (data) => {
@@ -54,6 +51,27 @@ const formatErrorMessage = (data) => {
       return 'Validation error.'
     }
     return data.message
+  }
+
+  if (typeof data === 'object') {
+    const messages = Object.entries(data)
+      .filter(([key]) => !['success', 'data'].includes(key))
+      .flatMap(([key, value]) => {
+        if (Array.isArray(value)) {
+          return value.map((item) => `${key}: ${String(item)}`)
+        }
+        if (typeof value === 'string') {
+          return [`${key}: ${value}`]
+        }
+        if (value && typeof value === 'object') {
+          const nested = Object.values(value).flatMap((item) =>
+            Array.isArray(item) ? item.map((entry) => String(entry)) : [String(item)]
+          )
+          return nested.length > 0 ? nested.map((entry) => `${key}: ${entry}`) : [`${key}: ${String(value)}`]
+        }
+        return [`${key}: ${String(value)}`]
+      })
+    if (messages.length > 0) return messages.join(', ')
   }
 
   return 'Request failed'
@@ -176,9 +194,7 @@ export const api = {
   createConcert: async (token, payload) => {
     try {
       const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
-      const headers = isFormData
-        ? { ...withAuth(token), 'Content-Type': 'multipart/form-data' }
-        : withAuth(token)
+      const headers = isFormData ? withAuth(token) : withAuth(token)
       const { data } = await apiClient.post('/concerts/concerts/', payload, { headers })
       return data
     } catch (error) {
@@ -198,9 +214,7 @@ export const api = {
   updateConcert: async (token, concertId, payload) => {
     try {
       const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
-      const headers = isFormData
-        ? { ...withAuth(token), 'Content-Type': 'multipart/form-data' }
-        : withAuth(token)
+      const headers = isFormData ? withAuth(token) : withAuth(token)
       const { data } = await apiClient.put(`/concerts/concerts/${concertId}/`, payload, {
         headers,
       })

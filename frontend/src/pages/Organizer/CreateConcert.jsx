@@ -137,26 +137,63 @@ const CreateConcert = () => {
       return;
     }
 
+    const organizerNameTrimmed = organizerName?.trim() || "";
+    const contactEmailTrimmed = contactEmail?.trim() || "";
+
+    if (!organizerNameTrimmed || !contactEmailTrimmed) {
+      setFormError("Your organizer profile is missing a name or email.");
+      return;
+    }
+
+    const normalizedTickets = tickets.map((ticket) => {
+      const name = ticket.name?.trim() || "";
+      const price = Number(ticket.price);
+      const quantity = Number(ticket.quantity);
+      return { name, price, quantity };
+    });
+
+    const invalidTicket = normalizedTickets.find(
+      (ticket) =>
+        !ticket.name ||
+        !Number.isFinite(ticket.price) ||
+        ticket.price < 0 ||
+        !Number.isFinite(ticket.quantity) ||
+        ticket.quantity < 1
+    );
+
+    if (invalidTicket) {
+      setFormError("Please fill in all ticket types with valid price and quantity.");
+      return;
+    }
+
+    const form = event.target;
+    const getFieldValue = (name) => {
+      const element = form.elements?.namedItem(name);
+      if (!element) return "";
+      if (typeof element.value === "string") return element.value.trim();
+      return String(element.value || "").trim();
+    };
+
     const formData = new FormData();
-    formData.append("title", event.target["concert-title"].value);
-    formData.append("description", event.target.description.value);
-    formData.append("date_time", event.target["date-time"].value);
-    formData.append("venue", event.target.venue.value);
-    formData.append("organizer_name", organizerName);
-    formData.append("contact_email", contactEmail);
-    formData.append("contact_phone", event.target["contact-phone"].value);
-    formData.append("main_artist", event.target["main-artist"].value);
+    formData.append("title", getFieldValue("concert-title"));
+    formData.append("description", getFieldValue("description"));
+    formData.append("date_time", getFieldValue("date-time"));
+    formData.append("venue", getFieldValue("venue"));
+    formData.append("organizer_name", organizerNameTrimmed);
+    formData.append("contact_email", contactEmailTrimmed);
+    formData.append("contact_phone", getFieldValue("contact-phone"));
+    formData.append("main_artist", getFieldValue("main-artist"));
     formData.append(
       "ticket_categories",
       JSON.stringify(
-        tickets.map((ticket) => ({
+        normalizedTickets.map((ticket) => ({
           name: ticket.name,
-          price: parseFloat(ticket.price || 0),
-          quantity: parseInt(ticket.quantity || 0, 10),
+          price: ticket.price,
+          quantity: ticket.quantity,
         }))
       )
     );
-    if (coverImage) {
+    if (coverImage instanceof File) {
       formData.append("cover_image", coverImage);
     }
 
