@@ -309,9 +309,9 @@ const Checkout = () => {
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-6 text-base">
           <div className="flex gap-8">
-            <a className="text-white/75" href="#">
+            <Link className="text-white/75" to="/attendee/about">
               About
-            </a>
+            </Link>
             <a className="text-white/75" href="#">
               Privacy
             </a>
