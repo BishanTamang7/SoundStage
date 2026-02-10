@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 const Landing = () => {
   return (
@@ -8,15 +9,15 @@ const Landing = () => {
           SoundStage
         </div>
         <div className="flex items-center gap-10 text-[0.95rem] font-medium text-[#312E81] max-[768px]:hidden">
-          <a className="hover:text-[#7C3AED]" href="/signin">
+          <Link className="hover:text-[#7C3AED]" to="/signin">
             Sign in
-          </a>
-          <a
+          </Link>
+          <Link
             className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
-            href="/register"
+            to="/register"
           >
             Get Started
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -31,12 +32,12 @@ const Landing = () => {
             A secure platform to create, manage, and attend concerts seamlessly. From booking to
             entry, everything in one place.
           </p>
-          <a
+          <Link
             className="inline-block rounded-full bg-[#7C3AED] px-10 py-4 text-[1.05rem] font-semibold text-white shadow-[0_16px_28px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
-            href="/signin"
+            to="/signin"
           >
             Start exploring
-          </a>
+          </Link>
         </div>
 
         <div className="relative z-10 h-125 w-125 max-[1024px]:mt-12 max-[1024px]:h-100 max-[1024px]:w-100 max-[768px]:h-75 max-[768px]:w-75">
@@ -52,9 +53,9 @@ const Landing = () => {
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-6 text-sm max-[768px]:flex-col max-[768px]:text-center">
           <div className="flex gap-8 max-[768px]:justify-center">
-            <a className="text-[rgba(255,255,255,0.75)] hover:text-white" href="/attendee/about">
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/about">
               About
-            </a>
+            </Link>
             <a className="text-[rgba(255,255,255,0.75)] hover:text-white" href="#">
               Privacy
             </a>

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Landing from '../pages/public/Landing'
 import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
+import About from '../pages/public/About'
 import OrganizerHome from '../pages/Organizer/OrganizerHome'
 import MyConcerts from '../pages/Organizer/MyConcerts'
 import CreateConcert from '../pages/Organizer/CreateConcert'
@@ -22,6 +23,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/about" element={<About />} />
       <Route path="/signin" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
