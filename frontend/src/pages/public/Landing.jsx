@@ -5,9 +5,9 @@ const Landing = () => {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
       <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(248,249,250,0.95)] px-[5%] backdrop-blur">
-        <div className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]">
+        <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to="/">
           SoundStage
-        </div>
+        </Link>
         <div className="flex items-center gap-10 text-[0.95rem] font-medium text-[#312E81] max-[768px]:hidden">
           <Link className="hover:text-[#7C3AED]" to="/signin">
             Sign in
@@ -56,12 +56,12 @@ const Landing = () => {
             <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/about">
               About
             </Link>
-            <a className="text-[rgba(255,255,255,0.75)] hover:text-white" href="#">
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/privacy">
               Privacy
-            </a>
-            <a className="text-[rgba(255,255,255,0.75)] hover:text-white" href="#">
+            </Link>
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/terms">
               Terms
-            </a>
+            </Link>
           </div>
           <div>© 2026 SoundStage. All rights reserved.</div>
         </div>

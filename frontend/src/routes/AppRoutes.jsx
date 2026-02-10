@@ -4,6 +4,8 @@ import Landing from '../pages/public/Landing'
 import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
 import About from '../pages/public/About'
+import Privacy from '../pages/public/Privacy'
+import Terms from '../pages/public/Terms'
 import OrganizerHome from '../pages/Organizer/OrganizerHome'
 import MyConcerts from '../pages/Organizer/MyConcerts'
 import CreateConcert from '../pages/Organizer/CreateConcert'
@@ -24,6 +26,8 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/about" element={<About />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/signin" element={<Login />} />
       <Route path="/register" element={<Register />} />
 

@@ -1,19 +1,23 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 
 const About = () => {
+  const { isAuthenticated, role } = useAuth()
+  const homeLink = isAuthenticated ? (role === 'organizer' ? '/organizer' : '/attendee') : '/'
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
-      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white/95 px-[5%] backdrop-blur">
-        <Link className="font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]" to="/">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
+      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(248,249,250,0.95)] px-[5%] backdrop-blur">
+        <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to={homeLink}>
           SoundStage
         </Link>
-        <div className="hidden items-center gap-10 md:flex">
-          <Link className="text-base font-medium text-[#312E81]" to="/signin">
+        <div className="flex items-center gap-10 text-[0.95rem] font-medium text-[#312E81] max-[768px]:hidden">
+          <Link className="hover:text-[#7C3AED]" to="/signin">
             Sign in
           </Link>
           <Link
-            className="rounded-full bg-[#7C3AED] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
+            className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
             to="/register"
           >
             Get Started
@@ -150,17 +154,17 @@ const About = () => {
       </main>
 
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-6 text-base">
-          <div className="flex gap-8">
-            <Link className="text-white/75" to="/about">
+        <div className="flex flex-wrap items-center justify-between gap-6 text-sm max-[768px]:flex-col max-[768px]:text-center">
+          <div className="flex gap-8 max-[768px]:justify-center">
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/about">
               About
             </Link>
-            <a className="text-white/75" href="#">
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/privacy">
               Privacy
-            </a>
-            <a className="text-white/75" href="#">
+            </Link>
+            <Link className="text-[rgba(255,255,255,0.75)] hover:text-white" to="/terms">
               Terms
-            </a>
+            </Link>
           </div>
           <div>© 2026 SoundStage. All rights reserved.</div>
         </div>

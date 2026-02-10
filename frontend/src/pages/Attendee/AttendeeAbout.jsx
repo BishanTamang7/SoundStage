@@ -227,15 +227,15 @@ const AttendeeAbout = () => {
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-6 text-base">
           <div className="flex gap-8">
-            <Link className="text-white/75" to="/attendee/about">
+            <Link className="text-white/75" to="/about">
               About
             </Link>
-            <a className="text-white/75" href="#">
+            <Link className="text-white/75" to="/privacy">
               Privacy
-            </a>
-            <a className="text-white/75" href="#">
+            </Link>
+            <Link className="text-white/75" to="/terms">
               Terms
-            </a>
+            </Link>
           </div>
           <div>© 2026 SoundStage. All rights reserved.</div>
         </div>

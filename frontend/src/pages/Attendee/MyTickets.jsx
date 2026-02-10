@@ -113,12 +113,12 @@ const MyTickets = () => {
             <Link className="text-white/75" to="/attendee/about">
               About
             </Link>
-            <a className="text-white/75" href="#">
+            <Link className="text-white/75" to="/privacy">
               Privacy
-            </a>
-            <a className="text-white/75" href="#">
+            </Link>
+            <Link className="text-white/75" to="/terms">
               Terms
-            </a>
+            </Link>
           </div>
           <div>© 2026 SoundStage. All rights reserved.</div>
         </div>
