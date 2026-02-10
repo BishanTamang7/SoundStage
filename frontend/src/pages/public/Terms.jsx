@@ -1,29 +1,51 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import AttendeeHeader from '../../components/AttendeeHeader'
 
 const Terms = () => {
   const { isAuthenticated, role } = useAuth()
   const homeLink = isAuthenticated ? (role === 'organizer' ? '/organizer' : '/attendee') : '/'
+  const showAttendeeHeader = isAuthenticated && role === 'attendee'
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
-      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(248,249,250,0.95)] px-[5%] backdrop-blur">
-        <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to={homeLink}>
-          SoundStage
-        </Link>
-        <div className="flex items-center gap-10 text-[0.95rem] font-medium text-[#312E81] max-[768px]:hidden">
-          <Link className="hover:text-[#7C3AED]" to="/signin">
-            Sign in
+      {showAttendeeHeader ? (
+        <AttendeeHeader />
+      ) : (
+        <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(248,249,250,0.95)] px-[5%] backdrop-blur">
+          <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to={homeLink}>
+            SoundStage
           </Link>
-          <Link
-            className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
-            to="/register"
-          >
-            Get Started
-          </Link>
-        </div>
-      </nav>
+          <div className="flex items-center gap-10 text-[0.95rem] font-medium text-[#312E81] max-[768px]:hidden">
+            {isAuthenticated ? (
+              <>
+                <Link className="hover:text-[#7C3AED]" to={homeLink}>
+                  Dashboard
+                </Link>
+                <Link
+                  className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
+                  to={homeLink}
+                >
+                  Go to Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link className="hover:text-[#7C3AED]" to="/signin">
+                  Sign in
+                </Link>
+                <Link
+                  className="rounded-full bg-[#7C3AED] px-7 py-3 font-semibold text-white shadow-[0_12px_20px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
+                  to="/register"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
+      )}
 
       <main className="flex-1 pt-20">
         <section className="bg-[#0F172A] px-[5%] py-16 text-white">

@@ -35,7 +35,7 @@ const AttendeeHome = () => {
     try {
       await logout()
     } finally {
-      navigate('/signin', { replace: true })
+      navigate('/', { replace: true })
     }
   }
 
