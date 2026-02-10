@@ -7,6 +7,7 @@ const About = () => {
   const { isAuthenticated, role } = useAuth()
   const homeLink = isAuthenticated ? (role === 'organizer' ? '/organizer' : '/attendee') : '/'
   const showAttendeeHeader = isAuthenticated && role === 'attendee'
+  const attendeeCtas = showAttendeeHeader
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
@@ -67,15 +68,15 @@ const About = () => {
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-semibold text-[#0F172A] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(15,23,42,0.3)]"
-                  to="/signin"
+                  to={attendeeCtas ? '/attendee/concerts' : '/signin'}
                 >
                   Explore Concerts
                 </Link>
                 <Link
                   className="inline-flex items-center justify-center rounded-full border border-white/50 px-8 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                  to="/register"
+                  to={attendeeCtas ? '/attendee/tickets' : '/register'}
                 >
-                  Create account
+                  View My Tickets
                 </Link>
               </div>
             </div>
@@ -166,7 +167,7 @@ const About = () => {
               </div>
               <Link
                 className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-semibold text-[#0F172A] transition hover:-translate-y-0.5"
-                to="/signin"
+                to={attendeeCtas ? '/attendee/concerts' : '/signin'}
               >
                 Start discovering
               </Link>
