@@ -126,10 +126,13 @@ const Checkout = () => {
               }`}
               role="menu"
             >
-              <a className="flex items-center gap-3 rounded-t-lg px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
+              <Link
+                className="flex items-center gap-3 rounded-t-lg px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]"
+                to="/attendee/profile"
+              >
                 <span className="text-lg">👤</span>
                 <span>My Profile</span>
-              </a>
+              </Link>
               <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
               <a className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
                 <span className="text-lg">⚙️</span>
