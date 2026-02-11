@@ -99,54 +99,215 @@ const AttendeeProfile = () => {
         </div>
       </nav>
 
-      <main className="flex-1 pt-20">
-        <section className="px-[5%] py-12">
-          <div className="mx-auto max-w-4xl">
-            <div className="rounded-3xl border border-[#E5E7EB] bg-white p-10 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#7C3AED]">
-                Account Overview
-              </p>
-              <h1 className="mt-4 font-['Playfair_Display'] text-4xl font-black text-[#312E81]">
-                Your Profile
-              </h1>
-              <p className="mt-2 text-base font-medium text-[#6B7280]">
-                Review your attendee details and manage your SoundStage presence.
-              </p>
+      <main className="flex-1 bg-[#FAFAFA] pt-24">
+        <div className="mx-auto max-w-5xl px-6 py-12">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-black text-[#312E81]">My Profile</h1>
+            <p className="mt-2 text-sm font-semibold text-[#6B7280]">
+              Manage your account information and preferences
+            </p>
+          </div>
 
-              <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8F9FA] px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#6B7280]">Name</p>
-                  <p className="mt-2 text-lg font-semibold text-[#312E81]">
-                    {user?.name || user?.username || 'Attendee'}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8F9FA] px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#6B7280]">Email</p>
-                  <p className="mt-2 text-lg font-semibold text-[#312E81]">
-                    {user?.email || 'Not provided'}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8F9FA] px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#6B7280]">Username</p>
-                  <p className="mt-2 text-lg font-semibold text-[#312E81]">
-                    {user?.username || 'Not set'}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8F9FA] px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#6B7280]">Member Since</p>
-                  <p className="mt-2 text-lg font-semibold text-[#312E81]">Coming soon</p>
-                </div>
+          <section className="mb-8 flex flex-col gap-6 rounded-2xl border border-[#E5E7EB] bg-white p-8 md:flex-row md:items-center">
+            <div className="flex flex-col items-center gap-4 md:w-60">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                AT
               </div>
+              <button
+                className="rounded-lg border border-[#7C3AED] px-4 py-2 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                type="button"
+              >
+                Change Photo
+              </button>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-2xl font-black text-[#312E81]">Attendee User</h2>
+              <p className="mt-1 text-sm font-semibold text-[#6B7280]">attendee@example.com</p>
+              <span className="mt-3 inline-flex rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
+                Attendee
+              </span>
+            </div>
+          </section>
 
-              <div className="mt-8 rounded-2xl border border-[#E5E7EB] bg-white px-6 py-5">
-                <h2 className="text-lg font-semibold text-[#312E81]">What’s next</h2>
-                <p className="mt-2 text-sm font-medium text-[#6B7280]">
-                  Profile editing and preferences will be available in a future update.
-                </p>
+          <section className="mb-8 rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <h3 className="border-b-2 border-[#E5E7EB] pb-3 text-lg font-black text-[#312E81]">
+              My Activity
+            </h3>
+            <div className="mt-6 grid gap-6 md:grid-cols-3">
+              <div className="text-center">
+                <div className="text-3xl font-black text-[#7C3AED]">12</div>
+                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Concerts Attended</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-[#7C3AED]">5</div>
+                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Upcoming Events</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-[#7C3AED]">17</div>
+                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Total Tickets</div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="mb-8 rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <h3 className="border-b-2 border-[#E5E7EB] pb-3 text-lg font-black text-[#312E81]">
+              Account Details
+            </h3>
+            <form className="mt-6">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="username">
+                    Username
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="username"
+                    type="text"
+                    defaultValue="attendee_user"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="email">
+                    Email Address
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="email"
+                    type="email"
+                    defaultValue="attendee@example.com"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="phone">
+                    Phone Number
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="phone"
+                    type="tel"
+                    defaultValue="+977 9812345678"
+                    placeholder="+977 9812345678"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="joined">
+                    Member Since
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
+                    id="joined"
+                    type="text"
+                    defaultValue="February 1, 2026"
+                    disabled
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="role">
+                    Account Type
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
+                    id="role"
+                    type="text"
+                    defaultValue="Attendee"
+                    disabled
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="status">
+                    Account Status
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
+                    id="status"
+                    type="text"
+                    defaultValue="Active"
+                    disabled
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col gap-4 md:flex-row">
+                <button
+                  className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                  type="button"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="mb-8 rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <h3 className="border-b-2 border-[#E5E7EB] pb-3 text-lg font-black text-[#312E81]">
+              Change Password
+            </h3>
+            <form className="mt-6">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="md:col-span-2 flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="current-password">
+                    Current Password
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="current-password"
+                    type="password"
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="new-password">
+                    New Password
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="new-password"
+                    type="password"
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-[#312E81]" htmlFor="confirm-password">
+                    Confirm New Password
+                  </label>
+                  <input
+                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                    id="confirm-password"
+                    type="password"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                  type="button"
+                >
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="rounded-2xl border border-[#EF4444] bg-white p-8">
+            <h3 className="text-lg font-black text-[#EF4444]">Danger Zone</h3>
+            <p className="mt-3 text-sm font-medium leading-6 text-[#6B7280]">
+              Once you delete your account, there is no going back. All your tickets, bookings,
+              and personal data will be permanently deleted. Please be certain.
+            </p>
+            <button
+              className="mt-5 rounded-lg border border-[#EF4444] bg-white px-6 py-3 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+              type="button"
+            >
+              Delete Account
+            </button>
+          </section>
+        </div>
       </main>
 
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
