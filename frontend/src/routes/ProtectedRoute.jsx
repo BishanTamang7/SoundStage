@@ -2,7 +2,7 @@ import React from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
-const ProtectedRoute = ({ redirectTo = '/signin' }) => {
+const ProtectedRoute = ({ redirectTo = '/' }) => {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {

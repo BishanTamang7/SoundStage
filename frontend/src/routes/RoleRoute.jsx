@@ -10,7 +10,7 @@ const RoleRoute = ({ allowedRoles = [], redirectTo = '/' }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
