@@ -38,6 +38,7 @@ const BrowseConcerts = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('all')
   const [genre, setGenre] = useState('')
@@ -172,10 +173,15 @@ const BrowseConcerts = () => {
   }
 
   const handleResetFilters = () => {
+    setSearchInput('')
     setQuery('')
     setCity('all')
     setGenre('')
     setDateRange('all')
+  }
+
+  const handleSearch = () => {
+    setQuery(searchInput)
   }
 
   return (
@@ -253,13 +259,20 @@ const BrowseConcerts = () => {
                   <input
                     className="w-full flex-1 rounded-lg border border-[#E5E7EB] bg-white px-5 py-4 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.08)] outline-none placeholder:text-[#9CA3AF] focus:border-[#7C3AED]"
                     placeholder="Search by concert name, artist, or venue..."
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        handleSearch()
+                      }
+                    }}
                     type="text"
                   />
                   <button
                     className="flex h-12 items-center justify-center rounded-lg bg-[#7C3AED] px-8 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(124,58,237,0.25)] transition hover:bg-[#6D28D9]"
                     type="button"
+                    onClick={handleSearch}
                   >
                     Search
                   </button>
