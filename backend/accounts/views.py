@@ -5,7 +5,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
+from .serializers import (
+    UserRegistrationSerializer,
+    UserLoginSerializer,
+    UserSerializer,
+    UserProfileUpdateSerializer,
+)
 from .models import User
 
 
@@ -157,4 +162,28 @@ class UserProfileAPIView(APIView):
                 'data': serializer.data
             },
             status=status.HTTP_200_OK
+        )
+
+    def patch(self, request):
+        """Update current user profile"""
+        serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_serializer = self.serializer_class(request.user)
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Profile updated successfully',
+                    'data': response_serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                'success': False,
+                'message': 'Validation error',
+                'errors': serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )

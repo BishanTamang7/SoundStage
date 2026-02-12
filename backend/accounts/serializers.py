@@ -137,3 +137,27 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'email', 'date_joined', 'updated_at', 'role'
         ]
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating editable profile fields"""
+
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+
+    def validate_username(self, value):
+        username = value.strip()
+        if len(username) < 3:
+            raise serializers.ValidationError("Username must be at least 3 characters long.")
+        user = self.instance
+        if User.objects.filter(username__iexact=username).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Username already exists.")
+        return username
+
+    def validate_email(self, value):
+        email = value.lower().strip()
+        user = self.instance
+        if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Email already exists.")
+        return email
