@@ -5,6 +5,7 @@ from .views import (
     UserLoginAPIView, 
     UserLogoutAPIView,
     UserProfileAPIView,
+    ChangePasswordAPIView,
 )
 
 app_name = 'accounts'
@@ -19,4 +20,5 @@ urlpatterns = [
 
     # User profile
     path('profile/', UserProfileAPIView.as_view(), name='profile'),
+    path('change-password/', ChangePasswordAPIView.as_view(), name='change_password'),
 ]

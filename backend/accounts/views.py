@@ -10,8 +10,8 @@ from .serializers import (
     UserLoginSerializer,
     UserSerializer,
     UserProfileUpdateSerializer,
+    ChangePasswordSerializer,
 )
-from .models import User
 
 
 class UserRegistrationAPIView(APIView):
@@ -136,7 +136,7 @@ class UserLogoutAPIView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
+        except Exception:
             return Response(
                 {
                     'success': False,
@@ -175,6 +175,35 @@ class UserProfileAPIView(APIView):
                     'success': True,
                     'message': 'Profile updated successfully',
                     'data': response_serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                'success': False,
+                'message': 'Validation error',
+                'errors': serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class ChangePasswordAPIView(APIView):
+    """API endpoint to update authenticated user password"""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            request.user.set_password(serializer.validated_data['new_password'])
+            request.user.save(update_fields=['password'])
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Password updated successfully',
                 },
                 status=status.HTTP_200_OK,
             )

@@ -161,3 +161,33 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
             raise serializers.ValidationError("Email already exists.")
         return email
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for authenticated password changes"""
+
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+    confirm_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_current_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Current password is incorrect.')
+        return value
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(list(error.messages))
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        if attrs['current_password'] == attrs['new_password']:
+            raise serializers.ValidationError(
+                {'new_password': 'New password must be different from current password.'}
+            )
+        return attrs
