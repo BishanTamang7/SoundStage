@@ -331,15 +331,11 @@ const Checkout = () => {
                       onClick={handleProceedToPayment}
                       disabled={paymentLoading || !selectedTicket}
                     >
-                      {paymentLoading ? 'Redirecting to Khalti...' : 'Proceed to Payment'}
+                      {paymentLoading ? 'Redirecting to Khalti...' : 'Pay with Khalti'}
                     </button>
                     {paymentError ? (
                       <p className="mt-3 text-xs font-semibold text-[#B91C1C]">{paymentError}</p>
-                    ) : (
-                      <p className="mt-3 text-xs font-semibold text-[#9CA3AF]">
-                        You will be redirected to Khalti sandbox checkout.
-                      </p>
-                    )}
+                    ) : null}
                   </aside>
                 </div>
               )}
