@@ -173,6 +173,16 @@ export const api = {
       handleError(error)
     }
   },
+  changePassword: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/accounts/change-password/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   organizerConcerts: async (token) => {
     try {
       const { data } = await apiClient.get('/concerts/concerts/my_events/', {

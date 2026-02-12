@@ -31,7 +31,7 @@ const formatDate = (value) => {
 }
 
 const AttendeeProfile = () => {
-  const { user, logout, role, isAuthenticated, updateProfile } = useAuth()
+  const { user, logout, role, isAuthenticated, updateProfile, changePassword } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
@@ -42,6 +42,19 @@ const AttendeeProfile = () => {
     username: '',
     email: '',
     phone: '',
+  })
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [showPassword, setShowPassword] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
   })
 
   const initialsSource = user?.name || user?.username || user?.email || ''
@@ -124,6 +137,46 @@ const AttendeeProfile = () => {
     } finally {
       setSavingProfile(false)
     }
+  }
+
+  const handlePasswordInputChange = (event) => {
+    const { name, value } = event.target
+    setPasswordMessage('')
+    setPasswordError('')
+    setPasswordForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleUpdatePassword = async () => {
+    setPasswordMessage('')
+    setPasswordError('')
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('All password fields are required.')
+      return
+    }
+
+    try {
+      setSavingPassword(true)
+      await changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        confirm_password: passwordForm.confirmPassword,
+      })
+      setPasswordMessage('Password updated successfully.')
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+    } catch (error) {
+      setPasswordError(error?.message || 'Failed to update password.')
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
   return (
@@ -360,42 +413,86 @@ const AttendeeProfile = () => {
                   <label className="text-sm font-bold text-[#312E81]" htmlFor="current-password">
                     Current Password
                   </label>
-                  <input
-                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
-                    id="current-password"
-                    type="password"
-                    placeholder="Enter current password"
-                  />
+                  <div className="relative">
+                    <input
+                      className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 pr-16 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                      id="current-password"
+                      name="currentPassword"
+                      type={showPassword.currentPassword ? 'text' : 'password'}
+                      placeholder="Enter current password"
+                      value={passwordForm.currentPassword}
+                      onChange={handlePasswordInputChange}
+                    />
+                    <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#4F46E5]"
+                      type="button"
+                      onClick={() => togglePasswordVisibility('currentPassword')}
+                    >
+                      {showPassword.currentPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-[#312E81]" htmlFor="new-password">
                     New Password
                   </label>
-                  <input
-                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
-                    id="new-password"
-                    type="password"
-                    placeholder="Enter new password"
-                  />
+                  <div className="relative">
+                    <input
+                      className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 pr-16 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                      id="new-password"
+                      name="newPassword"
+                      type={showPassword.newPassword ? 'text' : 'password'}
+                      placeholder="Enter new password"
+                      value={passwordForm.newPassword}
+                      onChange={handlePasswordInputChange}
+                    />
+                    <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#4F46E5]"
+                      type="button"
+                      onClick={() => togglePasswordVisibility('newPassword')}
+                    >
+                      {showPassword.newPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-[#312E81]" htmlFor="confirm-password">
                     Confirm New Password
                   </label>
-                  <input
-                    className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
-                    id="confirm-password"
-                    type="password"
-                    placeholder="Confirm new password"
-                  />
+                  <div className="relative">
+                    <input
+                      className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 pr-16 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
+                      id="confirm-password"
+                      name="confirmPassword"
+                      type={showPassword.confirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm new password"
+                      value={passwordForm.confirmPassword}
+                      onChange={handlePasswordInputChange}
+                    />
+                    <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#4F46E5]"
+                      type="button"
+                      onClick={() => togglePasswordVisibility('confirmPassword')}
+                    >
+                      {showPassword.confirmPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
               </div>
+              {passwordError ? (
+                <p className="mt-4 text-sm font-semibold text-[#EF4444]">{passwordError}</p>
+              ) : null}
+              {passwordMessage ? (
+                <p className="mt-4 text-sm font-semibold text-[#059669]">{passwordMessage}</p>
+              ) : null}
               <div className="mt-6">
                 <button
-                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:bg-[#A78BFA]"
                   type="button"
+                  onClick={handleUpdatePassword}
+                  disabled={savingPassword}
                 >
-                  Update Password
+                  {savingPassword ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
             </form>

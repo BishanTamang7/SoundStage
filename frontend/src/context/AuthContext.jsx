@@ -160,6 +160,17 @@ export const AuthProvider = ({ children }) => {
     [tokens?.access]
   )
 
+  const changePassword = useCallback(
+    async (payload) => {
+      const access = tokens?.access
+      if (!access) {
+        throw new Error('Authentication required')
+      }
+      return api.changePassword(access, payload)
+    },
+    [tokens?.access]
+  )
+
   const logout = useCallback(async () => {
     const token = tokens?.access
     const refresh = tokens?.refresh
@@ -184,9 +195,10 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       updateProfile,
+      changePassword,
       logout,
     }),
-    [user, tokens, loading, login, register, updateProfile, logout]
+    [user, tokens, loading, login, register, updateProfile, changePassword, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
