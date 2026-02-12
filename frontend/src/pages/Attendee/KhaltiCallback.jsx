@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const KhaltiCallback = () => {
   const { tokens } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -12,11 +13,19 @@ const KhaltiCallback = () => {
 
   const pidx = searchParams.get('pidx') || ''
   const redirectStatus = searchParams.get('status') || ''
+  const normalizedRedirectStatus = redirectStatus.trim().toLowerCase()
+  const isCanceledRedirect =
+    normalizedRedirectStatus.includes('cancel') || normalizedRedirectStatus.includes('abandon')
 
   useEffect(() => {
     let isActive = true
 
     const verifyPayment = async () => {
+      if (isCanceledRedirect) {
+        navigate('/attendee/concerts', { replace: true })
+        return
+      }
+
       if (!pidx) {
         if (isActive) {
           setError('Missing payment reference (pidx).')
@@ -46,7 +55,16 @@ const KhaltiCallback = () => {
     return () => {
       isActive = false
     }
-  }, [pidx, tokens?.access])
+  }, [isCanceledRedirect, navigate, pidx, tokens?.access])
+
+  useEffect(() => {
+    const normalizedLookupStatus = String(lookupData?.status || '')
+      .trim()
+      .toLowerCase()
+    if (normalizedLookupStatus.includes('cancel') || normalizedLookupStatus.includes('abandon')) {
+      navigate('/attendee/concerts', { replace: true })
+    }
+  }, [lookupData?.status, navigate])
 
   const statusText = lookupData?.status || redirectStatus || 'Unknown'
   const isSuccess = statusText === 'Completed'
