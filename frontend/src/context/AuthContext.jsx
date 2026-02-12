@@ -171,6 +171,17 @@ export const AuthProvider = ({ children }) => {
     [tokens?.access]
   )
 
+  const deleteAccount = useCallback(async () => {
+    const access = tokens?.access
+    if (!access) {
+      throw new Error('Authentication required')
+    }
+    await api.deleteAccount(access)
+    setUser(null)
+    setTokens(null)
+    writeStoredAuth(null)
+  }, [tokens?.access])
+
   const logout = useCallback(async () => {
     const token = tokens?.access
     const refresh = tokens?.refresh
@@ -196,9 +207,10 @@ export const AuthProvider = ({ children }) => {
       register,
       updateProfile,
       changePassword,
+      deleteAccount,
       logout,
     }),
-    [user, tokens, loading, login, register, updateProfile, changePassword, logout]
+    [user, tokens, loading, login, register, updateProfile, changePassword, deleteAccount, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

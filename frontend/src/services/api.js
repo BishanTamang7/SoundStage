@@ -173,6 +173,16 @@ export const api = {
       handleError(error)
     }
   },
+  deleteAccount: async (token) => {
+    try {
+      const { data } = await apiClient.delete('/accounts/profile/', {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   changePassword: async (token, payload) => {
     try {
       const { data } = await apiClient.post('/accounts/change-password/', payload, {

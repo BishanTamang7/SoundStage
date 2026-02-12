@@ -31,7 +31,7 @@ const formatDate = (value) => {
 }
 
 const AttendeeProfile = () => {
-  const { user, logout, role, isAuthenticated, updateProfile, changePassword } = useAuth()
+  const { user, logout, role, isAuthenticated, updateProfile, changePassword, deleteAccount } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
@@ -51,6 +51,8 @@ const AttendeeProfile = () => {
   const [savingPassword, setSavingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [showPassword, setShowPassword] = useState({
     currentPassword: false,
     newPassword: false,
@@ -177,6 +179,24 @@ const AttendeeProfile = () => {
 
   const togglePasswordVisibility = (field) => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('')
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone.'
+    )
+    if (!confirmed) return
+
+    try {
+      setDeletingAccount(true)
+      await deleteAccount()
+      navigate('/', { replace: true })
+    } catch (error) {
+      setDeleteError(error?.message || 'Failed to delete account.')
+    } finally {
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -504,11 +524,16 @@ const AttendeeProfile = () => {
               Once you delete your account, there is no going back. All your tickets, bookings,
               and personal data will be permanently deleted. Please be certain.
             </p>
+            {deleteError ? (
+              <p className="mt-4 text-sm font-semibold text-[#EF4444]">{deleteError}</p>
+            ) : null}
             <button
-              className="mt-5 rounded-lg border border-[#EF4444] bg-white px-6 py-3 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+              className="mt-5 rounded-lg border border-[#EF4444] bg-white px-6 py-3 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
             >
-              Delete Account
+              {deletingAccount ? 'Deleting...' : 'Delete Account'}
             </button>
           </section>
         </div>
