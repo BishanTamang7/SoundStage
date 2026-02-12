@@ -188,6 +188,26 @@ class UserProfileAPIView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    def delete(self, request):
+        """Delete current authenticated user account"""
+        try:
+            request.user.delete()
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Account deleted successfully',
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Failed to delete account',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
 
 class ChangePasswordAPIView(APIView):
     """API endpoint to update authenticated user password"""
