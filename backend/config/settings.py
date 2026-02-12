@@ -200,4 +200,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 # Frontend URL
-FRONTEND_URL = 'http://localhost:5173'
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+# Khalti (KPG-2)
+KHALTI_SECRET_KEY = env('KHALTI_SECRET_KEY', default='')
+KHALTI_BASE_URL = env('KHALTI_BASE_URL', default='https://dev.khalti.com/api/v2')

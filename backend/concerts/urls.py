@@ -11,4 +11,7 @@ router.register(r'concerts', views.ConcertViewSet, basename='concert')
 urlpatterns = [
     # Concert endpoints (handled by ViewSet)
     path('', include(router.urls)),
+    # Khalti payment endpoints
+    path('payments/khalti/initiate/', views.khalti_initiate, name='khalti-initiate'),
+    path('payments/khalti/lookup/', views.khalti_lookup, name='khalti-lookup'),
 ]
