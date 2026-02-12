@@ -13,6 +13,8 @@ const Checkout = () => {
   const [error, setError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [quantity, setQuantity] = useState(1)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => {
@@ -91,6 +93,37 @@ const Checkout = () => {
   }
 
   const coverImage = resolveMediaUrl(concert?.cover_image)
+
+  const handleProceedToPayment = async () => {
+    if (!selectedTicket?.id) {
+      setPaymentError('Please select a ticket type.')
+      return
+    }
+
+    if (!id) {
+      setPaymentError('Concert not found.')
+      return
+    }
+
+    try {
+      setPaymentLoading(true)
+      setPaymentError('')
+      const response = await api.khaltiInitiate(tokens?.access, {
+        concert_id: id,
+        ticket_category_id: selectedTicket.id,
+        quantity,
+      })
+      const paymentUrl = response?.data?.payment_url
+      if (!paymentUrl) {
+        throw new Error('Khalti payment URL was not returned.')
+      }
+      window.location.href = paymentUrl
+    } catch (err) {
+      setPaymentError(err?.message || 'Failed to initiate Khalti payment.')
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
@@ -295,12 +328,18 @@ const Checkout = () => {
                     <button
                       className="mt-6 w-full rounded-lg bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_20px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
                       type="button"
+                      onClick={handleProceedToPayment}
+                      disabled={paymentLoading || !selectedTicket}
                     >
-                      Proceed to Payment
+                      {paymentLoading ? 'Redirecting to Khalti...' : 'Proceed to Payment'}
                     </button>
-                    <p className="mt-3 text-xs font-semibold text-[#9CA3AF]">
-                      Payment integration will be added here.
-                    </p>
+                    {paymentError ? (
+                      <p className="mt-3 text-xs font-semibold text-[#B91C1C]">{paymentError}</p>
+                    ) : (
+                      <p className="mt-3 text-xs font-semibold text-[#9CA3AF]">
+                        You will be redirected to Khalti sandbox checkout.
+                      </p>
+                    )}
                   </aside>
                 </div>
               )}

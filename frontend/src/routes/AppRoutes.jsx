@@ -14,6 +14,7 @@ import EditConcert from '../pages/Organizer/EditConcert'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import BrowseConcerts from '../pages/Attendee/BrowseConcerts'
 import Checkout from '../pages/Attendee/Checkout'
+import KhaltiCallback from '../pages/Attendee/KhaltiCallback'
 import ConcertDetails from '../pages/Attendee/ConcertDetails'
 import MyTickets from '../pages/Attendee/MyTickets'
 import AttendeeAbout from '../pages/Attendee/AttendeeAbout'
@@ -45,6 +46,7 @@ const AppRoutes = () => {
           <Route path="/attendee/concerts" element={<BrowseConcerts />} />
           <Route path="/attendee/concerts/:id" element={<ConcertDetails />} />
           <Route path="/attendee/checkout/:id" element={<Checkout />} />
+          <Route path="/attendee/payment/khalti/callback" element={<KhaltiCallback />} />
           <Route path="/attendee/tickets" element={<MyTickets />} />
           <Route path="/attendee/about" element={<AttendeeAbout />} />
           <Route path="/attendee/profile" element={<AttendeeProfile />} />

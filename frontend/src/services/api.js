@@ -253,4 +253,24 @@ export const api = {
       handleError(error)
     }
   },
+  khaltiInitiate: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/concerts/payments/khalti/initiate/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  khaltiLookup: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/concerts/payments/khalti/lookup/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }
