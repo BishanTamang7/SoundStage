@@ -34,29 +34,80 @@ const resolveProfile = (response) => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [tokens, setTokens] = useState(null)
+  const [tokens, setTokens] = useState(() => {
+    const stored = readStoredAuth()
+    if (!stored?.access) return null
+    return { access: stored.access, refresh: stored.refresh || null }
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = readStoredAuth()
-    if (!stored?.access) {
-      setLoading(false)
-      return
+    let cancelled = false
+
+    const bootstrapAuth = async () => {
+      const stored = readStoredAuth()
+      if (!stored?.access) {
+        if (!cancelled) {
+          setLoading(false)
+        }
+        return
+      }
+
+      let activeAccess = stored.access
+      let activeRefresh = stored.refresh || null
+
+      try {
+        const profileData = await api.profile(activeAccess)
+        if (!cancelled) {
+          const resolvedProfile = resolveProfile(profileData)
+          setUser(resolvedProfile)
+          setTokens({ access: activeAccess, refresh: activeRefresh })
+        }
+      } catch {
+        if (!activeRefresh) {
+          if (!cancelled) {
+            setUser(null)
+            setTokens(null)
+            writeStoredAuth(null)
+          }
+          return
+        }
+
+        try {
+          const refreshed = await api.refreshToken(activeRefresh)
+          const nextAccess = refreshed?.access || refreshed?.data?.access
+          const nextRefresh = refreshed?.refresh || refreshed?.data?.refresh || activeRefresh
+          if (!nextAccess) {
+            throw new Error('Token refresh failed')
+          }
+
+          activeAccess = nextAccess
+          activeRefresh = nextRefresh
+          const profileData = await api.profile(activeAccess)
+          if (!cancelled) {
+            const resolvedProfile = resolveProfile(profileData)
+            setUser(resolvedProfile)
+            setTokens({ access: activeAccess, refresh: activeRefresh })
+          }
+        } catch {
+          if (!cancelled) {
+            setUser(null)
+            setTokens(null)
+            writeStoredAuth(null)
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
     }
 
-    setTokens({ access: stored.access, refresh: stored.refresh || null })
-    api
-      .profile(stored.access)
-      .then((data) => {
-        const resolvedProfile = resolveProfile(data)
-        setUser(resolvedProfile)
-      })
-      .catch(() => {
-        setUser(null)
-        setTokens(null)
-        writeStoredAuth(null)
-      })
-      .finally(() => setLoading(false))
+    bootstrapAuth()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -71,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     const data = await api.login(payload)
     const access = data?.data?.tokens?.access || data?.access || data?.tokens?.access
     const refresh = data?.data?.tokens?.refresh || data?.refresh || data?.tokens?.refresh
-    const profile = data?.data?.user || data?.user || data?.profile
+    const fallbackProfile = data?.data?.user || data?.user || data?.profile
 
     if (!access) {
       throw new Error('Login response missing access token')
@@ -79,18 +130,35 @@ export const AuthProvider = ({ children }) => {
 
     setTokens({ access, refresh })
 
-    if (profile) {
-      setUser(profile)
-      return profile
+    try {
+      const fetchedProfile = await api.profile(access)
+      const resolvedProfile = resolveProfile(fetchedProfile)
+      setUser(resolvedProfile)
+      return resolvedProfile
+    } catch (error) {
+      if (fallbackProfile) {
+        setUser(fallbackProfile)
+        return fallbackProfile
+      }
+      throw error
     }
-
-    const fetchedProfile = await api.profile(access)
-    const resolvedProfile = resolveProfile(fetchedProfile)
-    setUser(resolvedProfile)
-    return resolvedProfile
   }, [])
 
   const register = useCallback(async (payload) => api.register(payload), [])
+
+  const updateProfile = useCallback(
+    async (payload) => {
+      const access = tokens?.access
+      if (!access) {
+        throw new Error('Authentication required')
+      }
+      const data = await api.updateProfile(access, payload)
+      const resolvedProfile = resolveProfile(data)
+      setUser(resolvedProfile)
+      return resolvedProfile
+    },
+    [tokens?.access]
+  )
 
   const logout = useCallback(async () => {
     const token = tokens?.access
@@ -115,9 +183,10 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: Boolean(tokens?.access),
       login,
       register,
+      updateProfile,
       logout,
     }),
-    [user, tokens, loading, login, register, logout]
+    [user, tokens, loading, login, register, updateProfile, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

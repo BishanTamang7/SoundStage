@@ -163,6 +163,16 @@ export const api = {
       handleError(error)
     }
   },
+  updateProfile: async (token, payload) => {
+    try {
+      const { data } = await apiClient.patch('/accounts/profile/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   organizerConcerts: async (token) => {
     try {
       const { data } = await apiClient.get('/concerts/concerts/my_events/', {

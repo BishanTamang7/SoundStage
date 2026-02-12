@@ -10,14 +10,62 @@ const getInitials = (name) => {
   return (first + last).toUpperCase()
 }
 
+const toTitleCase = (value) => {
+  if (!value) return ''
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+const formatDate = (value) => {
+  if (!value) return 'N/A'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'N/A'
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 const AttendeeProfile = () => {
-  const { user, logout, role, isAuthenticated } = useAuth()
+  const { user, logout, role, isAuthenticated, updateProfile } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMessage, setProfileMessage] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [profileForm, setProfileForm] = useState({
+    username: '',
+    email: '',
+    phone: '',
+  })
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
+  const memberSince = useMemo(() => formatDate(user?.date_joined || user?.dateJoined), [user])
+  const accountType = useMemo(
+    () => toTitleCase(user?.role || user?.user_type || user?.userType || role || 'Attendee'),
+    [role, user]
+  )
+  const accountStatus = user?.is_active === false ? 'Inactive' : 'Active'
+  const profileName = user?.name || user?.username || 'Attendee User'
+  const profileEmail = user?.email || 'N/A'
+  const hasProfileChanges =
+    profileForm.username !== (user?.username || '') ||
+    profileForm.email !== (user?.email || '') ||
+    profileForm.phone !== (user?.phone || user?.phone_number || user?.phoneNumber || '')
+
+  useEffect(() => {
+    setProfileForm({
+      username: user?.username || '',
+      email: user?.email || '',
+      phone: user?.phone || user?.phone_number || user?.phoneNumber || '',
+    })
+  }, [user])
 
   useEffect(() => {
     const handleClick = (event) => {
@@ -36,6 +84,45 @@ const AttendeeProfile = () => {
       await logout()
     } finally {
       navigate('/', { replace: true })
+    }
+  }
+
+  const handleProfileInputChange = (event) => {
+    const { name, value } = event.target
+    setProfileMessage('')
+    setProfileError('')
+    setProfileForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleCancelProfileChanges = () => {
+    setProfileMessage('')
+    setProfileError('')
+    setProfileForm({
+      username: user?.username || '',
+      email: user?.email || '',
+      phone: user?.phone || user?.phone_number || user?.phoneNumber || '',
+    })
+  }
+
+  const handleSaveProfileChanges = async () => {
+    setProfileMessage('')
+    setProfileError('')
+    if (!hasProfileChanges) {
+      setProfileMessage('No changes to save.')
+      return
+    }
+
+    try {
+      setSavingProfile(true)
+      await updateProfile({
+        username: profileForm.username.trim(),
+        email: profileForm.email.trim(),
+      })
+      setProfileMessage('Profile updated successfully.')
+    } catch (error) {
+      setProfileError(error?.message || 'Failed to update profile.')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -111,7 +198,7 @@ const AttendeeProfile = () => {
           <section className="mb-8 flex flex-col gap-6 rounded-2xl border border-[#E5E7EB] bg-white p-8 md:flex-row md:items-center">
             <div className="flex flex-col items-center gap-4 md:w-60">
               <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                AT
+                {initials}
               </div>
               <button
                 className="rounded-lg border border-[#7C3AED] px-4 py-2 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
@@ -121,10 +208,11 @@ const AttendeeProfile = () => {
               </button>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-black text-[#312E81]">Attendee User</h2>
-              <p className="mt-1 text-sm font-semibold text-[#6B7280]">attendee@example.com</p>
+              <h2 className="text-2xl font-black text-[#312E81]">{profileName}</h2>
+              <p className="mt-1 text-sm font-semibold text-[#6B7280]">{profileEmail}</p>
+              <p className="mt-1 text-sm font-semibold text-[#6B7280]">Member since {memberSince}</p>
               <span className="mt-3 inline-flex rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
-                Attendee
+                {accountType}
               </span>
             </div>
           </section>
@@ -162,8 +250,10 @@ const AttendeeProfile = () => {
                   <input
                     className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
                     id="username"
+                    name="username"
                     type="text"
-                    defaultValue="attendee_user"
+                    value={profileForm.username}
+                    onChange={handleProfileInputChange}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -173,8 +263,10 @@ const AttendeeProfile = () => {
                   <input
                     className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
                     id="email"
+                    name="email"
                     type="email"
-                    defaultValue="attendee@example.com"
+                    value={profileForm.email}
+                    onChange={handleProfileInputChange}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -184,8 +276,10 @@ const AttendeeProfile = () => {
                   <input
                     className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
                     id="phone"
+                    name="phone"
                     type="tel"
-                    defaultValue="+977 9812345678"
+                    value={profileForm.phone}
+                    onChange={handleProfileInputChange}
                     placeholder="+977 9812345678"
                   />
                 </div>
@@ -197,8 +291,9 @@ const AttendeeProfile = () => {
                     className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
                     id="joined"
                     type="text"
-                    defaultValue="February 1, 2026"
+                    value={memberSince}
                     disabled
+                    readOnly
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -209,8 +304,9 @@ const AttendeeProfile = () => {
                     className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
                     id="role"
                     type="text"
-                    defaultValue="Attendee"
+                    value={accountType}
                     disabled
+                    readOnly
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -221,23 +317,34 @@ const AttendeeProfile = () => {
                     className="rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] px-4 py-3 text-sm text-[#312E81]"
                     id="status"
                     type="text"
-                    defaultValue="Active"
+                    value={accountStatus}
                     disabled
+                    readOnly
                   />
                 </div>
               </div>
+              {profileError ? (
+                <p className="mt-4 text-sm font-semibold text-[#EF4444]">{profileError}</p>
+              ) : null}
+              {profileMessage ? (
+                <p className="mt-4 text-sm font-semibold text-[#059669]">{profileMessage}</p>
+              ) : null}
               <div className="mt-6 flex flex-col gap-4 md:flex-row">
                 <button
                   className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
                   type="button"
+                  onClick={handleCancelProfileChanges}
+                  disabled={savingProfile}
                 >
                   Cancel
                 </button>
                 <button
-                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:bg-[#A78BFA]"
                   type="button"
+                  onClick={handleSaveProfileChanges}
+                  disabled={savingProfile}
                 >
-                  Save Changes
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
