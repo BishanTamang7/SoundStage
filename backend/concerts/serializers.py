@@ -1,5 +1,7 @@
 import json
+from decimal import Decimal
 from rest_framework import serializers
+from django.db.models import Count, Prefetch
 from django.utils.datastructures import MultiValueDict
 from .models import Concert, TicketCategory, Ticket
 
@@ -8,10 +10,30 @@ class TicketCategorySerializer(serializers.ModelSerializer):
     """Serializer for ticket categories - MVP"""
 
     id = serializers.UUIDField(required=False)
+    sold = serializers.SerializerMethodField()
+    remaining = serializers.IntegerField(source='quantity', read_only=True)
+    capacity = serializers.SerializerMethodField()
+    revenue = serializers.SerializerMethodField()
 
     class Meta:
         model = TicketCategory
-        fields = ['id', 'name', 'price', 'quantity']
+        fields = ['id', 'name', 'price', 'quantity', 'remaining', 'sold', 'capacity', 'revenue']
+
+    def _get_sold_count(self, obj):
+        annotated_count = getattr(obj, 'sold_count', None)
+        if annotated_count is not None:
+            return int(annotated_count)
+        return obj.tickets.count()
+
+    def get_sold(self, obj):
+        return self._get_sold_count(obj)
+
+    def get_capacity(self, obj):
+        return int(obj.quantity) + self._get_sold_count(obj)
+
+    def get_revenue(self, obj):
+        sold = self._get_sold_count(obj)
+        return Decimal(obj.price) * sold
 
 
 class ConcertCreateSerializer(serializers.ModelSerializer):
@@ -201,6 +223,16 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
                     category.delete()
 
         return instance
+
+    @staticmethod
+    def setup_eager_loading(queryset):
+        """Avoid N+1 queries when serializing ticket category sales metrics."""
+        return queryset.prefetch_related(
+            Prefetch(
+                'ticket_categories',
+                queryset=TicketCategory.objects.annotate(sold_count=Count('tickets')),
+            )
+        )
 
 
 class TicketSerializer(serializers.ModelSerializer):

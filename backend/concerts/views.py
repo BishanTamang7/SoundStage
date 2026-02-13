@@ -27,6 +27,12 @@ class ConcertViewSet(viewsets.ModelViewSet):
     """ViewSet for Concert CRUD operations - MVP"""
     
     queryset = Concert.objects.all()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action in ['retrieve', 'my_events']:
+            return ConcertDetailSerializer.setup_eager_loading(queryset)
+        return queryset
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -140,8 +146,8 @@ class ConcertViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated, IsOrganizer])
     def my_events(self, request):
         """Get concerts created by the organizer"""
-        queryset = Concert.objects.filter(organizer=request.user)
-        serializer = ConcertListSerializer(queryset, many=True)
+        queryset = self.get_queryset().filter(organizer=request.user)
+        serializer = ConcertDetailSerializer(queryset, many=True)
         
         return Response({
             'success': True,
