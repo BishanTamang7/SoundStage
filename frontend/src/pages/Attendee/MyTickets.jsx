@@ -69,6 +69,26 @@ const MyTickets = () => {
     await logout()
   }
 
+  const handleDownloadQr = async (qrUrl, fileName) => {
+    try {
+      const response = await fetch(qrUrl)
+      if (!response.ok) {
+        throw new Error('Failed to download QR image.')
+      }
+      const blob = await response.blob()
+      const objectUrl = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = fileName
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(objectUrl)
+    } catch {
+      window.open(qrUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
       <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white/95 px-[5%] backdrop-blur">
@@ -155,6 +175,7 @@ const MyTickets = () => {
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
                     qrData
                   )}`
+                  const fileName = `soundstage-ticket-${ticket.id}.png`
                   return (
                     <article
                       key={ticket.id}
@@ -170,6 +191,13 @@ const MyTickets = () => {
                       <div className="mt-5 flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                         <img src={qrUrl} alt="Ticket QR code" className="h-44 w-44 rounded-lg bg-white p-1" />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadQr(qrUrl, fileName)}
+                        className="mt-3 inline-flex rounded-lg border border-[#7C3AED] px-3 py-2 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+                      >
+                        Download QR
+                      </button>
                       <p className="mt-3 break-all font-mono text-xs text-[#6B7280]">{ticket.qr_token}</p>
                     </article>
                   )
