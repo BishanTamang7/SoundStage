@@ -111,12 +111,6 @@ const MyConcerts = () => {
           </Link>
           <Link
             className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-            to="/organizer/scan-qr"
-          >
-            Scan QR
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
             to="/organizer/analytics"
           >
             Analytics

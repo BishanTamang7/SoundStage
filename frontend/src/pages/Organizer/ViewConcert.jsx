@@ -99,12 +99,6 @@ const ViewConcert = () => {
             Tickets
           </Link>
           <Link
-            to="/organizer/scan-qr"
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-          >
-            Scan QR
-          </Link>
-          <Link
             to="/organizer/analytics"
             className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
           >
