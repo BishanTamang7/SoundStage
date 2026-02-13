@@ -9,10 +9,6 @@ const ViewConcert = () => {
   const [concert, setConcert] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [qrToken, setQrToken] = useState("");
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyError, setVerifyError] = useState("");
-  const [verifyResult, setVerifyResult] = useState(null);
 
   const displayName = user?.username || user?.email || "User";
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -75,26 +71,6 @@ const ViewConcert = () => {
     if (!concert?.ticket_categories) return [];
     return Array.isArray(concert.ticket_categories) ? concert.ticket_categories : [];
   }, [concert]);
-
-  const handleVerifyTicket = async () => {
-    if (!tokens?.access) return;
-    if (!qrToken.trim()) {
-      setVerifyError("Please enter a QR token.");
-      return;
-    }
-
-    try {
-      setVerifyLoading(true);
-      setVerifyError("");
-      setVerifyResult(null);
-      const response = await api.verifyTicket(tokens.access, { qr_token: qrToken.trim() });
-      setVerifyResult(response);
-    } catch (err) {
-      setVerifyError(err?.message || "Failed to verify ticket.");
-    } finally {
-      setVerifyLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
@@ -289,47 +265,6 @@ const ViewConcert = () => {
               )}
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-4 text-xl font-black text-[#312E81]">Scan / Verify QR</h2>
-              <p className="mb-4 text-sm font-semibold text-[#6B7280]">
-                Paste the attendee QR token to validate entry for this concert.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="text"
-                  value={qrToken}
-                  onChange={(event) => setQrToken(event.target.value)}
-                  placeholder="Enter QR token"
-                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                />
-                <button
-                  type="button"
-                  onClick={handleVerifyTicket}
-                  disabled={verifyLoading}
-                  className="rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {verifyLoading ? "Verifying..." : "Verify"}
-                </button>
-              </div>
-
-              {verifyError ? (
-                <div className="mt-4 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
-                  {verifyError}
-                </div>
-              ) : null}
-
-              {verifyResult ? (
-                <div className="mt-4 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">
-                  <p>{verifyResult?.message || "Ticket validated."}</p>
-                  <p className="mt-1 text-xs font-medium text-[#166534]">
-                    Attendee: {verifyResult?.data?.attendee_name || "-"} ({verifyResult?.data?.attendee_email || "-"})
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-[#166534]">
-                    Ticket: {verifyResult?.data?.ticket_type || "-"} #{verifyResult?.data?.seat_number || "-"}
-                  </p>
-                </div>
-              ) : null}
-            </section>
           </>
         )}
       </main>
