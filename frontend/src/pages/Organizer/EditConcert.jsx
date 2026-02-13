@@ -7,7 +7,7 @@ const EditConcert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { tokens, user, role } = useAuth();
-  const [tickets, setTickets] = useState([{ name: "", price: "", quantity: "" }]);
+  const [tickets, setTickets] = useState([{ id: "", name: "", price: "", quantity: "" }]);
   const [formState, setFormState] = useState({
     title: "",
     description: "",
@@ -49,7 +49,7 @@ const EditConcert = () => {
   };
 
   const addTicket = () => {
-    setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
+    setTickets((prev) => [...prev, { id: "", name: "", price: "", quantity: "" }]);
   };
 
   const removeTicket = (index) => {
@@ -189,11 +189,12 @@ const EditConcert = () => {
           setTickets(
             ticketList.length > 0
               ? ticketList.map((ticket) => ({
+                  id: ticket?.id || "",
                   name: ticket?.name || "",
                   price: ticket?.price ?? "",
                   quantity: ticket?.quantity ?? "",
                 }))
-              : [{ name: "", price: "", quantity: "" }]
+              : [{ id: "", name: "", price: "", quantity: "" }]
           );
         }
       } catch (error) {
@@ -221,11 +222,17 @@ const EditConcert = () => {
       return;
     }
 
-    const normalizedTicketCategories = tickets.map((ticket) => ({
-      name: ticket.name,
-      price: parseFloat(ticket.price || 0),
-      quantity: parseInt(ticket.quantity || 0, 10),
-    }));
+    const normalizedTicketCategories = tickets.map((ticket) => {
+      const normalized = {
+        name: ticket.name,
+        price: parseFloat(ticket.price || 0),
+        quantity: parseInt(ticket.quantity || 0, 10),
+      };
+      if (ticket.id) {
+        normalized.id = ticket.id;
+      }
+      return normalized;
+    });
 
     const basePayload = {
       title: formState.title,
