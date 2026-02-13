@@ -92,15 +92,30 @@ const ViewConcert = () => {
           >
             My Concerts
           </Link>
-          {["Tickets", "Scan QR", "Analytics", "Settings"].map((item) => (
-            <a
-              key={item}
-              className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-              href="#"
-            >
-              {item}
-            </a>
-          ))}
+          <Link
+            to="/organizer/tickets"
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+          >
+            Tickets
+          </Link>
+          <Link
+            to="/organizer/scan-qr"
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+          >
+            Scan QR
+          </Link>
+          <Link
+            to="/organizer/analytics"
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+          >
+            Analytics
+          </Link>
+          <Link
+            to="/organizer/settings"
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+          >
+            Settings
+          </Link>
         </nav>
 
         <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-lg border border-[rgba(124,58,237,0.12)] bg-[#F3F4F6] p-3">

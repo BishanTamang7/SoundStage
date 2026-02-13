@@ -103,15 +103,30 @@ const MyConcerts = () => {
           >
             My Concerts
           </Link>
-          {['Tickets', 'Scan QR', 'Analytics', 'Settings'].map((item) => (
-            <a
-              key={item}
-              className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
-              href="#"
-            >
-              {item}
-            </a>
-          ))}
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+            to="/organizer/tickets"
+          >
+            Tickets
+          </Link>
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+            to="/organizer/scan-qr"
+          >
+            Scan QR
+          </Link>
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+            to="/organizer/analytics"
+          >
+            Analytics
+          </Link>
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#7C3AED]"
+            to="/organizer/settings"
+          >
+            Settings
+          </Link>
         </nav>
 
         <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-lg border border-[rgba(124,58,237,0.12)] bg-[#F3F4F6] p-3">

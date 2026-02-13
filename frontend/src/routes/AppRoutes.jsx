@@ -11,6 +11,10 @@ import MyConcerts from '../pages/Organizer/MyConcerts'
 import CreateConcert from '../pages/Organizer/CreateConcert'
 import ViewConcert from '../pages/Organizer/ViewConcert'
 import EditConcert from '../pages/Organizer/EditConcert'
+import Tickets from '../pages/Organizer/Tickets'
+import ScanQR from '../pages/Organizer/ScanQR'
+import Analytics from '../pages/Organizer/Analytics'
+import Settings from '../pages/Organizer/Settings'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import BrowseConcerts from '../pages/Attendee/BrowseConcerts'
 import Checkout from '../pages/Attendee/Checkout'
@@ -40,6 +44,10 @@ const AppRoutes = () => {
           <Route path="/organizer/concerts/new" element={<CreateConcert />} />
           <Route path="/organizer/concerts/:id/edit" element={<EditConcert />} />
           <Route path="/organizer/concerts/:id" element={<ViewConcert />} />
+          <Route path="/organizer/tickets" element={<Tickets />} />
+          <Route path="/organizer/scan-qr" element={<ScanQR />} />
+          <Route path="/organizer/analytics" element={<Analytics />} />
+          <Route path="/organizer/settings" element={<Settings />} />
         </Route>
         <Route element={<RoleRoute allowedRoles={[ROLES.ATTENDEE]} />}>
           <Route path="/attendee" element={<AttendeeHome />} />
