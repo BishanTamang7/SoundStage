@@ -17,6 +17,7 @@ urlpatterns = [
     path('payments/khalti/confirm/', views.khalti_confirm, name='khalti-confirm'),
     # Tickets
     path('tickets/my/', views.my_tickets, name='my-tickets'),
+    path('tickets/organizer/bookings/', views.organizer_bookings, name='organizer-bookings'),
     path('tickets/<uuid:ticket_id>/', views.delete_my_ticket, name='delete-my-ticket'),
     path('tickets/verify/', views.verify_ticket, name='verify-ticket'),
 ]

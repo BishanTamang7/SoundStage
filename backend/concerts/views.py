@@ -18,6 +18,7 @@ from .serializers import (
     ConcertListSerializer,
     ConcertDetailSerializer,
     TicketSerializer,
+    OrganizerBookingSerializer,
 )
 # Import permissions from accounts app (already exists there)
 from accounts.permissions import IsOrganizer, IsAttendee
@@ -416,6 +417,18 @@ def my_tickets(request):
     )
     serializer = TicketSerializer(queryset, many=True)
     return Response({'success': True, 'data': {'tickets': serializer.data}}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsOrganizer])
+def organizer_bookings(request):
+    queryset = (
+        PaymentTransaction.objects.select_related('attendee', 'concert', 'ticket_category')
+        .filter(concert__organizer=request.user, status='Completed', tickets_issued=True)
+        .order_by('-created_at')
+    )
+    serializer = OrganizerBookingSerializer(queryset, many=True)
+    return Response({'success': True, 'data': {'bookings': serializer.data}}, status=status.HTTP_200_OK)
 
 
 @api_view(['DELETE'])

@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from django.db.models import Count, Prefetch
 from django.utils.datastructures import MultiValueDict
-from .models import Concert, TicketCategory, Ticket
+from .models import Concert, TicketCategory, Ticket, PaymentTransaction
 
 
 class TicketCategorySerializer(serializers.ModelSerializer):
@@ -257,3 +257,32 @@ class TicketSerializer(serializers.ModelSerializer):
             'used_at',
             'created_at',
         ]
+
+
+class OrganizerBookingSerializer(serializers.ModelSerializer):
+    attendee_name = serializers.SerializerMethodField()
+    attendee_email = serializers.EmailField(source='attendee.email', read_only=True)
+    concert_title = serializers.CharField(source='concert.title', read_only=True)
+    ticket_type = serializers.CharField(source='ticket_category.name', read_only=True)
+    amount_rupees = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PaymentTransaction
+        fields = [
+            'id',
+            'attendee_name',
+            'attendee_email',
+            'concert_title',
+            'ticket_type',
+            'quantity',
+            'amount_rupees',
+            'created_at',
+        ]
+
+    def get_attendee_name(self, obj):
+        if obj.attendee:
+            return obj.attendee.get_full_name() or obj.attendee.username or obj.attendee.email
+        return 'Customer'
+
+    def get_amount_rupees(self, obj):
+        return Decimal(obj.amount_paisa) / Decimal('100')
