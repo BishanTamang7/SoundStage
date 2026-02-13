@@ -30,7 +30,7 @@ const OrganizerHome = () => {
   const [organizerConcerts, setOrganizerConcerts] = useState([])
   const [dashboardStats, setDashboardStats] = useState({
     totalConcerts: 0,
-    ticketsSold: 0,
+    upcomingEvents: 0,
     totalRevenue: 0,
     attendees: 0,
   })
@@ -57,7 +57,7 @@ const OrganizerHome = () => {
           setOrganizerConcerts([])
           setDashboardStats({
             totalConcerts: 0,
-            ticketsSold: 0,
+            upcomingEvents: 0,
             totalRevenue: 0,
             attendees: 0,
           })
@@ -76,18 +76,10 @@ const OrganizerHome = () => {
         const list = concertsData?.data?.concerts || concertsData?.concerts || []
         const concerts = Array.isArray(list) ? list : []
 
-        const ticketsSold = concerts.reduce((concertSum, concert) => {
-          const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
-          return (
-            concertSum +
-            categories.reduce((categorySum, category) => {
-              const sold = parseNumber(
-                category?.sold ?? category?.sold_quantity ?? category?.tickets_sold
-              )
-              return categorySum + sold
-            }, 0)
-          )
-        }, 0)
+        const upcomingEvents = concerts.filter((concert) => {
+          const date = new Date(concert?.date_time)
+          return !Number.isNaN(date.getTime()) && date.getTime() >= Date.now()
+        }).length
 
         const totalRevenue = concerts.reduce((concertSum, concert) => {
           const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
@@ -121,7 +113,7 @@ const OrganizerHome = () => {
 
           setDashboardStats({
             totalConcerts: concerts.length,
-            ticketsSold,
+            upcomingEvents,
             totalRevenue,
             attendees: uniqueAttendees,
           })
@@ -132,7 +124,7 @@ const OrganizerHome = () => {
           setOrganizerConcerts([])
           setDashboardStats({
             totalConcerts: 0,
-            ticketsSold: 0,
+            upcomingEvents: 0,
             totalRevenue: 0,
             attendees: 0,
           })
@@ -273,9 +265,9 @@ const OrganizerHome = () => {
         <section className="mb-8 grid grid-cols-1 gap-6 min-[1024px]:grid-cols-2 min-[1280px]:grid-cols-4">
           {[
             { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
-            { label: 'Tickets Sold', value: dashboardStats.ticketsSold.toLocaleString('en-US') },
+            { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toLocaleString('en-US') },
             { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
-            { label: 'Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
+            { label: 'Unique Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-[#E5E7EB] bg-white p-5">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">

@@ -129,16 +129,16 @@ const Bookings = () => {
   }, [bookingRows, search, dateRange])
 
   const stats = useMemo(() => {
-    const totalBookings = bookingRows.reduce((sum, row) => sum + row.quantity, 0)
+    const totalTransactions = bookingRows.length
+    const ticketsBooked = bookingRows.reduce((sum, row) => sum + row.quantity, 0)
     const totalRevenue = bookingRows.reduce((sum, row) => sum + row.revenue, 0)
-    const eventsWithBookings = new Set(bookingRows.map((row) => row.concertTitle)).size
-    const averageBookingValue = bookingRows.length > 0 ? totalRevenue / bookingRows.length : 0
+    const averageOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
 
     return {
-      totalBookings,
+      totalTransactions,
+      ticketsBooked,
       totalRevenue,
-      eventsWithBookings,
-      averageBookingValue,
+      averageOrderValue,
     }
   }, [bookingRows])
 
@@ -205,20 +205,20 @@ const Bookings = () => {
 
         <section className="mb-6 grid grid-cols-1 gap-4 min-[900px]:grid-cols-4">
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Bookings</div>
-            <div className="mt-2 text-3xl font-black text-[#312E81]">{stats.totalBookings.toLocaleString('en-US')}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Transactions</div>
+            <div className="mt-2 text-3xl font-black text-[#312E81]">{stats.totalTransactions.toLocaleString('en-US')}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Concerts Booked</div>
-            <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.eventsWithBookings}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Booked</div>
+            <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.ticketsBooked.toLocaleString('en-US')}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
             <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Revenue</div>
             <div className="mt-2 text-3xl font-black text-[#7C3AED]">{formatCurrency(stats.totalRevenue)}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Avg Ticket Value</div>
-            <div className="mt-2 text-3xl font-black text-[#D97706]">{formatCurrency(stats.averageBookingValue)}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Avg Order Value</div>
+            <div className="mt-2 text-3xl font-black text-[#D97706]">{formatCurrency(stats.averageOrderValue)}</div>
           </div>
         </section>
 

@@ -182,15 +182,17 @@ const Tickets = () => {
         .map((row) => row.ticketType?.trim().toLowerCase())
         .filter((value) => value && value !== 'no ticket category')
     ).size
-    const totalSold = allTicketRows.reduce((sum, row) => sum + (row.sold || 0), 0)
+    const totalCapacity = allTicketRows.reduce((sum, row) => sum + row.capacity, 0)
     const totalRemaining = allTicketRows.reduce((sum, row) => sum + row.remaining, 0)
-    const totalRevenue = allTicketRows.reduce((sum, row) => sum + (row.revenue || 0), 0)
+    const lowStockAlerts = allTicketRows.filter(
+      (row) => row.status === 'Low Stock' || row.status === 'Sold Out'
+    ).length
 
     return {
       totalTypes,
-      totalSold,
+      totalCapacity,
       totalRemaining,
-      totalRevenue,
+      lowStockAlerts,
     }
   }, [allTicketRows])
 
@@ -280,16 +282,16 @@ const Tickets = () => {
             <div className="mt-2 text-3xl font-black text-[#312E81]">{stats.totalTypes}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
-            <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.totalSold}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Capacity</div>
+            <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.totalCapacity}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining Stock</div>
             <div className="mt-2 text-3xl font-black text-[#D97706]">{stats.totalRemaining}</div>
           </div>
           <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
-            <div className="mt-2 text-3xl font-black text-[#7C3AED]">{formatCurrency(stats.totalRevenue)}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Low Stock Alerts</div>
+            <div className="mt-2 text-3xl font-black text-[#7C3AED]">{stats.lowStockAlerts}</div>
           </div>
         </section>
 
