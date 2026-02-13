@@ -240,7 +240,7 @@ const MyTickets = () => {
       </main>
 
       {ticketToDelete ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
             <h3 className="text-lg font-black text-[#312E81]">Delete Ticket?</h3>
             <p className="mt-2 text-sm font-medium text-[#6B7280]">

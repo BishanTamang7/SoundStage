@@ -270,7 +270,7 @@ const AttendeeProfile = () => {
 
           <section className="mb-8 flex flex-col gap-6 rounded-2xl border border-[#E5E7EB] bg-white p-8 md:flex-row md:items-center">
             <div className="flex flex-col items-center gap-4 md:w-60">
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
                 {initials}
               </div>
               <button
