@@ -9,7 +9,7 @@ const KhaltiCallback = () => {
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [lookupData, setLookupData] = useState(null)
+  const [confirmData, setConfirmData] = useState(null)
 
   const pidx = searchParams.get('pidx') || ''
   const redirectStatus = searchParams.get('status') || ''
@@ -37,13 +37,13 @@ const KhaltiCallback = () => {
       try {
         setLoading(true)
         setError('')
-        const response = await api.khaltiLookup(tokens?.access, { pidx })
+        const response = await api.khaltiConfirm(tokens?.access, { pidx })
         if (isActive) {
-          setLookupData(response?.data || null)
+          setConfirmData(response?.data || null)
         }
       } catch (err) {
         if (isActive) {
-          setError(err?.message || 'Payment verification failed.')
+          setError(err?.message || 'Payment confirmation failed.')
         }
       } finally {
         if (isActive) setLoading(false)
@@ -58,16 +58,17 @@ const KhaltiCallback = () => {
   }, [isCanceledRedirect, navigate, pidx, tokens?.access])
 
   useEffect(() => {
-    const normalizedLookupStatus = String(lookupData?.status || '')
+    const normalizedLookupStatus = String(confirmData?.status || '')
       .trim()
       .toLowerCase()
     if (normalizedLookupStatus.includes('cancel') || normalizedLookupStatus.includes('abandon')) {
       navigate('/attendee/concerts', { replace: true })
     }
-  }, [lookupData?.status, navigate])
+  }, [confirmData?.status, navigate])
 
-  const statusText = lookupData?.status || redirectStatus || 'Unknown'
+  const statusText = confirmData?.status || redirectStatus || 'Unknown'
   const isSuccess = statusText === 'Completed'
+  const issuedCount = Array.isArray(confirmData?.tickets) ? confirmData.tickets.length : 0
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] px-[5%] py-14 text-[#312E81]">
@@ -75,7 +76,7 @@ const KhaltiCallback = () => {
         <h1 className="text-2xl font-black text-[#2C2E83]">Khalti Payment Status</h1>
 
         {loading ? (
-          <p className="mt-4 text-sm font-semibold text-[#6B7280]">Verifying payment with Khalti...</p>
+          <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
         ) : error ? (
           <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{error}</p>
         ) : (
@@ -86,15 +87,11 @@ const KhaltiCallback = () => {
             </div>
             <div className="flex items-center justify-between">
               <span>PIDX</span>
-              <span className="font-mono text-xs">{lookupData?.pidx || pidx}</span>
+              <span className="font-mono text-xs">{pidx}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Total Amount (paisa)</span>
-              <span>{lookupData?.total_amount ?? '-'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Transaction ID</span>
-              <span className="font-mono text-xs">{lookupData?.transaction_id || '-'}</span>
+              <span>Issued Tickets</span>
+              <span>{issuedCount}</span>
             </div>
           </div>
         )}

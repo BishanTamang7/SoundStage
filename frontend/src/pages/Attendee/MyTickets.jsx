@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { api } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const getInitials = (name) => {
@@ -11,9 +12,12 @@ const getInitials = (name) => {
 }
 
 const MyTickets = () => {
-  const { user, logout, role, isAuthenticated } = useAuth()
+  const { user, logout, role, isAuthenticated, tokens } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [tickets, setTickets] = useState([])
   const menuRef = useRef(null)
 
   const initialsSource = user?.name || user?.username || user?.email || ''
@@ -30,6 +34,35 @@ const MyTickets = () => {
     window.addEventListener('click', handleClick)
     return () => window.removeEventListener('click', handleClick)
   }, [])
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadTickets = async () => {
+      if (!tokens?.access) {
+        if (isActive) setLoading(false)
+        return
+      }
+      try {
+        setLoading(true)
+        setError('')
+        const response = await api.myTickets(tokens.access)
+        if (isActive) {
+          setTickets(response?.data?.tickets || [])
+        }
+      } catch (err) {
+        if (isActive) setError(err?.message || 'Failed to load tickets.')
+      } finally {
+        if (isActive) setLoading(false)
+      }
+    }
+
+    loadTickets()
+
+    return () => {
+      isActive = false
+    }
+  }, [tokens?.access])
 
   const handleLogout = async () => {
     navigate('/', { replace: true })
@@ -98,14 +131,51 @@ const MyTickets = () => {
 
       <main className="flex-1 pt-24">
         <section className="px-[5%] py-16">
-          <div className="mx-auto flex min-h-[40vh] max-w-3xl flex-col items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white px-6 py-14 text-center shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
-            <div className="mb-4 text-5xl">🎫</div>
-            <h1 className="font-['Playfair_Display'] text-4xl font-black text-[#312E81]">
-              Coming Soon
-            </h1>
-            <p className="mt-3 text-base font-medium text-[#6B7280]">
-              Your tickets and entry QR codes will show up here soon.
-            </p>
+          <div className="mx-auto max-w-5xl">
+            {loading ? (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-14 text-center text-sm font-semibold text-[#6B7280] shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
+                Loading your tickets...
+              </div>
+            ) : error ? (
+              <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+                {error}
+              </div>
+            ) : tickets.length === 0 ? (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-14 text-center shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
+                <div className="mb-4 text-5xl">🎫</div>
+                <h1 className="font-['Playfair_Display'] text-4xl font-black text-[#312E81]">No Tickets Yet</h1>
+                <p className="mt-3 text-base font-medium text-[#6B7280]">
+                  Complete a payment and your QR tickets will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                {tickets.map((ticket) => {
+                  const qrData = `SOUNDSTAGE:${ticket.qr_token}`
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                    qrData
+                  )}`
+                  return (
+                    <article
+                      key={ticket.id}
+                      className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(49,46,129,0.08)]"
+                    >
+                      <h2 className="text-lg font-black text-[#312E81]">{ticket.concert_title}</h2>
+                      <div className="mt-2 space-y-1 text-sm font-semibold text-[#6B7280]">
+                        <p>Type: {ticket.ticket_type}</p>
+                        <p>Seat: #{ticket.seat_number}</p>
+                        <p>Venue: {ticket.concert_venue}</p>
+                        <p>Status: {ticket.is_used ? 'Used' : 'Valid'}</p>
+                      </div>
+                      <div className="mt-5 flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                        <img src={qrUrl} alt="Ticket QR code" className="h-44 w-44 rounded-lg bg-white p-1" />
+                      </div>
+                      <p className="mt-3 break-all font-mono text-xs text-[#6B7280]">{ticket.qr_token}</p>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </section>
       </main>

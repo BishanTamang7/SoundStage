@@ -273,4 +273,34 @@ export const api = {
       handleError(error)
     }
   },
+  khaltiConfirm: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/concerts/payments/khalti/confirm/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  myTickets: async (token) => {
+    try {
+      const { data } = await apiClient.get('/concerts/tickets/my/', {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  verifyTicket: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/concerts/tickets/verify/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
 }
