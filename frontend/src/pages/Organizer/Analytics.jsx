@@ -204,7 +204,7 @@ const Analytics = () => {
             </section>
 
             <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
-              <h2 className="mb-4 text-lg font-black text-[#312E81]">Revenue by Event</h2>
+              <h2 className="mb-4 text-lg font-black text-[#312E81]">Revenue by Concert</h2>
               {topEvents.length === 0 ? (
                 <div className="text-sm font-semibold text-[#6B7280]">No graph data available yet.</div>
               ) : (
@@ -229,7 +229,7 @@ const Analytics = () => {
             </section>
 
             <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
-              <h2 className="mb-4 text-lg font-black text-[#312E81]">Tickets Sold by Event</h2>
+              <h2 className="mb-4 text-lg font-black text-[#312E81]">Tickets Sold by Concert</h2>
               {topEvents.length === 0 ? (
                 <div className="text-sm font-semibold text-[#6B7280]">No ticket volume data available yet.</div>
               ) : (
@@ -254,17 +254,17 @@ const Analytics = () => {
               <h2 className="mb-4 text-lg font-black text-[#312E81]">Insights</h2>
               <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3">
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event</div>
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert</div>
                   <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent?.title || 'N/A'}</div>
                 </div>
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event Revenue</div>
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Revenue</div>
                   <div className="mt-2 text-sm font-extrabold text-[#7C3AED]">
                     {topEvent ? formatCurrency(topEvent.revenue) : 'Rs 0'}
                   </div>
                 </div>
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event Date</div>
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Date</div>
                   <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent ? formatDate(topEvent.date) : 'N/A'}</div>
                 </div>
               </div>
