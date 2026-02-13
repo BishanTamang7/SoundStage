@@ -31,7 +31,8 @@ const formatDate = (value) => {
 }
 
 const AttendeeProfile = () => {
-  const { user, logout, role, isAuthenticated, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { user, logout, role, isAuthenticated, updateProfile, changePassword, deleteAccount } =
+    useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
@@ -260,7 +261,7 @@ const AttendeeProfile = () => {
       </nav>
 
       <main className="flex-1 bg-[#FAFAFA] pt-24">
-        <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="mx-auto max-w-5xl px-6 pt-8 pb-12">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-black text-[#312E81]">My Profile</h1>
             <p className="mt-2 text-sm font-semibold text-[#6B7280]">
@@ -287,26 +288,6 @@ const AttendeeProfile = () => {
               <span className="mt-3 inline-flex rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
                 {accountType}
               </span>
-            </div>
-          </section>
-
-          <section className="mb-8 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-            <h3 className="border-b-2 border-[#E5E7EB] pb-3 text-lg font-black text-[#312E81]">
-              My Activity
-            </h3>
-            <div className="mt-6 grid gap-6 md:grid-cols-3">
-              <div className="text-center">
-                <div className="text-3xl font-black text-[#7C3AED]">12</div>
-                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Concerts Attended</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-black text-[#7C3AED]">5</div>
-                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Upcoming Events</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-black text-[#7C3AED]">17</div>
-                <div className="mt-1 text-sm font-semibold text-[#6B7280]">Total Tickets</div>
-              </div>
             </div>
           </section>
 
