@@ -9,14 +9,32 @@ const parseNumber = (value) => {
 }
 
 const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
+const formatDateTime = (value) => {
+  if (!value) return 'TBD'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'TBD'
+  const datePart = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
+  const timePart = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+  return `${datePart} • ${timePart}`
+}
 
 const OrganizerHome = () => {
   const { user, role, tokens } = useAuth()
+  const [organizerConcerts, setOrganizerConcerts] = useState([])
   const [dashboardStats, setDashboardStats] = useState({
     totalConcerts: 0,
     ticketsSold: 0,
     totalRevenue: 0,
+    attendees: 0,
   })
+  const [recentBookings, setRecentBookings] = useState([])
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -36,18 +54,26 @@ const OrganizerHome = () => {
     const loadDashboardStats = async () => {
       if (!tokens?.access) {
         if (isActive) {
+          setOrganizerConcerts([])
           setDashboardStats({
             totalConcerts: 0,
             ticketsSold: 0,
             totalRevenue: 0,
+            attendees: 0,
           })
+          setRecentBookings([])
         }
         return
       }
 
       try {
-        const data = await api.organizerConcerts(tokens.access)
-        const list = data?.data?.concerts || data?.concerts || []
+        const [concertsResult, bookingsResult] = await Promise.allSettled([
+          api.organizerConcerts(tokens.access),
+          api.organizerBookings(tokens.access),
+        ])
+        const concertsData =
+          concertsResult.status === 'fulfilled' ? concertsResult.value : { data: { concerts: [] } }
+        const list = concertsData?.data?.concerts || concertsData?.concerts || []
         const concerts = Array.isArray(list) ? list : []
 
         const ticketsSold = concerts.reduce((concertSum, concert) => {
@@ -79,19 +105,38 @@ const OrganizerHome = () => {
         }, 0)
 
         if (isActive) {
+          setOrganizerConcerts(concerts)
+          const bookingsData =
+            bookingsResult.status === 'fulfilled' ? bookingsResult.value : { data: { bookings: [] } }
+          const bookingList = bookingsData?.data?.bookings || bookingsData?.bookings || []
+          const normalizedBookings = Array.isArray(bookingList) ? bookingList : []
+          const uniqueAttendees = new Set(
+            normalizedBookings
+              .map((booking) => {
+                const email = booking?.attendee_email
+                return typeof email === 'string' ? email.trim().toLowerCase() : ''
+              })
+              .filter(Boolean)
+          ).size
+
           setDashboardStats({
             totalConcerts: concerts.length,
             ticketsSold,
             totalRevenue,
+            attendees: uniqueAttendees,
           })
+          setRecentBookings(normalizedBookings)
         }
       } catch {
         if (isActive) {
+          setOrganizerConcerts([])
           setDashboardStats({
             totalConcerts: 0,
             ticketsSold: 0,
             totalRevenue: 0,
+            attendees: 0,
           })
+          setRecentBookings([])
         }
       }
     }
@@ -102,6 +147,15 @@ const OrganizerHome = () => {
       isActive = false
     }
   }, [tokens?.access])
+
+  const now = Date.now()
+  const upcomingEvents = organizerConcerts
+    .filter((concert) => {
+      const date = new Date(concert?.date_time)
+      return !Number.isNaN(date.getTime()) && date.getTime() >= now
+    })
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
+    .slice(0, 3)
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -128,6 +182,12 @@ const OrganizerHome = () => {
             to="/organizer/tickets"
           >
             Tickets
+          </Link>
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+            to="/organizer/bookings"
+          >
+            Bookings
           </Link>
           <Link
             className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
@@ -185,7 +245,7 @@ const OrganizerHome = () => {
             { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
             { label: 'Tickets Sold', value: dashboardStats.ticketsSold.toLocaleString('en-US') },
             { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
-            { label: 'Attendees', value: '2,654' },
+            { label: 'Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-[#E5E7EB] bg-white p-5">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
@@ -199,69 +259,84 @@ const OrganizerHome = () => {
         <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-black text-[#312E81]">Upcoming Events</h3>
-            <a className="text-sm font-extrabold text-[#7C3AED]" href="#">
-              View All 
-            </a>
+            <Link className="text-sm font-extrabold text-[#7C3AED]" to="/organizer/concerts">
+              View All
+            </Link>
           </div>
 
-          {[
-            { name: 'Rock Night 2026', details: 'Feb 15, 2026  Kathmandu', status: 'Active' },
-            { name: 'Jazz Evening', details: 'Feb 22, 2026  Pokhara', status: 'Upcoming' },
-            { name: 'EDM Festival', details: 'Mar 5, 2026  Chitwan', status: 'Upcoming' },
-          ].map((event) => (
-            <div
-              key={event.name}
-              className="flex items-center justify-between border-b border-[#E5E7EB] py-4 last:border-b-0"
-            >
-              <div>
-                <div className="text-sm font-extrabold text-[#312E81]">{event.name}</div>
-                <div className="mt-1 text-xs font-semibold text-[#6B7280]">{event.details}</div>
-              </div>
-              <span
-                className={
-                  event.status === 'Active'
-                    ? 'rounded-md border border-[rgba(22,163,74,0.2)] bg-[#DCFCE7] px-3 py-1 text-xs font-extrabold text-[#16A34A]'
-                    : 'rounded-md border border-[rgba(217,119,6,0.2)] bg-[#FEF3C7] px-3 py-1 text-xs font-extrabold text-[#D97706]'
-                }
-              >
-                {event.status}
-              </span>
-            </div>
-          ))}
+          {upcomingEvents.length === 0 ? (
+            <div className="py-4 text-sm font-semibold text-[#6B7280]">No upcoming events.</div>
+          ) : (
+            upcomingEvents.map((event, index) => {
+              const status = index === 0 ? 'Active' : 'Upcoming'
+              return (
+                <div
+                  key={event.id || event.title}
+                  className="flex items-center justify-between border-b border-[#E5E7EB] py-4 last:border-b-0"
+                >
+                  <div>
+                    <div className="text-sm font-extrabold text-[#312E81]">{event.title || 'Untitled Event'}</div>
+                    <div className="mt-1 text-xs font-semibold text-[#6B7280]">
+                      {`${formatDateTime(event.date_time)} • ${event.venue || 'Venue TBD'}`}
+                    </div>
+                  </div>
+                  <span
+                    className={
+                      status === 'Active'
+                        ? 'rounded-md border border-[rgba(22,163,74,0.2)] bg-[#DCFCE7] px-3 py-1 text-xs font-extrabold text-[#16A34A]'
+                        : 'rounded-md border border-[rgba(217,119,6,0.2)] bg-[#FEF3C7] px-3 py-1 text-xs font-extrabold text-[#D97706]'
+                    }
+                  >
+                    {status}
+                  </span>
+                </div>
+              )
+            })
+          )}
         </section>
 
         <section className="rounded-lg border border-[#E5E7EB] bg-white p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-black text-[#312E81]">Recent Bookings</h3>
-            <a className="text-sm font-extrabold text-[#7C3AED]" href="#">
-              View All 
-            </a>
+            <Link className="text-sm font-extrabold text-[#7C3AED]" to="/organizer/bookings">
+              View All
+            </Link>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[#E5E7EB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
-                  <th className="py-3">Customer</th>
+                  <th className="py-3">Attendees</th>
                   <th className="py-3">Event</th>
                   <th className="py-3">Tickets</th>
                   <th className="py-3">Amount</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold text-[#312E81]">
-                {[
-                  { customer: 'Raj Kumar', event: 'Rock Night 2026', tickets: 'VIP x2', amount: 'Rs 2,000' },
-                  { customer: 'Sita Poudel', event: 'Jazz Evening', tickets: 'Regular x3', amount: 'Rs 1,500' },
-                  { customer: 'Amit Maharjan', event: 'Rock Night 2026', tickets: 'Student x1', amount: 'Rs 400' },
-                  { customer: 'Priya Shrestha', event: 'EDM Festival', tickets: 'VIP x1', amount: 'Rs 1,000' },
-                ].map((row) => (
-                  <tr key={row.customer} className="border-b border-[#E5E7EB] last:border-b-0">
-                    <td className="py-4">{row.customer}</td>
-                    <td className="py-4">{row.event}</td>
-                    <td className="py-4">{row.tickets}</td>
-                    <td className="py-4 font-black text-[#7C3AED]">{row.amount}</td>
+                {recentBookings.length === 0 ? (
+                  <tr>
+                    <td className="py-4 text-[#6B7280]" colSpan={4}>
+                      No recent bookings yet.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  recentBookings.slice(0, 5).map((row) => (
+                    <tr key={row.id} className="border-b border-[#E5E7EB] last:border-b-0">
+                      <td className="py-4">{row.attendee_name || row.attendee_email || 'Customer'}</td>
+                      <td className="py-4">
+                        <div>{row.concert_title || 'Concert'}</div>
+                        <div className="mt-1 text-xs font-semibold text-[#6B7280]">
+                          {formatDateTime(row.created_at)}
+                        </div>
+                      </td>
+                      <td className="py-4">{`${row.ticket_type || 'Ticket'} x${parseNumber(row.quantity || 0)}`}</td>
+                      <td className="py-4 font-black text-[#7C3AED]">
+                        {formatCurrency(parseNumber(row.amount_rupees || 0))}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

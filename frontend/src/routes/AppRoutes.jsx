@@ -12,6 +12,7 @@ import CreateConcert from '../pages/Organizer/CreateConcert'
 import ViewConcert from '../pages/Organizer/ViewConcert'
 import EditConcert from '../pages/Organizer/EditConcert'
 import Tickets from '../pages/Organizer/Tickets'
+import Bookings from '../pages/Organizer/Bookings'
 import Analytics from '../pages/Organizer/Analytics'
 import Settings from '../pages/Organizer/Settings'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
@@ -44,6 +45,7 @@ const AppRoutes = () => {
           <Route path="/organizer/concerts/:id/edit" element={<EditConcert />} />
           <Route path="/organizer/concerts/:id" element={<ViewConcert />} />
           <Route path="/organizer/tickets" element={<Tickets />} />
+          <Route path="/organizer/bookings" element={<Bookings />} />
           <Route path="/organizer/analytics" element={<Analytics />} />
           <Route path="/organizer/settings" element={<Settings />} />
         </Route>

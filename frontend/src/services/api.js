@@ -293,6 +293,16 @@ export const api = {
       handleError(error)
     }
   },
+  organizerBookings: async (token) => {
+    try {
+      const { data } = await apiClient.get('/concerts/tickets/organizer/bookings/', {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   deleteMyTicket: async (token, ticketId) => {
     try {
       const { data } = await apiClient.delete(`/concerts/tickets/${ticketId}/`, {
