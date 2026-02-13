@@ -6,11 +6,12 @@ from .models import Concert, TicketCategory, Ticket
 
 class TicketCategorySerializer(serializers.ModelSerializer):
     """Serializer for ticket categories - MVP"""
-    
+
+    id = serializers.UUIDField(required=False)
+
     class Meta:
         model = TicketCategory
         fields = ['id', 'name', 'price', 'quantity']
-        read_only_fields = ['id']
 
 
 class ConcertCreateSerializer(serializers.ModelSerializer):
@@ -92,6 +93,8 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
         
         # Create ticket categories
         for category_data in ticket_categories_data:
+            category_data = dict(category_data)
+            category_data.pop('id', None)
             TicketCategory.objects.create(concert=concert, **category_data)
         
         return concert
@@ -142,24 +145,25 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
         return super().to_internal_value(mutable_data)
 
     def update(self, instance, validated_data):
-        ticket_categories_data = validated_data.pop('ticket_categories', None)
-        if ticket_categories_data is None:
-            raw_categories = None
-            if hasattr(self, 'initial_data'):
-                raw_categories = self.initial_data.get('ticket_categories')
-            if raw_categories is None:
-                request = self.context.get('request')
-                if request is not None:
-                    raw_categories = request.data.get('ticket_categories')
-            if isinstance(raw_categories, str):
-                try:
-                    ticket_categories_data = json.loads(raw_categories)
-                except json.JSONDecodeError:
-                    raise serializers.ValidationError(
-                        {'ticket_categories': 'Invalid ticket_categories payload.'}
-                    )
-            elif raw_categories is not None:
-                ticket_categories_data = raw_categories
+        validated_ticket_categories = validated_data.pop('ticket_categories', None)
+        raw_categories = None
+        if hasattr(self, 'initial_data'):
+            raw_categories = self.initial_data.get('ticket_categories')
+        if raw_categories is None:
+            request = self.context.get('request')
+            if request is not None:
+                raw_categories = request.data.get('ticket_categories')
+
+        ticket_categories_data = validated_ticket_categories
+        if isinstance(raw_categories, str):
+            try:
+                ticket_categories_data = json.loads(raw_categories)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError(
+                    {'ticket_categories': 'Invalid ticket_categories payload.'}
+                )
+        elif raw_categories is not None:
+            ticket_categories_data = raw_categories
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -170,9 +174,31 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'ticket_categories': 'At least one ticket category is required.'}
                 )
-            instance.ticket_categories.all().delete()
+
+            existing_categories = {str(category.id): category for category in instance.ticket_categories.all()}
+            kept_category_ids = set()
             for category_data in ticket_categories_data:
-                TicketCategory.objects.create(concert=instance, **category_data)
+                payload = dict(category_data)
+                raw_id = payload.pop('id', None)
+                category_id = str(raw_id) if raw_id else None
+
+                if category_id and category_id in existing_categories:
+                    category = existing_categories[category_id]
+                    category.name = payload['name']
+                    category.price = payload['price']
+                    category.quantity = payload['quantity']
+                    category.save(update_fields=['name', 'price', 'quantity'])
+                    kept_category_ids.add(category_id)
+                    continue
+
+                created_category = TicketCategory.objects.create(concert=instance, **payload)
+                kept_category_ids.add(str(created_category.id))
+
+            removable_categories = instance.ticket_categories.exclude(id__in=kept_category_ids)
+            for category in removable_categories:
+                has_issued_tickets = category.tickets.exists() or category.payment_transactions.exists()
+                if not has_issued_tickets:
+                    category.delete()
 
         return instance
 
