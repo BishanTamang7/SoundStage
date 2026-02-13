@@ -132,6 +132,7 @@ const Analytics = () => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5)
   }, [concerts])
+  const maxRevenue = topEvents.reduce((max, event) => Math.max(max, event.revenue), 0)
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -198,6 +199,31 @@ const Analytics = () => {
                 <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
                 <div className="mt-2 text-3xl font-black text-[#D97706]">{stats.sellThrough.toFixed(1)}%</div>
               </div>
+            </section>
+
+            <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
+              <h2 className="mb-4 text-lg font-black text-[#312E81]">Revenue by Event</h2>
+              {topEvents.length === 0 ? (
+                <div className="text-sm font-semibold text-[#6B7280]">No graph data available yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {topEvents.map((event) => {
+                    const widthPct = maxRevenue > 0 ? Math.max(8, (event.revenue / maxRevenue) * 100) : 8
+                    return (
+                      <div key={`graph-${event.id || event.title}`} className="grid grid-cols-[240px_1fr_110px] items-center gap-3 max-[900px]:grid-cols-1">
+                        <div className="truncate text-sm font-semibold text-[#312E81]">{event.title}</div>
+                        <div className="h-3 rounded-full bg-[#E5E7EB]">
+                          <div
+                            className="h-3 rounded-full bg-[#7C3AED]"
+                            style={{ width: `${widthPct}%` }}
+                          />
+                        </div>
+                        <div className="text-right text-sm font-extrabold text-[#7C3AED]">{formatCurrency(event.revenue)}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </section>
 
             <section className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
