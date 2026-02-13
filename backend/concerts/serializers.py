@@ -1,7 +1,7 @@
 import json
 from rest_framework import serializers
 from django.utils.datastructures import MultiValueDict
-from .models import Concert, TicketCategory
+from .models import Concert, TicketCategory, Ticket
 
 
 class TicketCategorySerializer(serializers.ModelSerializer):
@@ -122,3 +122,27 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
             'ticket_categories', 'cover_image', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class TicketSerializer(serializers.ModelSerializer):
+    concert_title = serializers.CharField(source='concert.title', read_only=True)
+    concert_date_time = serializers.DateTimeField(source='concert.date_time', read_only=True)
+    concert_venue = serializers.CharField(source='concert.venue', read_only=True)
+    ticket_type = serializers.CharField(source='ticket_category.name', read_only=True)
+    ticket_price = serializers.DecimalField(source='ticket_category.price', max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = [
+            'id',
+            'concert_title',
+            'concert_date_time',
+            'concert_venue',
+            'ticket_type',
+            'ticket_price',
+            'seat_number',
+            'qr_token',
+            'is_used',
+            'used_at',
+            'created_at',
+        ]

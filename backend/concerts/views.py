@@ -5,19 +5,22 @@ from urllib import error as url_error
 from urllib import request as url_request
 
 from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from .models import Concert, TicketCategory
+from .models import Concert, TicketCategory, PaymentTransaction, Ticket
 from .serializers import (
     ConcertCreateSerializer,
     ConcertListSerializer,
-    ConcertDetailSerializer
+    ConcertDetailSerializer,
+    TicketSerializer,
 )
 # Import permissions from accounts app (already exists there)
-from accounts.permissions import IsOrganizer
+from accounts.permissions import IsOrganizer, IsAttendee
 
 
 class ConcertViewSet(viewsets.ModelViewSet):
@@ -192,6 +195,49 @@ def _khalti_request(path: str, payload: dict):
         }
 
 
+def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
+    payment.status = lookup_data.get('status') or payment.status
+    payment.transaction_id = lookup_data.get('transaction_id') or payment.transaction_id
+    payment.raw_response = lookup_data
+    payment.save(update_fields=['status', 'transaction_id', 'raw_response', 'updated_at'])
+
+
+def _issue_tickets(payment: PaymentTransaction):
+    if payment.tickets_issued:
+        return list(payment.tickets.order_by('seat_number'))
+
+    with transaction.atomic():
+        locked_payment = PaymentTransaction.objects.select_for_update().get(id=payment.id)
+        if locked_payment.tickets_issued:
+            return list(locked_payment.tickets.order_by('seat_number'))
+
+        if locked_payment.status != 'Completed':
+            return []
+
+        category = TicketCategory.objects.select_for_update().get(id=locked_payment.ticket_category_id)
+        if category.quantity < locked_payment.quantity:
+            raise ValueError('Ticket stock is no longer available.')
+
+        category.quantity -= locked_payment.quantity
+        category.save(update_fields=['quantity'])
+
+        tickets = []
+        for seat_number in range(1, locked_payment.quantity + 1):
+            ticket = Ticket.objects.create(
+                attendee=locked_payment.attendee,
+                concert=locked_payment.concert,
+                ticket_category=locked_payment.ticket_category,
+                payment_transaction=locked_payment,
+                seat_number=seat_number,
+                qr_token=uuid.uuid4().hex,
+            )
+            tickets.append(ticket)
+
+        locked_payment.tickets_issued = True
+        locked_payment.save(update_fields=['tickets_issued', 'updated_at'])
+        return tickets
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def khalti_initiate(request):
@@ -226,6 +272,12 @@ def khalti_initiate(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if ticket_category.quantity < quantity:
+        return Response(
+            {'detail': 'Requested quantity exceeds available tickets.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     total_rupees = Decimal(ticket_category.price) * Decimal(quantity)
     total_paisa = int((total_rupees * Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
     if total_paisa < 1000:
@@ -253,6 +305,22 @@ def khalti_initiate(request):
     if not khalti_response['ok']:
         return Response(khalti_response['data'], status=khalti_response['status'])
 
+    pidx = khalti_response['data'].get('pidx')
+    if pidx:
+        PaymentTransaction.objects.update_or_create(
+            pidx=pidx,
+            defaults={
+                'attendee': request.user,
+                'concert': concert,
+                'ticket_category': ticket_category,
+                'purchase_order_id': purchase_order_id,
+                'amount_paisa': total_paisa,
+                'quantity': quantity,
+                'status': 'Initiated',
+                'raw_response': khalti_response['data'],
+            },
+        )
+
     return Response(
         {
             'success': True,
@@ -279,4 +347,122 @@ def khalti_lookup(request):
     if not khalti_response['ok']:
         return Response(khalti_response['data'], status=khalti_response['status'])
 
+    payment = PaymentTransaction.objects.filter(pidx=pidx, attendee=request.user).first()
+    if payment:
+        _sync_payment_from_lookup(payment, khalti_response['data'])
+
     return Response({'success': True, 'data': khalti_response['data']}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def khalti_confirm(request):
+    pidx = request.data.get('pidx')
+    if not pidx:
+        return Response({'detail': 'pidx is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    payment = PaymentTransaction.objects.filter(pidx=pidx, attendee=request.user).first()
+    if not payment:
+        return Response({'detail': 'Payment transaction not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    khalti_response = _khalti_request('/epayment/lookup/', {'pidx': pidx})
+    if not khalti_response['ok']:
+        return Response(khalti_response['data'], status=khalti_response['status'])
+
+    lookup_data = khalti_response['data']
+    _sync_payment_from_lookup(payment, lookup_data)
+
+    if lookup_data.get('status') != 'Completed':
+        return Response(
+            {
+                'success': True,
+                'data': {
+                    'status': lookup_data.get('status'),
+                    'tickets': [],
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    try:
+        issued_tickets = _issue_tickets(payment)
+    except ValueError as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+
+    serializer = TicketSerializer(issued_tickets, many=True)
+    return Response(
+        {
+            'success': True,
+            'data': {
+                'status': lookup_data.get('status'),
+                'tickets': serializer.data,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def my_tickets(request):
+    queryset = (
+        Ticket.objects.select_related('concert', 'ticket_category')
+        .filter(attendee=request.user)
+        .order_by('-created_at')
+    )
+    serializer = TicketSerializer(queryset, many=True)
+    return Response({'success': True, 'data': {'tickets': serializer.data}}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsOrganizer])
+def verify_ticket(request):
+    qr_token = (request.data.get('qr_token') or '').strip()
+    if not qr_token:
+        return Response({'detail': 'qr_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    ticket = (
+        Ticket.objects.select_related('concert', 'attendee', 'ticket_category')
+        .filter(qr_token=qr_token)
+        .first()
+    )
+    if not ticket:
+        return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if ticket.concert.organizer_id != request.user.id:
+        return Response({'detail': 'You cannot validate tickets for this concert.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if ticket.is_used:
+        return Response(
+            {
+                'success': False,
+                'message': 'Ticket already used.',
+                'data': {
+                    'ticket_id': str(ticket.id),
+                    'used_at': ticket.used_at,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    ticket.is_used = True
+    ticket.used_at = timezone.now()
+    ticket.used_by = request.user
+    ticket.save(update_fields=['is_used', 'used_at', 'used_by'])
+
+    return Response(
+        {
+            'success': True,
+            'message': 'Ticket is valid. Entry granted.',
+            'data': {
+                'ticket_id': str(ticket.id),
+                'concert_title': ticket.concert.title,
+                'ticket_type': ticket.ticket_category.name,
+                'seat_number': ticket.seat_number,
+                'attendee_name': ticket.attendee.username,
+                'attendee_email': ticket.attendee.email,
+                'validated_at': ticket.used_at,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
