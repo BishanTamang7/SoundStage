@@ -221,34 +221,47 @@ const EditConcert = () => {
       return;
     }
 
-    const payload = new FormData();
-    payload.append("title", formState.title);
-    payload.append("description", formState.description);
-    payload.append("date_time", formState.date_time);
-    payload.append("venue", formState.venue);
-    payload.append("organizer_name", formState.organizer_name);
-    payload.append("contact_email", formState.contact_email);
-    payload.append("contact_phone", formState.contact_phone);
-    payload.append("main_artist", formState.main_artist);
-    payload.append(
-      "ticket_categories",
-      JSON.stringify(
-        tickets.map((ticket) => ({
-          name: ticket.name,
-          price: parseFloat(ticket.price || 0),
-          quantity: parseInt(ticket.quantity || 0, 10),
-        }))
-      )
-    );
-    if (coverImage) {
-      payload.append("cover_image", coverImage);
-    } else if (removeCover) {
-      payload.append("cover_image", "");
-    }
+    const normalizedTicketCategories = tickets.map((ticket) => ({
+      name: ticket.name,
+      price: parseFloat(ticket.price || 0),
+      quantity: parseInt(ticket.quantity || 0, 10),
+    }));
+
+    const basePayload = {
+      title: formState.title,
+      description: formState.description,
+      date_time: formState.date_time,
+      venue: formState.venue,
+      organizer_name: formState.organizer_name,
+      contact_email: formState.contact_email,
+      contact_phone: formState.contact_phone,
+      main_artist: formState.main_artist,
+      ticket_categories: normalizedTicketCategories,
+    };
 
     try {
       setSubmitting(true);
-      await api.updateConcert(tokens.access, id, payload);
+      const hasCoverChange = Boolean(coverImage) || removeCover;
+      if (hasCoverChange) {
+        const payload = new FormData();
+        payload.append("title", basePayload.title);
+        payload.append("description", basePayload.description);
+        payload.append("date_time", basePayload.date_time);
+        payload.append("venue", basePayload.venue);
+        payload.append("organizer_name", basePayload.organizer_name);
+        payload.append("contact_email", basePayload.contact_email);
+        payload.append("contact_phone", basePayload.contact_phone);
+        payload.append("main_artist", basePayload.main_artist);
+        payload.append("ticket_categories", JSON.stringify(basePayload.ticket_categories));
+        if (coverImage) {
+          payload.append("cover_image", coverImage);
+        } else if (removeCover) {
+          payload.append("cover_image", "");
+        }
+        await api.updateConcert(tokens.access, id, payload);
+      } else {
+        await api.updateConcert(tokens.access, id, basePayload);
+      }
       navigate(`/organizer/concerts/${id}`);
     } catch (error) {
       setFormError(error?.message || "Failed to update concert.");

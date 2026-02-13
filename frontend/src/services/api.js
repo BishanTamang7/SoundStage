@@ -293,6 +293,16 @@ export const api = {
       handleError(error)
     }
   },
+  deleteMyTicket: async (token, ticketId) => {
+    try {
+      const { data } = await apiClient.delete(`/concerts/tickets/${ticketId}/`, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   verifyTicket: async (token, payload) => {
     try {
       const { data } = await apiClient.post('/concerts/tickets/verify/', payload, {

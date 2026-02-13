@@ -18,6 +18,8 @@ const MyTickets = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tickets, setTickets] = useState([])
+  const [deletingTicketId, setDeletingTicketId] = useState('')
+  const [ticketToDelete, setTicketToDelete] = useState(null)
   const menuRef = useRef(null)
 
   const initialsSource = user?.name || user?.username || user?.email || ''
@@ -86,6 +88,26 @@ const MyTickets = () => {
       window.URL.revokeObjectURL(objectUrl)
     } catch {
       window.open(qrUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId) => {
+    if (!tokens?.access) return
+    setTicketToDelete(ticketId)
+  }
+
+  const confirmDeleteTicket = async () => {
+    if (!tokens?.access || !ticketToDelete) return
+    try {
+      setDeletingTicketId(ticketToDelete)
+      setError('')
+      await api.deleteMyTicket(tokens.access, ticketToDelete)
+      setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketToDelete))
+      setTicketToDelete(null)
+    } catch (err) {
+      setError(err?.message || 'Failed to delete ticket.')
+    } finally {
+      setDeletingTicketId('')
     }
   }
 
@@ -191,14 +213,23 @@ const MyTickets = () => {
                       <div className="mt-5 flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                         <img src={qrUrl} alt="Ticket QR code" className="h-44 w-44 rounded-lg bg-white p-1" />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadQr(qrUrl, fileName)}
-                        className="mt-3 inline-flex rounded-lg border border-[#7C3AED] px-3 py-2 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F0FF]"
-                      >
-                        Download QR
-                      </button>
-                      <p className="mt-3 break-all font-mono text-xs text-[#6B7280]">{ticket.qr_token}</p>
+                      <div className="mt-3 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadQr(qrUrl, fileName)}
+                          className="inline-flex rounded-lg border border-[#7C3AED] px-3 py-2 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F0FF]"
+                        >
+                          Download QR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTicket(ticket.id)}
+                          disabled={deletingTicketId === ticket.id}
+                          className="inline-flex rounded-lg border border-[#EF4444] px-3 py-2 text-xs font-bold text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingTicketId === ticket.id ? 'Deleting...' : 'Delete Ticket'}
+                        </button>
+                      </div>
                     </article>
                   )
                 })}
@@ -207,6 +238,34 @@ const MyTickets = () => {
           </div>
         </section>
       </main>
+
+      {ticketToDelete ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
+            <h3 className="text-lg font-black text-[#312E81]">Delete Ticket?</h3>
+            <p className="mt-2 text-sm font-medium text-[#6B7280]">
+              This will remove the QR ticket from your account.
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setTicketToDelete(null)}
+                className="inline-flex rounded-lg border border-[#D1D5DB] px-4 py-2 text-sm font-bold text-[#374151] transition hover:bg-[#F3F4F6]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTicket}
+                disabled={deletingTicketId === ticketToDelete}
+                className="inline-flex rounded-lg bg-[#EF4444] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#DC2626] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingTicketId === ticketToDelete ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <footer className="bg-[#312E81] px-[5%] py-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-6 text-base">
