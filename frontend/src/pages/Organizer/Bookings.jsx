@@ -39,6 +39,7 @@ const Bookings = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [concertFilter, setConcertFilter] = useState('all')
   const [dateRange, setDateRange] = useState('all')
 
   const displayName = user?.username || user?.email || 'User'
@@ -119,14 +120,18 @@ const Bookings = () => {
     const needle = search.trim().toLowerCase()
     const cutoff = getCutoffTime(dateRange)
     return bookingRows.filter((row) => {
-      const searchMatched =
-        !needle ||
-        row.customer.toLowerCase().includes(needle) ||
-        row.concertTitle.toLowerCase().includes(needle)
+      const searchMatched = !needle || row.customer.toLowerCase().includes(needle)
       const timeMatched = cutoff === 0 || rowTime(row.bookedAt) >= cutoff
-      return searchMatched && timeMatched
+      const concertMatched = concertFilter === 'all' || row.concertTitle === concertFilter
+      return searchMatched && timeMatched && concertMatched
     })
-  }, [bookingRows, search, dateRange])
+  }, [bookingRows, search, dateRange, concertFilter])
+
+  const concertOptions = useMemo(() => {
+    return Array.from(new Set(bookingRows.map((row) => row.concertTitle))).sort((a, b) =>
+      a.localeCompare(b)
+    )
+  }, [bookingRows])
 
   const stats = useMemo(() => {
     const totalTransactions = bookingRows.length
@@ -223,13 +228,25 @@ const Bookings = () => {
         </section>
 
         <section className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
-          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-[1fr_180px_150px]">
+          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-[1fr_180px_180px_150px]">
             <input
               className="h-11 rounded-lg border border-[#D1D5DB] px-4 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
-              placeholder="Search by customer or concert"
+              placeholder="Search by attendee name"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <select
+              className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
+              value={concertFilter}
+              onChange={(event) => setConcertFilter(event.target.value)}
+            >
+              <option value="all">All Concerts</option>
+              {concertOptions.map((concertTitle) => (
+                <option key={concertTitle} value={concertTitle}>
+                  {concertTitle}
+                </option>
+              ))}
+            </select>
             <select
               className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
               value={dateRange}
