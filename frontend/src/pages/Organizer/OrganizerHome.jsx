@@ -3,9 +3,20 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 
+const parseNumber = (value) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
+
 const OrganizerHome = () => {
   const { user, role, tokens } = useAuth()
-  const [totalConcerts, setTotalConcerts] = useState(0)
+  const [dashboardStats, setDashboardStats] = useState({
+    totalConcerts: 0,
+    ticketsSold: 0,
+    totalRevenue: 0,
+  })
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -22,22 +33,70 @@ const OrganizerHome = () => {
   useEffect(() => {
     let isActive = true
 
-    const loadTotalConcerts = async () => {
+    const loadDashboardStats = async () => {
       if (!tokens?.access) {
-        if (isActive) setTotalConcerts(0)
+        if (isActive) {
+          setDashboardStats({
+            totalConcerts: 0,
+            ticketsSold: 0,
+            totalRevenue: 0,
+          })
+        }
         return
       }
 
       try {
         const data = await api.organizerConcerts(tokens.access)
         const list = data?.data?.concerts || data?.concerts || []
-        if (isActive) setTotalConcerts(Array.isArray(list) ? list.length : 0)
+        const concerts = Array.isArray(list) ? list : []
+
+        const ticketsSold = concerts.reduce((concertSum, concert) => {
+          const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
+          return (
+            concertSum +
+            categories.reduce((categorySum, category) => {
+              const sold = parseNumber(
+                category?.sold ?? category?.sold_quantity ?? category?.tickets_sold
+              )
+              return categorySum + sold
+            }, 0)
+          )
+        }, 0)
+
+        const totalRevenue = concerts.reduce((concertSum, concert) => {
+          const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
+          return (
+            concertSum +
+            categories.reduce((categorySum, category) => {
+              const sold = parseNumber(
+                category?.sold ?? category?.sold_quantity ?? category?.tickets_sold
+              )
+              const price = parseNumber(category?.price)
+              const revenue = parseNumber(category?.revenue)
+              return categorySum + (revenue > 0 ? revenue : sold * price)
+            }, 0)
+          )
+        }, 0)
+
+        if (isActive) {
+          setDashboardStats({
+            totalConcerts: concerts.length,
+            ticketsSold,
+            totalRevenue,
+          })
+        }
       } catch {
-        if (isActive) setTotalConcerts(0)
+        if (isActive) {
+          setDashboardStats({
+            totalConcerts: 0,
+            ticketsSold: 0,
+            totalRevenue: 0,
+          })
+        }
       }
     }
 
-    loadTotalConcerts()
+    loadDashboardStats()
 
     return () => {
       isActive = false
@@ -123,9 +182,9 @@ const OrganizerHome = () => {
 
         <section className="mb-8 grid grid-cols-1 gap-6 min-[1024px]:grid-cols-2 min-[1280px]:grid-cols-4">
           {[
-            { label: 'Total Concerts', value: String(totalConcerts) },
-            { label: 'Tickets Sold', value: '2,847' },
-            { label: 'Total Revenue', value: 'Rs 4.2M' },
+            { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
+            { label: 'Tickets Sold', value: dashboardStats.ticketsSold.toLocaleString('en-US') },
+            { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
             { label: 'Attendees', value: '2,654' },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-[#E5E7EB] bg-white p-5">
