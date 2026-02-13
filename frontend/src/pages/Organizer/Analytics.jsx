@@ -133,6 +133,8 @@ const Analytics = () => {
       .slice(0, 5)
   }, [concerts])
   const maxRevenue = topEvents.reduce((max, event) => Math.max(max, event.revenue), 0)
+  const maxTicketsSold = topEvents.reduce((max, event) => Math.max(max, event.sold), 0)
+  const topEvent = topEvents[0] || null
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -226,39 +228,45 @@ const Analytics = () => {
               )}
             </section>
 
-            <section className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
-              <div className="border-b border-[#E5E7EB] px-5 py-4">
-                <h2 className="text-lg font-black text-[#312E81]">Top Events</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left">
-                  <thead>
-                    <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
-                      <th className="px-5 py-3">Event</th>
-                      <th className="px-5 py-3">Date</th>
-                      <th className="px-5 py-3">Tickets Sold</th>
-                      <th className="px-5 py-3">Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm font-semibold text-[#312E81]">
-                    {topEvents.length === 0 ? (
-                      <tr>
-                        <td className="px-5 py-6 text-[#6B7280]" colSpan={4}>
-                          No analytics data available yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      topEvents.map((event) => (
-                        <tr key={event.id || event.title} className="border-b border-[#E5E7EB] last:border-b-0">
-                          <td className="px-5 py-4">{event.title}</td>
-                          <td className="px-5 py-4 text-[#6B7280]">{formatDate(event.date)}</td>
-                          <td className="px-5 py-4 text-[#16A34A]">{event.sold.toLocaleString('en-US')}</td>
-                          <td className="px-5 py-4 font-black text-[#7C3AED]">{formatCurrency(event.revenue)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
+              <h2 className="mb-4 text-lg font-black text-[#312E81]">Tickets Sold by Event</h2>
+              {topEvents.length === 0 ? (
+                <div className="text-sm font-semibold text-[#6B7280]">No ticket volume data available yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {topEvents.map((event) => {
+                    const widthPct = maxTicketsSold > 0 ? Math.max(8, (event.sold / maxTicketsSold) * 100) : 8
+                    return (
+                      <div key={`sold-${event.id || event.title}`} className="grid grid-cols-[240px_1fr_110px] items-center gap-3 max-[900px]:grid-cols-1">
+                        <div className="truncate text-sm font-semibold text-[#312E81]">{event.title}</div>
+                        <div className="h-3 rounded-full bg-[#E5E7EB]">
+                          <div className="h-3 rounded-full bg-[#16A34A]" style={{ width: `${widthPct}%` }} />
+                        </div>
+                        <div className="text-right text-sm font-extrabold text-[#16A34A]">{event.sold.toLocaleString('en-US')}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-lg border border-[#E5E7EB] bg-white p-5">
+              <h2 className="mb-4 text-lg font-black text-[#312E81]">Insights</h2>
+              <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3">
+                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event</div>
+                  <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent?.title || 'N/A'}</div>
+                </div>
+                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event Revenue</div>
+                  <div className="mt-2 text-sm font-extrabold text-[#7C3AED]">
+                    {topEvent ? formatCurrency(topEvent.revenue) : 'Rs 0'}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Event Date</div>
+                  <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent ? formatDate(topEvent.date) : 'N/A'}</div>
+                </div>
               </div>
             </section>
           </>

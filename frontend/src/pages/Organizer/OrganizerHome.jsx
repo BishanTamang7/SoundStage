@@ -240,6 +240,36 @@ const OrganizerHome = () => {
           </p>
         </header>
 
+        <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-6">
+          <h2 className="mb-4 text-lg font-black text-[#312E81]">Quick Actions</h2>
+          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-4">
+            <Link
+              className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#6D28D9]"
+              to="/organizer/concerts/new"
+            >
+              Create Concert
+            </Link>
+            <Link
+              className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-3 text-sm font-bold text-[#312E81] transition hover:bg-[#F9FAFB]"
+              to="/organizer/tickets"
+            >
+              View Tickets
+            </Link>
+            <Link
+              className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-3 text-sm font-bold text-[#312E81] transition hover:bg-[#F9FAFB]"
+              to="/organizer/bookings"
+            >
+              View Bookings
+            </Link>
+            <Link
+              className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-3 text-sm font-bold text-[#312E81] transition hover:bg-[#F9FAFB]"
+              to="/organizer/analytics"
+            >
+              View Analytics
+            </Link>
+          </div>
+        </section>
+
         <section className="mb-8 grid grid-cols-1 gap-6 min-[1024px]:grid-cols-2 min-[1280px]:grid-cols-4">
           {[
             { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },

@@ -26,12 +26,20 @@ const formatDateTime = (value) => {
   return `${datePart} • ${timePart}`
 }
 
+const getCutoffTime = (rangeKey) => {
+  const now = Date.now()
+  if (rangeKey === '7d') return now - 7 * 24 * 60 * 60 * 1000
+  if (rangeKey === '30d') return now - 30 * 24 * 60 * 60 * 1000
+  return 0
+}
+
 const Bookings = () => {
   const { user, role, tokens } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [dateRange, setDateRange] = useState('all')
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
@@ -109,11 +117,16 @@ const Bookings = () => {
 
   const filteredRows = useMemo(() => {
     const needle = search.trim().toLowerCase()
+    const cutoff = getCutoffTime(dateRange)
     return bookingRows.filter((row) => {
-      const searchMatched = !needle || row.customer.toLowerCase().includes(needle)
-      return searchMatched
+      const searchMatched =
+        !needle ||
+        row.customer.toLowerCase().includes(needle) ||
+        row.concertTitle.toLowerCase().includes(needle)
+      const timeMatched = cutoff === 0 || rowTime(row.bookedAt) >= cutoff
+      return searchMatched && timeMatched
     })
-  }, [bookingRows, search])
+  }, [bookingRows, search, dateRange])
 
   const stats = useMemo(() => {
     const totalBookings = bookingRows.reduce((sum, row) => sum + row.quantity, 0)
@@ -128,6 +141,31 @@ const Bookings = () => {
       averageBookingValue,
     }
   }, [bookingRows])
+
+  const exportCsv = () => {
+    if (filteredRows.length === 0) return
+    const headers = ['Customer', 'Concert', 'Booked At', 'Ticket Type', 'Quantity', 'Amount']
+    const lines = filteredRows.map((row) =>
+      [
+        row.customer,
+        row.concertTitle,
+        formatDateTime(row.bookedAt),
+        row.ticketType,
+        String(row.quantity),
+        String(row.revenue),
+      ]
+        .map((field) => `"${String(field).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [headers.join(','), ...lines].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -185,13 +223,30 @@ const Bookings = () => {
         </section>
 
         <section className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-[1fr_180px_150px]">
             <input
               className="h-11 rounded-lg border border-[#D1D5DB] px-4 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
-              placeholder="Search by customer name"
+              placeholder="Search by customer or concert"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <select
+              className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
+              value={dateRange}
+              onChange={(event) => setDateRange(event.target.value)}
+            >
+              <option value="all">All Time</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="7d">Last 7 Days</option>
+            </select>
+            <button
+              type="button"
+              className="h-11 rounded-lg border border-[#7C3AED] px-4 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={exportCsv}
+              disabled={filteredRows.length === 0}
+            >
+              Export CSV
+            </button>
           </div>
         </section>
 
