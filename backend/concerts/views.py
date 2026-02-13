@@ -104,15 +104,13 @@ class ConcertViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        concert = serializer.save()
+        response_serializer = ConcertDetailSerializer(concert)
         
         return Response({
             'success': True,
             'message': 'Concert updated successfully',
-            'data': {
-                'concert_id': str(instance.id),
-                'updated_at': instance.updated_at
-            }
+            'data': response_serializer.data
         })
     
     def destroy(self, request, *args, **kwargs):
@@ -412,6 +410,23 @@ def my_tickets(request):
     )
     serializer = TicketSerializer(queryset, many=True)
     return Response({'success': True, 'data': {'tickets': serializer.data}}, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def delete_my_ticket(request, ticket_id):
+    ticket = Ticket.objects.filter(id=ticket_id, attendee=request.user).first()
+    if not ticket:
+        return Response({'detail': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    ticket.delete()
+    return Response(
+        {
+            'success': True,
+            'message': 'Ticket deleted successfully.',
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(['POST'])

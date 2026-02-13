@@ -111,7 +111,7 @@ class ConcertListSerializer(serializers.ModelSerializer):
 class ConcertDetailSerializer(serializers.ModelSerializer):
     """Serializer for concert details - MVP"""
     
-    ticket_categories = TicketCategorySerializer(many=True, read_only=True)
+    ticket_categories = TicketCategorySerializer(many=True, required=False)
     cover_image = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
@@ -122,6 +122,59 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
             'ticket_categories', 'cover_image', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        if isinstance(data, MultiValueDict) or hasattr(data, 'getlist'):
+            mutable_data = data.copy()
+        elif isinstance(data, (dict,)):
+            mutable_data = dict(data)
+        else:
+            mutable_data = data.copy() if hasattr(data, 'copy') else data
+
+        if hasattr(mutable_data, 'get'):
+            raw_categories = mutable_data.get('ticket_categories')
+            if isinstance(raw_categories, str):
+                try:
+                    mutable_data['ticket_categories'] = json.loads(raw_categories)
+                except json.JSONDecodeError:
+                    pass
+
+        return super().to_internal_value(mutable_data)
+
+    def update(self, instance, validated_data):
+        ticket_categories_data = validated_data.pop('ticket_categories', None)
+        if ticket_categories_data is None:
+            raw_categories = None
+            if hasattr(self, 'initial_data'):
+                raw_categories = self.initial_data.get('ticket_categories')
+            if raw_categories is None:
+                request = self.context.get('request')
+                if request is not None:
+                    raw_categories = request.data.get('ticket_categories')
+            if isinstance(raw_categories, str):
+                try:
+                    ticket_categories_data = json.loads(raw_categories)
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError(
+                        {'ticket_categories': 'Invalid ticket_categories payload.'}
+                    )
+            elif raw_categories is not None:
+                ticket_categories_data = raw_categories
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if ticket_categories_data is not None:
+            if len(ticket_categories_data) == 0:
+                raise serializers.ValidationError(
+                    {'ticket_categories': 'At least one ticket category is required.'}
+                )
+            instance.ticket_categories.all().delete()
+            for category_data in ticket_categories_data:
+                TicketCategory.objects.create(concert=instance, **category_data)
+
+        return instance
 
 
 class TicketSerializer(serializers.ModelSerializer):
