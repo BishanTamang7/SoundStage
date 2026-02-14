@@ -45,7 +45,7 @@ const ticketQrPayload = (ticket, user) => {
     `Ticket Type: ${ticket?.ticket_type || ''}`,
     `Booked At: ${ticket?.booked_at || ticket?.created_at || ''}`,
     `Booking Quantity: ${ticket?.booking_quantity ?? ''}`,
-    `Booking Total Rupees: ${ticket?.booking_total_rupees ?? ''}`,
+    `Total Amount: NPR ${ticket?.booking_total_rupees ?? ''}`,
   ]
   return payloadLines.join('\n')
 }
