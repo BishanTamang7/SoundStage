@@ -282,7 +282,7 @@ const Bookings = () => {
         ) : (
           <section className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left">
+              <table className="w-full min-w-215 text-left">
                 <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
                     <th className="px-5 py-3">Attendee</th>

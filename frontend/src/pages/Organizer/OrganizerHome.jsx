@@ -28,6 +28,7 @@ const formatDateTime = (value) => {
 const OrganizerHome = () => {
   const { user, role, tokens } = useAuth()
   const [organizerConcerts, setOrganizerConcerts] = useState([])
+  const [currentTime, setCurrentTime] = useState(0)
   const [dashboardStats, setDashboardStats] = useState({
     totalConcerts: 0,
     upcomingEvents: 0,
@@ -55,6 +56,7 @@ const OrganizerHome = () => {
       if (!tokens?.access) {
         if (isActive) {
           setOrganizerConcerts([])
+          setCurrentTime(0)
           setDashboardStats({
             totalConcerts: 0,
             upcomingEvents: 0,
@@ -75,10 +77,11 @@ const OrganizerHome = () => {
           concertsResult.status === 'fulfilled' ? concertsResult.value : { data: { concerts: [] } }
         const list = concertsData?.data?.concerts || concertsData?.concerts || []
         const concerts = Array.isArray(list) ? list : []
+        const nowTs = Date.now()
 
         const upcomingEvents = concerts.filter((concert) => {
           const date = new Date(concert?.date_time)
-          return !Number.isNaN(date.getTime()) && date.getTime() >= Date.now()
+          return !Number.isNaN(date.getTime()) && date.getTime() >= nowTs
         }).length
 
         const totalRevenue = concerts.reduce((concertSum, concert) => {
@@ -98,6 +101,7 @@ const OrganizerHome = () => {
 
         if (isActive) {
           setOrganizerConcerts(concerts)
+          setCurrentTime(nowTs)
           const bookingsData =
             bookingsResult.status === 'fulfilled' ? bookingsResult.value : { data: { bookings: [] } }
           const bookingList = bookingsData?.data?.bookings || bookingsData?.bookings || []
@@ -122,6 +126,7 @@ const OrganizerHome = () => {
       } catch {
         if (isActive) {
           setOrganizerConcerts([])
+          setCurrentTime(0)
           setDashboardStats({
             totalConcerts: 0,
             upcomingEvents: 0,
@@ -140,11 +145,10 @@ const OrganizerHome = () => {
     }
   }, [tokens?.access])
 
-  const now = Date.now()
   const upcomingEvents = organizerConcerts
     .filter((concert) => {
       const date = new Date(concert?.date_time)
-      return !Number.isNaN(date.getTime()) && date.getTime() >= now
+      return !Number.isNaN(date.getTime()) && date.getTime() >= currentTime
     })
     .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
     .slice(0, 3)

@@ -237,7 +237,7 @@ const MyTickets = () => {
               key={ticket.id}
               className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
             >
-              <header className="relative bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] p-6 text-white">
+              <header className="relative bg-linear-to-br from-[#7C3AED] to-[#4F46E5] p-6 text-white">
                 <span
                   className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-black tracking-wide uppercase ${
                     isUpcoming ? 'bg-emerald-500/90' : 'bg-gray-500/90'
@@ -274,7 +274,7 @@ const MyTickets = () => {
                   </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
-                    <span className="max-w-[11rem] text-right text-sm font-black text-[#312E81]">{ticket.concert_venue || 'TBD'}</span>
+                    <span className="max-w-44 text-right text-sm font-black text-[#312E81]">{ticket.concert_venue || 'TBD'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Total Paid</span>
@@ -383,7 +383,7 @@ const MyTickets = () => {
           <button
             type="button"
             onClick={() => setActiveTab(0)}
-            className={`mb-[-2px] border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
+            className={`-mb-0.5 border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
               activeTab === 0
                 ? 'border-b-[#7C3AED] text-[#7C3AED]'
                 : 'border-b-transparent text-[#6B7280] hover:text-[#7C3AED]'
@@ -394,7 +394,7 @@ const MyTickets = () => {
           <button
             type="button"
             onClick={() => setActiveTab(1)}
-            className={`mb-[-2px] border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
+            className={`-mb-0.5 border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
               activeTab === 1
                 ? 'border-b-[#7C3AED] text-[#7C3AED]'
                 : 'border-b-transparent text-[#6B7280] hover:text-[#7C3AED]'
@@ -418,7 +418,7 @@ const MyTickets = () => {
           role="presentation"
         >
           <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white">
-            <div className="rounded-t-3xl bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] p-8 text-white">
+            <div className="rounded-t-3xl bg-linear-to-br from-[#7C3AED] to-[#4F46E5] p-8 text-white">
               <h3 className="mb-2 text-3xl font-black">{selectedTicket.concert_title || 'Untitled Concert'}</h3>
               <p className="text-sm opacity-90">
                 {formatConcertDateTime(selectedTicket.concert_date_time)} • {selectedTicket.ticket_type || 'General'}
@@ -459,7 +459,7 @@ const MyTickets = () => {
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
-                  <span className="max-w-[12rem] text-right text-sm font-black text-[#312E81]">{selectedTicket.concert_venue || 'TBD'}</span>
+                  <span className="max-w-48 text-right text-sm font-black text-[#312E81]">{selectedTicket.concert_venue || 'TBD'}</span>
                 </div>
               </div>
 
