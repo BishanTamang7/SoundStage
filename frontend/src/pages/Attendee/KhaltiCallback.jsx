@@ -66,43 +66,51 @@ const KhaltiCallback = () => {
     }
   }, [confirmData?.status, navigate])
 
+  useEffect(() => {
+    if (loading || error) return
+    if (String(confirmData?.status || '').trim() === 'Completed') {
+      navigate('/attendee/tickets', { replace: true })
+    }
+  }, [confirmData?.status, error, loading, navigate])
+
   const statusText = confirmData?.status || redirectStatus || 'Unknown'
-  const isSuccess = statusText === 'Completed'
-  const issuedCount = Array.isArray(confirmData?.tickets) ? confirmData.tickets.length : 0
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] px-[5%] py-14 text-[#312E81]">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
+          <h1 className="text-2xl font-black text-[#2C2E83]">Confirming Payment</h1>
+          <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!error && statusText === 'Completed') {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] px-[5%] py-14 text-[#312E81]">
       <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
         <h1 className="text-2xl font-black text-[#2C2E83]">Khalti Payment Status</h1>
 
-        {loading ? (
-          <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
-        ) : error ? (
+        {error ? (
           <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{error}</p>
         ) : (
           <div className="mt-5 space-y-3 text-sm font-semibold text-[#374151]">
             <div className="flex items-center justify-between">
               <span>Status</span>
-              <span className={isSuccess ? 'text-[#15803D]' : 'text-[#B45309]'}>{statusText}</span>
+              <span className="text-[#B45309]">{statusText}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>PIDX</span>
               <span className="font-mono text-xs">{pidx}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span>Issued Tickets</span>
-              <span>{issuedCount}</span>
-            </div>
           </div>
         )}
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            to="/attendee/tickets"
-            className="rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5B21B6]"
-          >
-            Go to My Tickets
-          </Link>
           <Link
             to="/attendee/concerts"
             className="rounded-lg border border-[#D1D5DB] px-5 py-2.5 text-sm font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
