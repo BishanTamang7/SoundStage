@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { api } from '../../services/api'
 
 const getInitials = (name) => {
   if (!name) return ''
@@ -11,19 +11,53 @@ const getInitials = (name) => {
   return (first + last).toUpperCase()
 }
 
+const formatConcertDateTime = (value) => {
+  if (!value) return 'Date TBD'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Date TBD'
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+const formatCurrency = (amount) => {
+  const parsed = Number(amount)
+  if (Number.isNaN(parsed)) return 'Rs 0'
+  return `Rs ${parsed.toLocaleString()}`
+}
+
+const ticketQrUrl = (qrToken, size = 260) => {
+  const data = `SOUNDSTAGE:${qrToken}`
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
+}
+
+const compactTicketId = (value) => {
+  if (!value) return ''
+  const text = String(value)
+  if (text.length <= 14) return text
+  return `${text.slice(0, 8)}...${text.slice(-4)}`
+}
+
 const MyTickets = () => {
   const { user, logout, role, isAuthenticated, tokens } = useAuth()
   const navigate = useNavigate()
+  const menuRef = useRef(null)
+
   const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState(0)
+  const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tickets, setTickets] = useState([])
-  const [deletingTicketId, setDeletingTicketId] = useState('')
-  const [ticketToDelete, setTicketToDelete] = useState(null)
-  const menuRef = useRef(null)
+  const [selectedTicket, setSelectedTicket] = useState(null)
+  const [copiedTicketId, setCopiedTicketId] = useState('')
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
+  const attendeeName = user?.name || user?.username || user?.email || 'Attendee User'
 
   useEffect(() => {
     const handleClick = (event) => {
@@ -38,81 +72,254 @@ const MyTickets = () => {
   }, [])
 
   useEffect(() => {
-    let isActive = true
+    const onEsc = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedTicket(null)
+      }
+    }
+
+    window.addEventListener('keydown', onEsc)
+    return () => window.removeEventListener('keydown', onEsc)
+  }, [])
+
+  useEffect(() => {
+    let active = true
 
     const loadTickets = async () => {
       if (!tokens?.access) {
-        if (isActive) setLoading(false)
+        if (active) {
+          setTickets([])
+          setLoading(false)
+        }
         return
       }
+
       try {
         setLoading(true)
         setError('')
         const response = await api.myTickets(tokens.access)
-        if (isActive) {
-          setTickets(response?.data?.tickets || [])
-        }
+        if (!active) return
+        setTickets(response?.data?.tickets || [])
       } catch (err) {
-        if (isActive) setError(err?.message || 'Failed to load tickets.')
+        if (!active) return
+        setError(err?.message || 'Failed to load tickets.')
       } finally {
-        if (isActive) setLoading(false)
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
     loadTickets()
 
     return () => {
-      isActive = false
+      active = false
     }
   }, [tokens?.access])
 
   const handleLogout = async () => {
-    navigate('/', { replace: true })
-    await logout()
+    try {
+      await logout()
+    } finally {
+      navigate('/', { replace: true })
+    }
   }
 
-  const handleDownloadQr = async (qrUrl, fileName) => {
+  const normalizedTickets = useMemo(() => {
+    return tickets
+      .map((ticket) => {
+        const date = ticket?.concert_date_time ? new Date(ticket.concert_date_time) : null
+        const dateMs = date && !Number.isNaN(date.getTime()) ? date.getTime() : null
+        return {
+          ...ticket,
+          _dateMs: dateMs,
+        }
+      })
+      .sort((a, b) => {
+        const aValue = a._dateMs ?? 0
+        const bValue = b._dateMs ?? 0
+        return aValue - bValue
+      })
+  }, [tickets])
+
+  const now = Date.now()
+
+  const upcomingTickets = useMemo(
+    () => normalizedTickets.filter((ticket) => (ticket._dateMs ?? 0) >= now),
+    [normalizedTickets, now]
+  )
+  const pastTickets = useMemo(
+    () => normalizedTickets.filter((ticket) => (ticket._dateMs ?? 0) < now),
+    [normalizedTickets, now]
+  )
+
+  const activeTickets = activeTab === 0 ? upcomingTickets : pastTickets
+  const isUpcoming = activeTab === 0
+
+  const handleDownloadQr = async (ticket) => {
+    if (!ticket?.qr_token) return
+    const url = ticketQrUrl(ticket.qr_token, 600)
+    const filename = `soundstage-ticket-${ticket.id}.png`
+
     try {
-      const response = await fetch(qrUrl)
+      const response = await fetch(url)
       if (!response.ok) {
-        throw new Error('Failed to download QR image.')
+        throw new Error('Download failed')
       }
       const blob = await response.blob()
       const objectUrl = window.URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = objectUrl
-      anchor.download = fileName
+      anchor.download = filename
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
       window.URL.revokeObjectURL(objectUrl)
     } catch {
-      window.open(qrUrl, '_blank', 'noopener,noreferrer')
+      window.open(url, '_blank', 'noopener,noreferrer')
     }
   }
 
-  const handleDeleteTicket = async (ticketId) => {
-    if (!tokens?.access) return
-    setTicketToDelete(ticketId)
-  }
-
-  const confirmDeleteTicket = async () => {
-    if (!tokens?.access || !ticketToDelete) return
+  const handleCopyTicketId = async (ticketId) => {
+    if (!ticketId || !navigator?.clipboard?.writeText) return
     try {
-      setDeletingTicketId(ticketToDelete)
-      setError('')
-      await api.deleteMyTicket(tokens.access, ticketToDelete)
-      setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketToDelete))
-      setTicketToDelete(null)
-    } catch (err) {
-      setError(err?.message || 'Failed to delete ticket.')
-    } finally {
-      setDeletingTicketId('')
+      await navigator.clipboard.writeText(String(ticketId))
+      setCopiedTicketId(String(ticketId))
+      window.setTimeout(() => {
+        setCopiedTicketId((prev) => (prev === String(ticketId) ? '' : prev))
+      }, 1500)
+    } catch {
+      // no-op
     }
+  }
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white px-8 py-14 text-center text-sm font-semibold text-[#6B7280] shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
+          Loading your tickets...
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-8 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+          {error}
+        </div>
+      )
+    }
+
+    if (activeTickets.length === 0) {
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-[#E5E7EB] bg-white px-8 py-16 text-center">
+          <div className="mb-4 text-7xl opacity-50">🎫</div>
+          <h2 className="mb-2 text-2xl font-black">No {isUpcoming ? 'upcoming' : 'past'} tickets</h2>
+          <p className="mb-8 font-semibold text-[#6B7280]">
+            {isUpcoming ? 'Book a concert and your tickets will appear here.' : 'Your attended ticket history will appear here.'}
+          </p>
+          <Link
+            to="/attendee/concerts"
+            className="inline-block rounded-xl bg-[#7C3AED] px-8 py-4 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
+          >
+            Browse Concerts
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:grid-cols-3">
+        {activeTickets.map((ticket) => {
+          const statusLabel = isUpcoming ? 'Upcoming' : ticket.is_used ? 'Attended' : 'Past'
+          return (
+            <article
+              key={ticket.id}
+              className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+            >
+              <header className="relative bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] p-6 text-white">
+                <span
+                  className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-black tracking-wide uppercase ${
+                    isUpcoming ? 'bg-emerald-500/90' : 'bg-gray-500/90'
+                  }`}
+                >
+                  {statusLabel}
+                </span>
+                <h3 className="mb-2 pr-28 text-2xl leading-tight font-black">{ticket.concert_title || 'Untitled Concert'}</h3>
+                <p className="text-sm font-semibold opacity-90">{formatConcertDateTime(ticket.concert_date_time)}</p>
+              </header>
+
+              <div className="p-6">
+                <div className="mb-6 space-y-0">
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                    <span className="text-sm font-semibold text-[#6B7280]">Ticket ID</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-[#312E81]">{compactTicketId(ticket.id)}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyTicketId(ticket.id)}
+                        className="rounded-md border border-[#7C3AED] px-2 py-1 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                      >
+                        {copiedTicketId === String(ticket.id) ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                    <span className="text-sm font-semibold text-[#6B7280]">Category</span>
+                    <span className="text-sm font-black text-[#312E81]">{ticket.ticket_type || 'General'}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                    <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
+                    <span className="text-sm font-black text-[#312E81]">1 ticket</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                    <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
+                    <span className="max-w-[11rem] text-right text-sm font-black text-[#312E81]">{ticket.concert_venue || 'TBD'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-sm font-semibold text-[#6B7280]">Total Paid</span>
+                    <span className="text-sm font-black text-[#312E81]">{formatCurrency(ticket.ticket_price)}</span>
+                  </div>
+                </div>
+
+                {isUpcoming ? (
+                  <>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTicket(ticket)}
+                        className="flex-1 rounded-xl bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                      >
+                        View Ticket
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadQr(ticket)}
+                        className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                      >
+                        Download QR
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadQr(ticket)}
+                    className="w-full rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                  >
+                    Download Ticket
+                  </button>
+                )}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    )
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
+    <div className="flex min-h-screen flex-col bg-[#FAFAFA] text-[#312E81]">
       <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white/95 px-[5%] backdrop-blur">
         <Link
           className="font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]"
@@ -171,97 +378,107 @@ const MyTickets = () => {
         </div>
       </nav>
 
-      <main className="flex-1 pt-24">
-        <section className="px-[5%] py-16">
-          <div className="mx-auto max-w-5xl">
-            {loading ? (
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-14 text-center text-sm font-semibold text-[#6B7280] shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
-                Loading your tickets...
-              </div>
-            ) : error ? (
-              <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
-                {error}
-              </div>
-            ) : tickets.length === 0 ? (
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-14 text-center shadow-[0_10px_30px_rgba(49,46,129,0.08)]">
-                <div className="mb-4 text-5xl">🎫</div>
-                <h1 className="font-['Playfair_Display'] text-4xl font-black text-[#312E81]">No Tickets Yet</h1>
-                <p className="mt-3 text-base font-medium text-[#6B7280]">
-                  Complete a payment and your QR tickets will appear here.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2">
-                {tickets.map((ticket) => {
-                  const qrData = `SOUNDSTAGE:${ticket.qr_token}`
-                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                    qrData
-                  )}`
-                  const fileName = `soundstage-ticket-${ticket.id}.png`
-                  return (
-                    <article
-                      key={ticket.id}
-                      className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(49,46,129,0.08)]"
-                    >
-                      <h2 className="text-lg font-black text-[#312E81]">{ticket.concert_title}</h2>
-                      <div className="mt-2 space-y-1 text-sm font-semibold text-[#6B7280]">
-                        <p>Type: {ticket.ticket_type}</p>
-                        <p>Seat: #{ticket.seat_number}</p>
-                        <p>Venue: {ticket.concert_venue}</p>
-                        <p>Status: {ticket.is_used ? 'Used' : 'Valid'}</p>
-                      </div>
-                      <div className="mt-5 flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                        <img src={qrUrl} alt="Ticket QR code" className="h-44 w-44 rounded-lg bg-white p-1" />
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadQr(qrUrl, fileName)}
-                          className="inline-flex rounded-lg border border-[#7C3AED] px-3 py-2 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F0FF]"
-                        >
-                          Download QR
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                          disabled={deletingTicketId === ticket.id}
-                          className="inline-flex rounded-lg border border-[#EF4444] px-3 py-2 text-xs font-bold text-[#EF4444] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {deletingTicketId === ticket.id ? 'Deleting...' : 'Delete Ticket'}
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-12 pt-28 text-[#312E81] md:px-12">
+        <div className="mb-8 flex gap-2 border-b-2 border-[#E5E7EB]">
+          <button
+            type="button"
+            onClick={() => setActiveTab(0)}
+            className={`mb-[-2px] border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
+              activeTab === 0
+                ? 'border-b-[#7C3AED] text-[#7C3AED]'
+                : 'border-b-transparent text-[#6B7280] hover:text-[#7C3AED]'
+            }`}
+          >
+            Upcoming ({upcomingTickets.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab(1)}
+            className={`mb-[-2px] border-b-[3px] px-8 py-4 text-sm font-bold whitespace-nowrap transition ${
+              activeTab === 1
+                ? 'border-b-[#7C3AED] text-[#7C3AED]'
+                : 'border-b-transparent text-[#6B7280] hover:text-[#7C3AED]'
+            }`}
+          >
+            Past ({pastTickets.length})
+          </button>
+        </div>
+
+        {renderContent()}
       </main>
 
-      {ticketToDelete ? (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
-            <h3 className="text-lg font-black text-[#312E81]">Delete Ticket?</h3>
-            <p className="mt-2 text-sm font-medium text-[#6B7280]">
-              This will remove the QR ticket from your account.
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setTicketToDelete(null)}
-                className="inline-flex rounded-lg border border-[#D1D5DB] px-4 py-2 text-sm font-bold text-[#374151] transition hover:bg-[#F3F4F6]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeleteTicket}
-                disabled={deletingTicketId === ticketToDelete}
-                className="inline-flex rounded-lg bg-[#EF4444] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#DC2626] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {deletingTicketId === ticketToDelete ? 'Deleting...' : 'Delete'}
-              </button>
+      {selectedTicket ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedTicket(null)
+            }
+          }}
+          role="presentation"
+        >
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white">
+            <div className="rounded-t-3xl bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] p-8 text-white">
+              <h3 className="mb-2 text-3xl font-black">{selectedTicket.concert_title || 'Untitled Concert'}</h3>
+              <p className="text-sm opacity-90">
+                {formatConcertDateTime(selectedTicket.concert_date_time)} • {selectedTicket.ticket_type || 'General'}
+              </p>
+            </div>
+
+            <div className="p-8">
+              <div className="mb-8 text-center">
+                <img
+                  src={ticketQrUrl(selectedTicket.qr_token, 360)}
+                  alt="Ticket QR code"
+                  className="mx-auto mb-4 h-64 w-64 rounded-2xl border-4 border-[#7C3AED] bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+                />
+                <p className="font-semibold text-[#6B7280]">Present this QR code at the venue entrance</p>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                  <span className="text-sm font-semibold text-[#6B7280]">Ticket ID</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-[#312E81]">{compactTicketId(selectedTicket.id)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyTicketId(selectedTicket.id)}
+                      className="rounded-md border border-[#7C3AED] px-2 py-1 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                    >
+                      {copiedTicketId === String(selectedTicket.id) ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                  <span className="text-sm font-semibold text-[#6B7280]">Holder</span>
+                  <span className="text-sm font-black text-[#312E81]">{attendeeName}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
+                  <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
+                  <span className="text-sm font-black text-[#312E81]">1 ticket</span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
+                  <span className="max-w-[12rem] text-right text-sm font-black text-[#312E81]">{selectedTicket.concert_venue || 'TBD'}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTicket(null)}
+                  className="flex-1 rounded-xl bg-[#F3F4F6] px-6 py-3 font-bold text-[#312E81] transition hover:bg-[#E5E7EB]"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadQr(selectedTicket)}
+                  className="flex-1 rounded-xl bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#4F46E5]"
+                >
+                  Download QR
+                </button>
+              </div>
             </div>
           </div>
         </div>
