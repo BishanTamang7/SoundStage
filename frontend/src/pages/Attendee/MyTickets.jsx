@@ -30,8 +30,28 @@ const formatCurrency = (amount) => {
   return `Rs ${parsed.toLocaleString()}`
 }
 
-const ticketQrUrl = (qrToken, size = 260) => {
-  const data = `SOUNDSTAGE:${qrToken}`
+const ticketQrPayload = (ticket, user) => {
+  if (!ticket?.qr_token) return ''
+
+  const attendeeName = ticket?.attendee_name || user?.name || user?.username || user?.email || ''
+  const attendeeEmail = ticket?.attendee_email || user?.email || ''
+  const payloadLines = [
+    `SoundStage: ${ticket.qr_token}`,
+    `Attendee Name: ${attendeeName}`,
+    `Attendee Email: ${attendeeEmail}`,
+    `Concert Title: ${ticket?.concert_title || ''}`,
+    `Concert Date Time: ${ticket?.concert_date_time || ''}`,
+    `Concert Venue: ${ticket?.concert_venue || ''}`,
+    `Ticket Type: ${ticket?.ticket_type || ''}`,
+    `Booked At: ${ticket?.booked_at || ticket?.created_at || ''}`,
+    `Booking Quantity: ${ticket?.booking_quantity ?? ''}`,
+    `Booking Total Rupees: ${ticket?.booking_total_rupees ?? ''}`,
+  ]
+  return payloadLines.join('\n')
+}
+
+const ticketQrUrl = (ticket, user, size = 260) => {
+  const data = ticketQrPayload(ticket, user)
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
 }
 
@@ -158,7 +178,7 @@ const MyTickets = () => {
 
   const handleDownloadQr = async (ticket) => {
     if (!ticket?.qr_token) return
-    const url = ticketQrUrl(ticket.qr_token, 600)
+    const url = ticketQrUrl(ticket, user, 600)
     const filename = `soundstage-ticket-${ticket.id}.png`
 
     try {
@@ -428,7 +448,7 @@ const MyTickets = () => {
             <div className="p-8">
               <div className="mb-8 text-center">
                 <img
-                  src={ticketQrUrl(selectedTicket.qr_token, 360)}
+                  src={ticketQrUrl(selectedTicket, user, 360)}
                   alt="Ticket QR code"
                   className="mx-auto mb-4 h-64 w-64 rounded-2xl border-4 border-[#7C3AED] bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
                 />
