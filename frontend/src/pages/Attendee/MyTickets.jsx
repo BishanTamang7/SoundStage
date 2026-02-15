@@ -74,6 +74,7 @@ const MyTickets = () => {
   const [error, setError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [copiedTicketId, setCopiedTicketId] = useState('')
+  const [deletingTicketId, setDeletingTicketId] = useState('')
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
@@ -213,6 +214,24 @@ const MyTickets = () => {
     }
   }
 
+  const handleDeletePastTicket = async (ticketId) => {
+    if (!ticketId || !tokens?.access) return
+    const confirmed = window.confirm('Delete this past ticket from your history?')
+    if (!confirmed) return
+
+    try {
+      setDeletingTicketId(String(ticketId))
+      setError('')
+      await api.deleteMyTicket(tokens.access, ticketId)
+      setTickets((prev) => prev.filter((ticket) => String(ticket.id) !== String(ticketId)))
+      setSelectedTicket((prev) => (String(prev?.id) === String(ticketId) ? null : prev))
+    } catch (err) {
+      setError(err?.message || 'Failed to delete ticket.')
+    } finally {
+      setDeletingTicketId('')
+    }
+  }
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -322,13 +341,23 @@ const MyTickets = () => {
                     </div>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadQr(ticket)}
-                    className="w-full rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
-                  >
-                    Download Ticket
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadQr(ticket)}
+                      className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                    >
+                      Download Ticket
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePastTicket(ticket.id)}
+                      disabled={deletingTicketId === String(ticket.id)}
+                      className="flex-1 rounded-xl border-2 border-[#DC2626] bg-white px-4 py-3 text-sm font-bold text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingTicketId === String(ticket.id) ? 'Deleting...' : 'Delete Ticket'}
+                    </button>
+                  </div>
                 )}
               </div>
             </article>
