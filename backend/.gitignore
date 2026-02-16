@@ -1,2 +1,4 @@
 __pycache__/
-imedia/
+.venv/
+.env
+media/
