@@ -115,16 +115,18 @@ const BrowseConcerts = () => {
         ? `${title} ${artist}`.toLowerCase().includes(normalizedGenre)
         : true
 
-      if (!matchesQuery || !matchesCity || !matchesGenre) return false
-
-      if (normalizedRange === 'all') return true
-
       const concertDate = concert?.date_time ? new Date(concert.date_time) : null
       if (!concertDate || Number.isNaN(concertDate.getTime())) return false
 
       const now = new Date()
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      if (!matchesQuery || !matchesCity || !matchesGenre) return false
+
+      // Never show concerts that already happened.
+      if (concertDate < now) return false
+
+      if (normalizedRange === 'all') return true
 
       if (normalizedRange === 'today') {
         return concertDate >= startOfToday && concertDate <= endOfToday
@@ -183,6 +185,16 @@ const BrowseConcerts = () => {
   const handleSearch = () => {
     setQuery(searchInput)
   }
+
+  const hasSearchQuery = query.trim().length > 0
+  const hasActiveFilters = city !== 'all' || genre.trim().length > 0 || dateRange !== 'all'
+  const emptyStateMessage = concerts.length === 0
+    ? 'No concerts are available yet.'
+    : hasSearchQuery
+      ? `No concerts found for "${query.trim()}".`
+      : hasActiveFilters
+        ? 'No concerts match your current filters.'
+        : 'No concerts are available yet.'
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
@@ -338,7 +350,7 @@ const BrowseConcerts = () => {
                 </div>
               ) : filteredConcerts.length === 0 ? (
                 <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
-                  No concerts match those filters yet.
+                  {emptyStateMessage}
                 </div>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
