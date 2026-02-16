@@ -46,7 +46,10 @@ const Checkout = () => {
             : Array.isArray(payload?.tickets)
               ? payload.tickets
               : []
-          setSelectedTicket(categories[0] || null)
+          const availableTicket = categories.find(
+            (ticket) => Number(ticket?.remaining ?? ticket?.quantity ?? 0) > 0
+          )
+          setSelectedTicket(availableTicket || categories[0] || null)
         }
       } catch (err) {
         if (isActive) setError(err?.message || 'Failed to load concert.')
@@ -73,8 +76,23 @@ const Checkout = () => {
     return []
   }, [concert])
 
+  const selectedTicketRemaining = Number(selectedTicket?.remaining ?? selectedTicket?.quantity ?? 0)
   const unitPrice = Number(selectedTicket?.price || 0)
   const totalPrice = unitPrice * quantity
+
+  useEffect(() => {
+    if (!selectedTicket?.id) {
+      setQuantity(1)
+      return
+    }
+    if (selectedTicketRemaining <= 0) {
+      setQuantity(1)
+      return
+    }
+    if (quantity > selectedTicketRemaining) {
+      setQuantity(selectedTicketRemaining)
+    }
+  }, [quantity, selectedTicket?.id, selectedTicketRemaining])
 
   const formatDateTime = (value) => {
     if (!value) return 'TBD'
@@ -102,6 +120,16 @@ const Checkout = () => {
 
     if (!id) {
       setPaymentError('Concert not found.')
+      return
+    }
+
+    if (selectedTicketRemaining < 1) {
+      setPaymentError('Selected ticket type is sold out.')
+      return
+    }
+
+    if (quantity > selectedTicketRemaining) {
+      setPaymentError(`Only ${selectedTicketRemaining} tickets are available for this category.`)
       return
     }
 
@@ -254,19 +282,32 @@ const Checkout = () => {
                         {ticketCategories.length > 0 ? (
                           ticketCategories.map((ticket, index) => {
                             const isSelected = selectedTicket === ticket
+                            const remaining = Number(ticket?.remaining ?? ticket?.quantity ?? 0)
+                            const soldOut = remaining <= 0
                             return (
                               <button
                                 key={`${ticket?.name || 'ticket'}-${index}`}
                                 type="button"
-                                onClick={() => setSelectedTicket(ticket)}
+                                onClick={() => {
+                                  setSelectedTicket(ticket)
+                                  setPaymentError('')
+                                }}
+                                disabled={soldOut}
                                 className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                                   isSelected
                                     ? 'border-[#7C3AED] bg-[#F3F0FF] text-[#2C2E83]'
-                                    : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#CBD5F5]'
+                                    : soldOut
+                                      ? 'cursor-not-allowed border-[#E5E7EB] bg-[#F9FAFB] text-[#9CA3AF]'
+                                      : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#CBD5F5]'
                                 }`}
                               >
-                                <span>{ticket?.name || 'General'}</span>
-                                <span className="text-[#2C2E83]">
+                                <span>
+                                  {ticket?.name || 'General'}
+                                  <span className="ml-2 text-xs font-medium text-[#9CA3AF]">
+                                    {soldOut ? 'Sold out' : `${remaining} left`}
+                                  </span>
+                                </span>
+                                <span className={soldOut ? 'text-[#9CA3AF]' : 'text-[#2C2E83]'}>
                                   Rs {Number(ticket?.price || 0)}
                                 </span>
                               </button>
@@ -289,14 +330,20 @@ const Checkout = () => {
                           type="button"
                           onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
                           className="text-lg text-[#7C3AED]"
+                          disabled={selectedTicketRemaining <= 0}
                         >
                           -
                         </button>
                         <span className="text-[#2C2E83]">{quantity}</span>
                         <button
                           type="button"
-                          onClick={() => setQuantity((prev) => prev + 1)}
+                          onClick={() =>
+                            setQuantity((prev) =>
+                              Math.min(selectedTicketRemaining || 1, prev + 1)
+                            )
+                          }
                           className="text-lg text-[#7C3AED]"
+                          disabled={selectedTicketRemaining <= 0 || quantity >= selectedTicketRemaining}
                         >
                           +
                         </button>
@@ -319,6 +366,10 @@ const Checkout = () => {
                         <span>Quantity</span>
                         <span>{quantity}</span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span>Remaining</span>
+                        <span>{Math.max(0, selectedTicketRemaining)}</span>
+                      </div>
                     </div>
                     <div className="my-5 h-px bg-[#E5E7EB]" />
                     <div className="flex items-center justify-between text-base font-black text-[#2C2E83]">
@@ -329,7 +380,12 @@ const Checkout = () => {
                       className="mt-6 w-full rounded-lg bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_20px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
                       type="button"
                       onClick={handleProceedToPayment}
-                      disabled={paymentLoading || !selectedTicket}
+                      disabled={
+                        paymentLoading ||
+                        !selectedTicket ||
+                        selectedTicketRemaining < 1 ||
+                        quantity > selectedTicketRemaining
+                      }
                     >
                       {paymentLoading ? 'Redirecting to Khalti...' : 'Pay with Khalti'}
                     </button>
