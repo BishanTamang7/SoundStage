@@ -216,7 +216,7 @@ const ConcertDetails = () => {
                       </div>
                     </div>
 
-                    <aside className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-5">
+                    <aside className="self-start rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-5">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#9CA3AF]">
                           Starting from
