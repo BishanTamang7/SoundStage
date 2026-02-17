@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Landing from '../pages/public/Landing'
 import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
+import ForgotPassword from '../pages/public/ForgotPassword'
 import About from '../pages/public/About'
 import Privacy from '../pages/public/Privacy'
 import Terms from '../pages/public/Terms'
@@ -36,6 +37,7 @@ const AppRoutes = () => {
       <Route path="/terms" element={<Terms />} />
       <Route path="/signin" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route element={<ProtectedRoute />}> 
         <Route element={<RoleRoute allowedRoles={[ROLES.ORGANIZER]} />}> 

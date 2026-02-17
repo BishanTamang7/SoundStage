@@ -129,7 +129,7 @@ const Login = () => {
                 />
                 Remember me
               </label>
-              <a className="font-bold text-[#4F46E5]" href="#">
+              <a className="font-bold text-[#4F46E5]" href="/forgot-password">
                 Forgot password?
               </a>
             </div>
