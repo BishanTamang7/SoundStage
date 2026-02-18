@@ -8,7 +8,12 @@ from django.conf.urls.static import static
 urlpatterns = [
     # Accounts API
     path('api/accounts/', include('accounts.urls')),
-    # Concerts API
+    # Domain APIs
+    path('api/events/', include('events.urls')),
+    path('api/payments/', include('payments.urls')),
+    path('api/tickets/', include('tickets.urls')),
+    path('api/notifications/', include('notifications.urls')),
+    # Backward-compatible API namespace
     path('api/concerts/', include('concerts.urls')),
 ]
 

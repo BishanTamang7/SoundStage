@@ -1,0 +1,109 @@
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
+from accounts.permissions import IsOrganizer
+from events.models import Concert
+from .serializers import ConcertCreateSerializer, ConcertDetailSerializer, ConcertListSerializer
+
+
+class ConcertViewSet(viewsets.ModelViewSet):
+    queryset = Concert.objects.all()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action in ['retrieve', 'my_events']:
+            return ConcertDetailSerializer.setup_eager_loading(queryset)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ConcertCreateSerializer
+        if self.action in ['retrieve', 'update', 'partial_update']:
+            return ConcertDetailSerializer
+        return ConcertListSerializer
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsOrganizer()]
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        concert = serializer.save(organizer=request.user)
+        return Response(
+            {
+                'success': True,
+                'message': 'Concert created successfully',
+                'data': {
+                    'concert_id': str(concert.id),
+                    'title': concert.title,
+                    'created_at': concert.created_at,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'success': True, 'data': {'concerts': serializer.data}})
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({'success': True, 'data': serializer.data})
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        if instance.organizer != request.user:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'You do not have permission to edit this concert',
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        concert = serializer.save()
+        response_serializer = ConcertDetailSerializer(concert)
+
+        return Response(
+            {
+                'success': True,
+                'message': 'Concert updated successfully',
+                'data': response_serializer.data,
+            }
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance.organizer != request.user:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'You do not have permission to delete this concert',
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        instance.delete()
+        return Response(
+            {'success': True, 'message': 'Concert deleted successfully'},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated, IsOrganizer])
+    def my_events(self, request):
+        queryset = self.get_queryset().filter(organizer=request.user)
+        serializer = ConcertDetailSerializer(queryset, many=True)
+        return Response({'success': True, 'data': {'concerts': serializer.data}})

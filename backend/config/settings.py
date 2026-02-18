@@ -57,6 +57,10 @@ INSTALLED_APPS = [
     # Local apps
     'accounts',
     'concerts',
+    'events',
+    'payments',
+    'tickets',
+    'notifications',
 ]
 
 
