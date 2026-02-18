@@ -115,6 +115,10 @@ class UserLoginSerializer(serializers.Serializer):
         
         if not user.is_active:
             raise serializers.ValidationError('User account is disabled.')
+        if not user.email_verified:
+            raise serializers.ValidationError('Please verify your email before logging in.')
+        if user.status != User.STATUS_ACTIVE:
+            raise serializers.ValidationError('Your account is not active.')
 
         update_last_login(None, user)
         
@@ -135,10 +139,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'username', 'role',
-            'is_active', 'date_joined', 'updated_at'
+            'is_active', 'email_verified', 'status', 'date_joined', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'email', 'date_joined', 'updated_at', 'role'
+            'id', 'email', 'date_joined', 'updated_at', 'role', 'email_verified', 'status'
         ]
 
 
@@ -194,3 +198,28 @@ class ChangePasswordSerializer(serializers.Serializer):
                 {'new_password': 'New password must be different from current password.'}
             )
         return attrs
+
+
+class VerifyEmailOTPSerializer(serializers.Serializer):
+    """Serializer for email verification OTP submission."""
+
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, trim_whitespace=True, max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+    def validate_otp(self, value):
+        otp = value.strip()
+        if not otp.isdigit():
+            raise serializers.ValidationError('OTP must contain only digits.')
+        return otp
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    """Serializer for resend verification requests."""
+
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        return value.lower().strip()
