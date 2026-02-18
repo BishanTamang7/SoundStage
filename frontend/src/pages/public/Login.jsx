@@ -180,7 +180,7 @@ const Login = () => {
             {message ? <p className="text-sm font-semibold text-emerald-700">{message}</p> : null}
             {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : null}
             {showResend && canResend ? (
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full items-center justify-between gap-3">
                 <button
                   className="text-sm font-semibold text-[#4F46E5] underline-offset-3 hover:underline disabled:cursor-not-allowed disabled:opacity-70"
                   type="button"

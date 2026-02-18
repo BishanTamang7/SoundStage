@@ -64,32 +64,28 @@ const VerifyEmail = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f6f6f6] px-6 py-10 text-[#101010]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(0,0,0,0.08)_0%,transparent_45%),radial-gradient(circle_at_90%_85%,rgba(0,0,0,0.08)_0%,transparent_45%)]" />
-      <main className="relative z-10 w-full max-w-xl rounded-3xl border border-black/10 bg-white/95 p-8 shadow-[0_24px_70px_rgba(0,0,0,0.12)] backdrop-blur-sm md:p-10">
-        <p className="inline-flex rounded-full border border-black/10 bg-black/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-black/70">
-          SoundStage Auth
-        </p>
-        <h1 className="mt-5 font-['Playfair_Display'] text-4xl font-black leading-tight md:text-5xl">
-          Email OTP Verification
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-black/65">{message}</p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white px-6 py-10 text-[#312E81]">
+      <main className="relative z-10 w-full max-w-2xl rounded-3xl border border-[rgba(49,46,129,0.18)] bg-white p-6 md:p-8">
+        <div className="text-center">
+          <h1 className="mt-2 text-3xl font-bold md:text-4xl">Verify Email</h1>
+          <p className="mt-2 text-[0.95rem] text-[#4B5563]">{message}</p>
+        </div>
 
-        <form className="mt-8 flex flex-col gap-3" onSubmit={handleVerify}>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-black/60" htmlFor="verification-email">
+        <form className="mx-auto mt-8 flex w-full max-w-lg flex-col gap-4" onSubmit={handleVerify}>
+          <label className="text-sm font-semibold" htmlFor="verification-email">
             Email
           </label>
           <input
             id="verification-email"
             type="email"
-            className="rounded-xl border border-black/15 bg-white px-4 py-3 text-sm outline-none transition focus:border-black/40"
+            className="rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
             placeholder="you@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
           />
 
-          <label className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-black/60" htmlFor="verification-otp">
+          <label className="text-sm font-semibold" htmlFor="verification-otp">
             6-digit OTP
           </label>
           <input
@@ -97,7 +93,7 @@ const VerifyEmail = () => {
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={6}
-            className="rounded-xl border border-black/15 bg-white px-4 py-3 text-sm tracking-[0.32em] outline-none transition focus:border-black/40"
+            className="rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 text-base tracking-[0.32em] outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
             placeholder="000000"
             value={otp}
             onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -108,7 +104,7 @@ const VerifyEmail = () => {
             <button
               type="submit"
               disabled={submitting || otp.length !== 6}
-              className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? 'Verifying...' : 'Verify OTP'}
             </button>
@@ -116,14 +112,14 @@ const VerifyEmail = () => {
               type="button"
               onClick={handleResend}
               disabled={resending || cooldown > 0 || !email.trim()}
-              className="rounded-xl border border-black/20 px-5 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full border border-[rgba(124,58,237,0.35)] bg-[rgba(124,58,237,0.08)] px-5 py-3 text-sm font-semibold text-[#5B21B6] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {resending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
             </button>
             <button
               type="button"
               onClick={() => navigate('/signin')}
-              className="text-sm font-semibold text-black/70 underline-offset-3 hover:underline"
+              className="text-sm font-semibold text-[#4F46E5] underline-offset-3 hover:underline"
             >
               Back to login
             </button>
@@ -131,7 +127,9 @@ const VerifyEmail = () => {
         </form>
 
         {status === 'loading' ? (
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-black/50">Processing...</p>
+          <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#6D28D9]">
+            Processing...
+          </p>
         ) : null}
       </main>
     </div>
