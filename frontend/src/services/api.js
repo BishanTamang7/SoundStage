@@ -125,6 +125,22 @@ export const api = {
       handleError(error)
     }
   },
+  verifyEmailOtp: async (payload) => {
+    try {
+      const { data } = await apiClient.post('/accounts/verify-email-otp/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  resendEmailOtp: async (payload) => {
+    try {
+      const { data } = await apiClient.post('/accounts/resend-email-otp/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   logout: async (token, refresh) => {
     try {
       const { data } = await apiClient.post(

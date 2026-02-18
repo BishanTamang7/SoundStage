@@ -145,6 +145,8 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const register = useCallback(async (payload) => api.register(payload), [])
+  const verifyEmailOtp = useCallback(async (payload) => api.verifyEmailOtp(payload), [])
+  const resendEmailOtp = useCallback(async (payload) => api.resendEmailOtp(payload), [])
 
   const updateProfile = useCallback(
     async (payload) => {
@@ -205,12 +207,26 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: Boolean(tokens?.access),
       login,
       register,
+      verifyEmailOtp,
+      resendEmailOtp,
       updateProfile,
       changePassword,
       deleteAccount,
       logout,
     }),
-    [user, tokens, loading, login, register, updateProfile, changePassword, deleteAccount, logout]
+    [
+      user,
+      tokens,
+      loading,
+      login,
+      register,
+      verifyEmailOtp,
+      resendEmailOtp,
+      updateProfile,
+      changePassword,
+      deleteAccount,
+      logout,
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

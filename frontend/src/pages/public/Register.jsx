@@ -49,7 +49,7 @@ const Register = () => {
         password: formData.password,
         confirm_password: formData.confirm,
       })
-      navigate('/signin')
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
     } catch (err) {
       setError(err?.message || 'Registration failed. Please try again.')
     } finally {

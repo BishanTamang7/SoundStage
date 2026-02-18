@@ -1,15 +1,25 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES, normalizeRole } from '../../utils/roles'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
-  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [searchParams] = useSearchParams()
+  const { login, resendEmailOtp } = useAuth()
+  const defaultEmail = searchParams.get('email') || ''
+  const [formData, setFormData] = useState({ email: defaultEmail, password: '' })
   const [error, setError] = useState('')
+  const [message, setMessage] = useState(
+    searchParams.get('verified') === '1'
+      ? 'Email verified successfully. You can log in now.'
+      : searchParams.get('checkEmail') === '1'
+        ? 'Registration successful. Please verify your email before logging in.'
+        : ''
+  )
   const [submitting, setSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [resending, setResending] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -19,6 +29,7 @@ const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setMessage('')
     setSubmitting(true)
     try {
       const profile = await login({
@@ -38,6 +49,38 @@ const Login = () => {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const canResend = defaultEmail || formData.email
+  const showResend = error.toLowerCase().includes('verify your email')
+
+  const handleResend = async () => {
+    const email = (defaultEmail || formData.email || '').trim()
+    if (!email) {
+      setError('Enter your email to resend OTP.')
+      return
+    }
+
+    setResending(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await resendEmailOtp({ email })
+      setMessage(response?.message || 'If your email is valid, we sent an OTP.')
+    } catch (err) {
+      setError(err?.message || 'Failed to resend OTP.')
+    } finally {
+      setResending(false)
+    }
+  }
+
+  const handleOpenVerifyPage = () => {
+    const email = (defaultEmail || formData.email || '').trim()
+    if (!email) {
+      navigate('/verify-email')
+      return
+    }
+    navigate(`/verify-email?email=${encodeURIComponent(email)}`)
   }
 
   return (
@@ -134,7 +177,27 @@ const Login = () => {
               </a>
             </div>
 
+            {message ? <p className="text-sm font-semibold text-emerald-700">{message}</p> : null}
             {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : null}
+            {showResend && canResend ? (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="text-sm font-semibold text-[#4F46E5] underline-offset-3 hover:underline disabled:cursor-not-allowed disabled:opacity-70"
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                >
+                  {resending ? 'Sending OTP...' : 'Resend OTP'}
+                </button>
+                <button
+                  className="text-sm font-semibold text-[#4F46E5] underline-offset-3 hover:underline"
+                  type="button"
+                  onClick={handleOpenVerifyPage}
+                >
+                  Open OTP page
+                </button>
+              </div>
+            ) : null}
 
             <button
               className="mt-2 rounded-full bg-[#7C3AED] py-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
