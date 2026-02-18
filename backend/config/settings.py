@@ -12,6 +12,7 @@ import environ
 import os
 from datetime import timedelta
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -205,3 +206,12 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 # Khalti (KPG-2)
 KHALTI_SECRET_KEY = env('KHALTI_SECRET_KEY', default='')
 KHALTI_BASE_URL = env('KHALTI_BASE_URL', default='https://dev.khalti.com/api/v2')
+
+# Email backend configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com' 
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
