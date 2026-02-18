@@ -13,8 +13,6 @@ urlpatterns = [
     path('api/payments/', include('payments.urls')),
     path('api/tickets/', include('tickets.urls')),
     path('api/notifications/', include('notifications.urls')),
-    # Backward-compatible API namespace
-    path('api/concerts/', include('concerts.urls')),
 ]
 
 # Serve media and static files in development
