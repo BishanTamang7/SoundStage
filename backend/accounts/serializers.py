@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -114,6 +115,8 @@ class UserLoginSerializer(serializers.Serializer):
         
         if not user.is_active:
             raise serializers.ValidationError('User account is disabled.')
+
+        update_last_login(None, user)
         
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
