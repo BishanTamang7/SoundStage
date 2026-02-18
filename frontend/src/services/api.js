@@ -211,7 +211,7 @@ export const api = {
   },
   organizerConcerts: async (token) => {
     try {
-      const { data } = await apiClient.get('/concerts/concerts/my_events/', {
+      const { data } = await apiClient.get('/events/concerts/my_events/', {
         headers: withAuth(token),
       })
       return data
@@ -221,7 +221,7 @@ export const api = {
   },
   listConcerts: async () => {
     try {
-      const { data } = await apiClient.get('/concerts/concerts/')
+      const { data } = await apiClient.get('/events/concerts/')
       return data
     } catch (error) {
       handleError(error)
@@ -229,7 +229,7 @@ export const api = {
   },
   deleteConcert: async (token, concertId) => {
     try {
-      const { data } = await apiClient.delete(`/concerts/concerts/${concertId}/`, {
+      const { data } = await apiClient.delete(`/events/concerts/${concertId}/`, {
         headers: withAuth(token),
       })
       return data
@@ -241,7 +241,7 @@ export const api = {
     try {
       const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
       const headers = isFormData ? withAuth(token) : withAuth(token)
-      const { data } = await apiClient.post('/concerts/concerts/', payload, { headers })
+      const { data } = await apiClient.post('/events/concerts/', payload, { headers })
       return data
     } catch (error) {
       handleError(error)
@@ -249,7 +249,7 @@ export const api = {
   },
   getConcert: async (token, concertId) => {
     try {
-      const { data } = await apiClient.get(`/concerts/concerts/${concertId}/`, {
+      const { data } = await apiClient.get(`/events/concerts/${concertId}/`, {
         headers: withAuth(token),
       })
       return data
@@ -261,7 +261,7 @@ export const api = {
     try {
       const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
       const headers = isFormData ? withAuth(token) : withAuth(token)
-      const { data } = await apiClient.put(`/concerts/concerts/${concertId}/`, payload, {
+      const { data } = await apiClient.put(`/events/concerts/${concertId}/`, payload, {
         headers,
       })
       return data
@@ -271,7 +271,7 @@ export const api = {
   },
   khaltiInitiate: async (token, payload) => {
     try {
-      const { data } = await apiClient.post('/concerts/payments/khalti/initiate/', payload, {
+      const { data } = await apiClient.post('/payments/khalti/initiate/', payload, {
         headers: withAuth(token),
       })
       return data
@@ -281,7 +281,7 @@ export const api = {
   },
   khaltiLookup: async (token, payload) => {
     try {
-      const { data } = await apiClient.post('/concerts/payments/khalti/lookup/', payload, {
+      const { data } = await apiClient.post('/payments/khalti/lookup/', payload, {
         headers: withAuth(token),
       })
       return data
@@ -291,7 +291,7 @@ export const api = {
   },
   khaltiConfirm: async (token, payload) => {
     try {
-      const { data } = await apiClient.post('/concerts/payments/khalti/confirm/', payload, {
+      const { data } = await apiClient.post('/payments/khalti/confirm/', payload, {
         headers: withAuth(token),
       })
       return data
@@ -301,7 +301,7 @@ export const api = {
   },
   myTickets: async (token) => {
     try {
-      const { data } = await apiClient.get('/concerts/tickets/my/', {
+      const { data } = await apiClient.get('/tickets/my/', {
         headers: withAuth(token),
       })
       return data
@@ -311,7 +311,7 @@ export const api = {
   },
   organizerBookings: async (token) => {
     try {
-      const { data } = await apiClient.get('/concerts/tickets/organizer/bookings/', {
+      const { data } = await apiClient.get('/tickets/organizer/bookings/', {
         headers: withAuth(token),
       })
       return data
@@ -321,7 +321,7 @@ export const api = {
   },
   deleteMyTicket: async (token, ticketId) => {
     try {
-      const { data } = await apiClient.delete(`/concerts/tickets/${ticketId}/`, {
+      const { data } = await apiClient.delete(`/tickets/${ticketId}/`, {
         headers: withAuth(token),
       })
       return data
@@ -331,7 +331,7 @@ export const api = {
   },
   verifyTicket: async (token, payload) => {
     try {
-      const { data } = await apiClient.post('/concerts/tickets/verify/', payload, {
+      const { data } = await apiClient.post('/tickets/verify/', payload, {
         headers: withAuth(token),
       })
       return data
