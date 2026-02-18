@@ -64,7 +64,7 @@ const VerifyEmail = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white px-6 py-10 text-[#312E81]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] px-6 py-10 text-[#312E81]">
       <main className="relative z-10 w-full max-w-2xl rounded-3xl border border-[rgba(49,46,129,0.18)] bg-white p-6 md:p-8">
         <div className="text-center">
           <h1 className="mt-2 text-3xl font-bold md:text-4xl">Verify Email</h1>

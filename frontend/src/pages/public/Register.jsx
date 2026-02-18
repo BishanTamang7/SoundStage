@@ -59,8 +59,6 @@ const Register = () => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] text-[#312E81]">
-      <div className="pointer-events-none absolute left-[-20%] top-[-40%] h-screen w-screen rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18)_0%,transparent_70%)]" />
-
       <main className="relative z-10 grid w-full max-w-275 grid-cols-1 items-center gap-10 px-8 py-10 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="text-center lg:text-left">
           <h1 className="mb-4 font-['Playfair_Display'] text-[2.4rem] font-black leading-[1.12] md:text-[3rem] lg:text-[3.3rem]">
