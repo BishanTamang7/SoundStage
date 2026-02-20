@@ -47,8 +47,8 @@ const getTicketStatus = (remaining, dateValue) => {
   const date = dateValue ? new Date(dateValue) : null
   const isPast = date instanceof Date && !Number.isNaN(date.getTime()) && date.getTime() < Date.now()
 
-  if (remaining <= 0) return 'Sold Out'
   if (isPast) return 'Closed'
+  if (remaining <= 0) return 'Sold Out'
   if (remaining <= 10) return 'Low Stock'
   return 'On Sale'
 }
@@ -177,14 +177,15 @@ const Tickets = () => {
   }, [allTicketRows, search, statusFilter])
 
   const stats = useMemo(() => {
+    const activeRows = allTicketRows.filter((row) => row.status !== 'Closed')
     const totalTypes = new Set(
-      allTicketRows
+      activeRows
         .map((row) => row.ticketType?.trim().toLowerCase())
         .filter((value) => value && value !== 'no ticket category')
     ).size
-    const totalCapacity = allTicketRows.reduce((sum, row) => sum + row.capacity, 0)
-    const totalRemaining = allTicketRows.reduce((sum, row) => sum + row.remaining, 0)
-    const lowStockAlerts = allTicketRows.filter(
+    const totalCapacity = activeRows.reduce((sum, row) => sum + row.capacity, 0)
+    const totalRemaining = activeRows.reduce((sum, row) => sum + row.remaining, 0)
+    const lowStockAlerts = activeRows.filter(
       (row) => row.status === 'Low Stock' || row.status === 'Sold Out'
     ).length
 
