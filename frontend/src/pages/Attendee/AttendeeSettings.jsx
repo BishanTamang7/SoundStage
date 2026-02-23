@@ -42,16 +42,8 @@ const ToggleRow = ({ label, description, checked, onChange }) => (
 )
 
 const AttendeeSettings = () => {
-  const {
-    user,
-    logout,
-    role,
-    isAuthenticated,
-    changePassword,
-    deleteAccount,
-    getNotificationPreferences,
-    updateNotificationPreferences,
-  } = useAuth()
+  const { user, logout, role, isAuthenticated, getNotificationPreferences, updateNotificationPreferences } =
+    useAuth()
   const navigate = useNavigate()
   const menuRef = useRef(null)
   const [open, setOpen] = useState(false)
@@ -60,21 +52,6 @@ const AttendeeSettings = () => {
   const [prefsError, setPrefsError] = useState('')
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [savingPrefKey, setSavingPrefKey] = useState('')
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
-  const [savingPassword, setSavingPassword] = useState(false)
-  const [passwordMessage, setPasswordMessage] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [deletingAccount, setDeletingAccount] = useState(false)
-  const [deleteError, setDeleteError] = useState('')
-  const [showPassword, setShowPassword] = useState({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  })
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
@@ -132,60 +109,6 @@ const AttendeeSettings = () => {
     } finally {
       navigate('/', { replace: true })
     }
-  }
-
-  const handlePasswordInputChange = (event) => {
-    const { name, value } = event.target
-    setPasswordMessage('')
-    setPasswordError('')
-    setPasswordForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleUpdatePassword = async () => {
-    setPasswordMessage('')
-    setPasswordError('')
-
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setPasswordError('All password fields are required.')
-      return
-    }
-
-    try {
-      setSavingPassword(true)
-      await changePassword({
-        current_password: passwordForm.currentPassword,
-        new_password: passwordForm.newPassword,
-        confirm_password: passwordForm.confirmPassword,
-      })
-      setPasswordMessage('Password updated successfully.')
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    } catch (error) {
-      setPasswordError(error?.message || 'Failed to update password.')
-    } finally {
-      setSavingPassword(false)
-    }
-  }
-
-  const handleDeleteAccount = async () => {
-    setDeleteError('')
-    const confirmed = window.confirm(
-      'Delete your account permanently? This will remove your account access and cannot be undone.'
-    )
-    if (!confirmed) return
-
-    try {
-      setDeletingAccount(true)
-      await deleteAccount()
-      navigate('/', { replace: true })
-    } catch (error) {
-      setDeleteError(error?.message || 'Failed to delete account.')
-    } finally {
-      setDeletingAccount(false)
-    }
-  }
-
-  const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
   const togglePref = async (key) => {
@@ -325,82 +248,26 @@ const AttendeeSettings = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(49,46,129,0.04)]">
-              <h2 className="border-b border-[#E5E7EB] pb-4 text-lg font-black text-[#312E81]">
-                Security
-              </h2>
-              <p className="mt-3 text-sm text-[#6B7280]">
-                Update your password to keep your account secure.
-              </p>
-              <div className="mt-5 grid gap-4">
-                {[
-                  ['currentPassword', 'Current Password', 'current-password'],
-                  ['newPassword', 'New Password', 'new-password'],
-                  ['confirmPassword', 'Confirm Password', 'confirm-password'],
-                ].map(([key, label, id]) => (
-                  <div key={key} className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#312E81]" htmlFor={id}>
-                      {label}
-                    </label>
-                    <div className="relative">
-                      <input
-                        id={id}
-                        name={key}
-                        type={showPassword[key] ? 'text' : 'password'}
-                        value={passwordForm[key]}
-                        onChange={handlePasswordInputChange}
-                        className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 pr-16 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
-                        placeholder={label}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility(key)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#4F46E5]"
-                      >
-                        {showPassword[key] ? 'Hide' : 'Show'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {passwordError ? <p className="mt-4 text-sm font-semibold text-[#EF4444]">{passwordError}</p> : null}
-              {passwordMessage ? (
-                <p className="mt-4 text-sm font-semibold text-[#059669]">{passwordMessage}</p>
-              ) : null}
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={handleUpdatePassword}
-                  disabled={savingPassword}
-                  className="rounded-lg bg-[#7C3AED] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:bg-[#A78BFA]"
-                >
-                  {savingPassword ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#FECACA] bg-white p-6 shadow-[0_10px_30px_rgba(239,68,68,0.04)]">
-              <h2 className="border-b border-[#FEE2E2] pb-4 text-lg font-black text-[#991B1B]">
-                Danger Zone
-              </h2>
-              <p className="mt-3 text-sm text-[#7F1D1D]">
-                Deleting your account is permanent and cannot be undone.
-              </p>
-              {deleteError ? <p className="mt-4 text-sm font-semibold text-[#EF4444]">{deleteError}</p> : null}
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deletingAccount}
-                  className="rounded-lg border border-[#EF4444] bg-[#FEF2F2] px-5 py-3 text-sm font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deletingAccount ? 'Deleting...' : 'Delete Account'}
-                </button>
-              </div>
-            </section>
           </section>
         </div>
       </main>
+
+      <footer className="bg-[#312E81] px-[5%] py-6 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-6 text-base">
+          <div className="flex gap-8">
+            <Link className="text-white/75" to="/attendee/about">
+              About
+            </Link>
+            <Link className="text-white/75" to="/privacy">
+              Privacy
+            </Link>
+            <Link className="text-white/75" to="/terms">
+              Terms
+            </Link>
+          </div>
+          <div>© 2026 SoundStage. All rights reserved.</div>
+        </div>
+      </footer>
     </div>
   )
 }
