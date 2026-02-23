@@ -5,9 +5,12 @@ import secrets
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import transaction
+from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -18,6 +21,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import EmailVerificationOTP, User
 from .serializers import (
     ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordConfirmSerializer,
     ResendVerificationSerializer,
     UserLoginSerializer,
     UserProfileUpdateSerializer,
@@ -36,6 +41,9 @@ OTP_LOCK_MINUTES = 15
 RESEND_MIN_INTERVAL_SECONDS = 60
 RESEND_MAX_PER_HOUR = 5
 GENERIC_RESEND_MESSAGE = 'If your email is valid, we sent an OTP.'
+GENERIC_PASSWORD_RESET_MESSAGE = (
+    'If an account with that email exists, a password reset link has been sent.'
+)
 
 
 def _hash_otp(otp, salt):
@@ -54,6 +62,23 @@ def _send_otp_email(user, otp):
         f"Your verification OTP is: {otp}\n\n"
         f"This OTP expires in {ttl_minutes} minutes.\n"
         f"If this wasn't you, you can ignore this email.\n"
+    )
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+
+
+def _send_password_reset_email(user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/reset-password"
+        f"?uid={uid}&token={token}&email={user.email}"
+    )
+    subject = 'Reset your SoundStage password'
+    message = (
+        f"Hi {user.username},\n\n"
+        "We received a request to reset your SoundStage password.\n\n"
+        f"Reset your password here: {reset_url}\n\n"
+        "If you did not request this, you can ignore this email.\n"
     )
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
 
@@ -241,6 +266,73 @@ class ResendEmailOTPAPIView(APIView):
 
         return Response(
             {'success': True, 'message': GENERIC_RESEND_MESSAGE},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ForgotPasswordAPIView(APIView):
+    """API endpoint to request a password reset link."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ForgotPasswordSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'success': True, 'message': GENERIC_PASSWORD_RESET_MESSAGE},
+                status=status.HTTP_200_OK,
+            )
+
+        email = serializer.validated_data['email']
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            try:
+                _send_password_reset_email(user)
+            except Exception:
+                logger.exception('Failed to send password reset email for user %s', user.id)
+
+        return Response(
+            {'success': True, 'message': GENERIC_PASSWORD_RESET_MESSAGE},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResetPasswordConfirmAPIView(APIView):
+    """API endpoint to reset password using uid/token."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ResetPasswordConfirmSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'success': False, 'message': 'Validation error', 'errors': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        uid = serializer.validated_data['uid']
+        token = serializer.validated_data['token']
+        new_password = serializer.validated_data['new_password']
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.filter(pk=user_id, is_active=True).first()
+        except Exception:
+            user = None
+
+        if not user or not default_token_generator.check_token(user, token):
+            return Response(
+                {'success': False, 'message': 'Invalid or expired password reset link.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        return Response(
+            {'success': True, 'message': 'Password reset successfully. You can log in now.'},
             status=status.HTTP_200_OK,
         )
 
