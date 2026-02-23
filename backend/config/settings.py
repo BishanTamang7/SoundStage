@@ -127,6 +127,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Password reset token expiry (seconds)
+PASSWORD_RESET_TIMEOUT = 15 * 60
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
