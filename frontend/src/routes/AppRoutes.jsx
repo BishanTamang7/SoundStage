@@ -26,6 +26,7 @@ import ConcertDetails from '../pages/Attendee/ConcertDetails'
 import MyTickets from '../pages/Attendee/MyTickets'
 import AttendeeAbout from '../pages/Attendee/AttendeeAbout'
 import AttendeeProfile from '../pages/Attendee/AttendeeProfile'
+import AttendeeSettings from '../pages/Attendee/AttendeeSettings'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoute from './RoleRoute'
 import { ROLES } from '../utils/roles'
@@ -64,6 +65,7 @@ const AppRoutes = () => {
           <Route path="/attendee/tickets" element={<MyTickets />} />
           <Route path="/attendee/about" element={<AttendeeAbout />} />
           <Route path="/attendee/profile" element={<AttendeeProfile />} />
+          <Route path="/attendee/settings" element={<AttendeeSettings />} />
         </Route>
       </Route>
 
