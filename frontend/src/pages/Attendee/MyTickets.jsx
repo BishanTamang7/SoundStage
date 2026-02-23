@@ -98,6 +98,31 @@ const getTicketUiTheme = (ticketType) => {
   }
 }
 
+const getTicketGroupKey = (ticket) => {
+  return [
+    ticket?.attendee_email || '',
+    ticket?.concert_title || '',
+    ticket?.concert_date_time || '',
+    ticket?.concert_venue || '',
+    (ticket?.ticket_type || '').trim().toLowerCase(),
+    ticket?.is_used ? 'used' : 'unused',
+  ].join('::')
+}
+
+const getDisplayQuantity = (ticket) => {
+  const grouped = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets.length : 0
+  return grouped > 0 ? grouped : 1
+}
+
+const getDisplayTotalPaid = (ticket) => {
+  const groupedTickets = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets : []
+  if (groupedTickets.length > 0) {
+    const total = groupedTickets.reduce((sum, item) => sum + (Number(item?.ticket_price) || 0), 0)
+    return total
+  }
+  return Number(ticket?.ticket_price) || 0
+}
+
 const MyTickets = () => {
   const { user, logout, role, isAuthenticated, tokens } = useAuth()
   const navigate = useNavigate()
@@ -182,7 +207,7 @@ const MyTickets = () => {
   }
 
   const normalizedTickets = useMemo(() => {
-    return tickets
+    const normalized = tickets
       .map((ticket) => {
         const date = ticket?.concert_date_time ? new Date(ticket.concert_date_time) : null
         const dateMs = date && !Number.isNaN(date.getTime()) ? date.getTime() : null
@@ -196,6 +221,37 @@ const MyTickets = () => {
         const bValue = b._dateMs ?? 0
         return aValue - bValue
       })
+    const groupedMap = new Map()
+
+    normalized.forEach((ticket) => {
+      const key = getTicketGroupKey(ticket)
+      const existing = groupedMap.get(key)
+      if (!existing) {
+        groupedMap.set(key, {
+          ...ticket,
+          _groupKey: key,
+          _groupTickets: [ticket],
+        })
+        return
+      }
+
+      existing._groupTickets.push(ticket)
+      const existingCreatedAt = existing?.created_at ? new Date(existing.created_at).getTime() : 0
+      const nextCreatedAt = ticket?.created_at ? new Date(ticket.created_at).getTime() : 0
+      if (nextCreatedAt > existingCreatedAt) {
+        Object.assign(existing, {
+          ...ticket,
+          _groupKey: key,
+          _groupTickets: existing._groupTickets,
+        })
+      }
+    })
+
+    return Array.from(groupedMap.values()).sort((a, b) => {
+      const aValue = a._dateMs ?? 0
+      const bValue = b._dateMs ?? 0
+      return aValue - bValue
+    })
   }, [tickets])
 
   const now = Date.now()
@@ -233,6 +289,20 @@ const MyTickets = () => {
       window.URL.revokeObjectURL(objectUrl)
     } catch {
       window.open(url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleDownloadQrGroup = async (ticket) => {
+    const groupedTickets = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets : []
+    if (groupedTickets.length <= 1) {
+      await handleDownloadQr(ticket)
+      return
+    }
+
+    for (const groupedTicket of groupedTickets) {
+      // Download each ticket QR for grouped cards.
+      // eslint-disable-next-line no-await-in-loop
+      await handleDownloadQr(groupedTicket)
     }
   }
 
@@ -296,7 +366,7 @@ const MyTickets = () => {
           const ticketTheme = getTicketUiTheme(ticket.ticket_type)
           return (
             <article
-              key={ticket.id}
+              key={ticket._groupKey || ticket.id}
               className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${ticketTheme.cardAccentClass}`}
             >
               <header className={`relative p-6 text-white ${ticketTheme.headerClass}`}>
@@ -326,7 +396,9 @@ const MyTickets = () => {
                   </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
-                    <span className="text-sm font-black text-[#312E81]">1 ticket</span>
+                    <span className="text-sm font-black text-[#312E81]">
+                      {getDisplayQuantity(ticket)} {getDisplayQuantity(ticket) === 1 ? 'ticket' : 'tickets'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
@@ -334,7 +406,7 @@ const MyTickets = () => {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Total Paid</span>
-                    <span className="text-sm font-black text-[#312E81]">{formatCurrency(ticket.ticket_price)}</span>
+                    <span className="text-sm font-black text-[#312E81]">{formatCurrency(getDisplayTotalPaid(ticket))}</span>
                   </div>
                 </div>
 
@@ -346,14 +418,14 @@ const MyTickets = () => {
                         onClick={() => setSelectedTicket(ticket)}
                         className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition ${ticketTheme.actionClass}`}
                       >
-                        View Ticket
+                        {getDisplayQuantity(ticket) > 1 ? 'View Tickets' : 'View Ticket'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDownloadQr(ticket)}
+                        onClick={() => handleDownloadQrGroup(ticket)}
                         className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                       >
-                        Download QR
+                        {getDisplayQuantity(ticket) > 1 ? 'Download QRs' : 'Download QR'}
                       </button>
                     </div>
                   </>
@@ -361,10 +433,10 @@ const MyTickets = () => {
                   <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => handleDownloadQr(ticket)}
+                      onClick={() => handleDownloadQrGroup(ticket)}
                       className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                     >
-                      Download Ticket
+                      {getDisplayQuantity(ticket) > 1 ? 'Download Tickets' : 'Download Ticket'}
                     </button>
                     <button
                       type="button"
@@ -507,12 +579,36 @@ const MyTickets = () => {
 
             <div className="p-8">
               <div className="mb-8 text-center">
-                <img
-                  src={ticketQrUrl(selectedTicket, user, 360)}
-                  alt="Ticket QR code"
-                  className={`mx-auto mb-4 h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${selectedTheme.qrBorderClass}`}
-                />
-                <p className="font-semibold text-[#6B7280]">Present this QR code at the venue entrance</p>
+                {(selectedTicket._groupTickets || [selectedTicket]).length > 1 ? (
+                  <div className="space-y-6">
+                    <p className="font-semibold text-[#6B7280]">
+                      Present each QR code at the venue entrance ({getDisplayQuantity(selectedTicket)} tickets)
+                    </p>
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                      {(selectedTicket._groupTickets || [selectedTicket]).map((groupedTicket, index) => (
+                        <div key={groupedTicket.id || index} className="rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+                          <p className="mb-3 text-xs font-black tracking-[0.12em] text-[#6B7280] uppercase">
+                            Ticket {index + 1}
+                          </p>
+                          <img
+                            src={ticketQrUrl(groupedTicket, user, 260)}
+                            alt={`Ticket QR code ${index + 1}`}
+                            className={`mx-auto h-52 w-52 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${selectedTheme.qrBorderClass}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={ticketQrUrl(selectedTicket, user, 360)}
+                      alt="Ticket QR code"
+                      className={`mx-auto mb-4 h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${selectedTheme.qrBorderClass}`}
+                    />
+                    <p className="font-semibold text-[#6B7280]">Present this QR code at the venue entrance</p>
+                  </>
+                )}
               </div>
 
               <div className="mb-8">
@@ -522,7 +618,10 @@ const MyTickets = () => {
                 </div>
                 <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                   <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
-                  <span className="text-sm font-black text-[#312E81]">1 ticket</span>
+                  <span className="text-sm font-black text-[#312E81]">
+                    {getDisplayQuantity(selectedTicket)}{' '}
+                    {getDisplayQuantity(selectedTicket) === 1 ? 'ticket' : 'tickets'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between py-3">
                   <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
@@ -540,10 +639,10 @@ const MyTickets = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDownloadQr(selectedTicket)}
+                  onClick={() => handleDownloadQrGroup(selectedTicket)}
                   className={`flex-1 rounded-xl px-6 py-3 font-bold text-white transition ${selectedTheme.actionClass}`}
                 >
-                  Download QR
+                  {getDisplayQuantity(selectedTicket) > 1 ? 'Download QRs' : 'Download QR'}
                 </button>
               </div>
             </div>
