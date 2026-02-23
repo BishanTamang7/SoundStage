@@ -225,6 +225,26 @@ export const api = {
       handleError(error)
     }
   },
+  notificationPreferences: async (token) => {
+    try {
+      const { data } = await apiClient.get('/notifications/preferences/', {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  updateNotificationPreferences: async (token, payload) => {
+    try {
+      const { data } = await apiClient.patch('/notifications/preferences/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   organizerConcerts: async (token) => {
     try {
       const { data } = await apiClient.get('/events/concerts/my_events/', {

@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
-const STORAGE_KEY = 'soundstage_attendee_settings'
-
 const getInitials = (name) => {
   if (!name) return ''
   const parts = name.trim().split(/\s+/)
@@ -12,19 +10,9 @@ const getInitials = (name) => {
   return (first + last).toUpperCase()
 }
 
-const readPrefs = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
 const defaultPrefs = {
-  emailBookings: true,
-  eventReminders: true,
+  email_bookings: true,
+  event_reminders: true,
 }
 
 const ToggleRow = ({ label, description, checked, onChange }) => (
@@ -54,12 +42,24 @@ const ToggleRow = ({ label, description, checked, onChange }) => (
 )
 
 const AttendeeSettings = () => {
-  const { user, logout, role, isAuthenticated, changePassword, deleteAccount } = useAuth()
+  const {
+    user,
+    logout,
+    role,
+    isAuthenticated,
+    changePassword,
+    deleteAccount,
+    getNotificationPreferences,
+    updateNotificationPreferences,
+  } = useAuth()
   const navigate = useNavigate()
   const menuRef = useRef(null)
   const [open, setOpen] = useState(false)
-  const [prefs, setPrefs] = useState(() => ({ ...defaultPrefs, ...(readPrefs() || {}) }))
+  const [prefs, setPrefs] = useState(defaultPrefs)
   const [prefsMessage, setPrefsMessage] = useState('')
+  const [prefsError, setPrefsError] = useState('')
+  const [loadingPrefs, setLoadingPrefs] = useState(true)
+  const [savingPrefKey, setSavingPrefKey] = useState('')
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -92,17 +92,39 @@ const AttendeeSettings = () => {
   }, [])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-      if (prefsMessage) return
-      setPrefsMessage('Preferences saved.')
-      const timeout = window.setTimeout(() => setPrefsMessage(''), 1200)
-      return () => window.clearTimeout(timeout)
-    } catch {
-      setPrefsMessage('')
-      return undefined
+    let active = true
+
+    const loadPreferences = async () => {
+      try {
+        setLoadingPrefs(true)
+        setPrefsError('')
+        const response = await getNotificationPreferences()
+        if (!active) return
+        const data = response?.data || {}
+        setPrefs({
+          email_bookings:
+            typeof data.email_bookings === 'boolean' ? data.email_bookings : defaultPrefs.email_bookings,
+          event_reminders:
+            typeof data.event_reminders === 'boolean'
+              ? data.event_reminders
+              : defaultPrefs.event_reminders,
+        })
+      } catch (error) {
+        if (!active) return
+        setPrefsError(error?.message || 'Failed to load notification settings.')
+      } finally {
+        if (active) {
+          setLoadingPrefs(false)
+        }
+      }
     }
-  }, [prefs])
+
+    loadPreferences()
+
+    return () => {
+      active = false
+    }
+  }, [getNotificationPreferences])
 
   const handleLogout = async () => {
     try {
@@ -166,9 +188,38 @@ const AttendeeSettings = () => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
-  const togglePref = (key) => {
+  const togglePref = async (key) => {
+    if (loadingPrefs || savingPrefKey) return
+
+    const previous = prefs
+    const nextPrefs = { ...prefs, [key]: !prefs[key] }
+    setPrefs(nextPrefs)
     setPrefsMessage('')
-    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
+    setPrefsError('')
+    setSavingPrefKey(key)
+
+    try {
+      const response = await updateNotificationPreferences({
+        email_bookings: nextPrefs.email_bookings,
+        event_reminders: nextPrefs.event_reminders,
+      })
+      const data = response?.data || {}
+      setPrefs({
+        email_bookings:
+          typeof data.email_bookings === 'boolean' ? data.email_bookings : nextPrefs.email_bookings,
+        event_reminders:
+          typeof data.event_reminders === 'boolean'
+            ? data.event_reminders
+            : nextPrefs.event_reminders,
+      })
+      setPrefsMessage(response?.message || 'Notification settings updated.')
+      window.setTimeout(() => setPrefsMessage(''), 1400)
+    } catch (error) {
+      setPrefs(previous)
+      setPrefsError(error?.message || 'Failed to update notification settings.')
+    } finally {
+      setSavingPrefKey('')
+    }
   }
 
   return (
@@ -250,20 +301,28 @@ const AttendeeSettings = () => {
                   </span>
                 ) : null}
               </div>
+              {prefsError ? (
+                <p className="mt-4 text-sm font-semibold text-[#EF4444]">{prefsError}</p>
+              ) : null}
               <div className="mt-5 space-y-4">
                 <ToggleRow
                   label="Booking confirmations"
                   description="Receive email confirmations and purchase summaries for each successful booking."
-                  checked={prefs.emailBookings}
-                  onChange={() => togglePref('emailBookings')}
+                  checked={prefs.email_bookings}
+                  onChange={() => togglePref('email_bookings')}
                 />
                 <ToggleRow
                   label="Event reminders"
-                  description="Get reminders before concerts you booked so you don’t miss entry time."
-                  checked={prefs.eventReminders}
-                  onChange={() => togglePref('eventReminders')}
+                  description="Receive booked-concert reminders and new concert announcements by email."
+                  checked={prefs.event_reminders}
+                  onChange={() => togglePref('event_reminders')}
                 />
               </div>
+              {loadingPrefs ? (
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                  Loading notification settings...
+                </p>
+              ) : null}
             </section>
 
             <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(49,46,129,0.04)]">

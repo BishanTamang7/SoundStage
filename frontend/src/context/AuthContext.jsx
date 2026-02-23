@@ -175,6 +175,25 @@ export const AuthProvider = ({ children }) => {
     [tokens?.access]
   )
 
+  const getNotificationPreferences = useCallback(async () => {
+    const access = tokens?.access
+    if (!access) {
+      throw new Error('Authentication required')
+    }
+    return api.notificationPreferences(access)
+  }, [tokens?.access])
+
+  const updateNotificationPreferences = useCallback(
+    async (payload) => {
+      const access = tokens?.access
+      if (!access) {
+        throw new Error('Authentication required')
+      }
+      return api.updateNotificationPreferences(access, payload)
+    },
+    [tokens?.access]
+  )
+
   const deleteAccount = useCallback(async () => {
     const access = tokens?.access
     if (!access) {
@@ -215,6 +234,8 @@ export const AuthProvider = ({ children }) => {
       resetPasswordConfirm,
       updateProfile,
       changePassword,
+      getNotificationPreferences,
+      updateNotificationPreferences,
       deleteAccount,
       logout,
     }),
@@ -230,6 +251,8 @@ export const AuthProvider = ({ children }) => {
       resetPasswordConfirm,
       updateProfile,
       changePassword,
+      getNotificationPreferences,
+      updateNotificationPreferences,
       deleteAccount,
       logout,
     ]
