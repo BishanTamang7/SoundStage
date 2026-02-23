@@ -1,3 +1,8 @@
+import logging
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -6,6 +11,42 @@ from rest_framework.response import Response
 from accounts.permissions import IsOrganizer
 from events.models import Concert
 from .serializers import ConcertCreateSerializer, ConcertDetailSerializer, ConcertListSerializer
+
+logger = logging.getLogger(__name__)
+
+
+def _send_new_concert_announcement(concert):
+    User = get_user_model()
+    recipients = (
+        User.objects.filter(
+            role='ATTENDEE',
+            is_active=True,
+            email_verified=True,
+        )
+        .exclude(email__isnull=True)
+        .exclude(email='')
+        .exclude(notification_preferences__event_reminders=False)
+        .values_list('email', flat=True)
+        .distinct()
+    )
+
+    recipient_list = list(recipients)
+    if not recipient_list:
+        return
+
+    concert_url = f"{settings.FRONTEND_URL.rstrip('/')}/attendee/concerts/{concert.id}"
+    subject = f'New concert on SoundStage: {concert.title}'
+    message = (
+        'A new concert has been added to SoundStage.\n\n'
+        f'Title: {concert.title}\n'
+        f'Artist: {concert.main_artist}\n'
+        f'Date & Time: {concert.date_time}\n'
+        f'Venue: {concert.venue}\n\n'
+        f'View concert: {concert_url}\n'
+    )
+
+    for email in recipient_list:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
 
 
 class ConcertViewSet(viewsets.ModelViewSet):
@@ -35,6 +76,10 @@ class ConcertViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         concert = serializer.save(organizer=request.user)
+        try:
+            _send_new_concert_announcement(concert)
+        except Exception:
+            logger.exception('Failed to send new concert announcement for concert %s', concert.id)
         return Response(
             {
                 'success': True,

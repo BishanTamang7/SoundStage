@@ -1,10 +1,12 @@
 import json
+import logging
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from urllib import error as url_error
 from urllib import request as url_request
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -14,8 +16,11 @@ from rest_framework.response import Response
 from accounts.permissions import IsAttendee
 from events.models import Concert
 from payments.models import PaymentTransaction
+from notifications.models import NotificationPreference
 from tickets.models import Ticket, TicketCategory
 from tickets.serializers import TicketSerializer
+
+logger = logging.getLogger(__name__)
 
 
 def _khalti_request(path: str, payload: dict):
@@ -69,15 +74,15 @@ def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
 
 def _issue_tickets(payment: PaymentTransaction):
     if payment.tickets_issued:
-        return list(payment.tickets.order_by('seat_number'))
+        return list(payment.tickets.order_by('seat_number')), False
 
     with transaction.atomic():
         locked_payment = PaymentTransaction.objects.select_for_update().get(id=payment.id)
         if locked_payment.tickets_issued:
-            return list(locked_payment.tickets.order_by('seat_number'))
+            return list(locked_payment.tickets.order_by('seat_number')), False
 
         if locked_payment.status != 'Completed':
-            return []
+            return [], False
 
         category = TicketCategory.objects.select_for_update().get(id=locked_payment.ticket_category_id)
         if category.quantity < locked_payment.quantity:
@@ -100,7 +105,41 @@ def _issue_tickets(payment: PaymentTransaction):
 
         locked_payment.tickets_issued = True
         locked_payment.save(update_fields=['tickets_issued', 'updated_at'])
-        return tickets
+        return tickets, True
+
+
+def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
+    attendee = payment.attendee
+    if not attendee or not attendee.email:
+        return
+
+    prefs, _ = NotificationPreference.objects.get_or_create(user=attendee)
+    if not prefs.email_bookings:
+        return
+
+    concert = payment.concert
+    category = payment.ticket_category
+    total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+    ticket_lines = '\n'.join(
+        f'- Ticket {index + 1}: Seat {ticket.seat_number} | QR {ticket.qr_token}'
+        for index, ticket in enumerate(tickets)
+    )
+    subject = 'SoundStage booking confirmation'
+    message = (
+        f"Hi {attendee.get_full_name() or attendee.username or 'Attendee'},\n\n"
+        'Your booking is confirmed.\n\n'
+        f"Concert: {concert.title}\n"
+        f"Date & Time: {concert.date_time}\n"
+        f"Venue: {concert.venue}\n"
+        f"Ticket Type: {category.name}\n"
+        f"Quantity: {payment.quantity}\n"
+        f"Total Paid: NPR {total_rupees}\n"
+        f"Order ID: {payment.purchase_order_id}\n\n"
+        'Issued Tickets:\n'
+        f'{ticket_lines}\n\n'
+        'You can also view your tickets in the SoundStage attendee app.\n'
+    )
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [attendee.email], fail_silently=False)
 
 
 @api_view(['POST'])
@@ -244,9 +283,15 @@ def khalti_confirm(request):
         )
 
     try:
-        issued_tickets = _issue_tickets(payment)
+        issued_tickets, newly_issued = _issue_tickets(payment)
     except ValueError as exc:
         return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+
+    if newly_issued and issued_tickets:
+        try:
+            _send_booking_confirmation_email(payment, issued_tickets)
+        except Exception:
+            logger.exception('Failed to send booking confirmation email for payment %s', payment.id)
 
     serializer = TicketSerializer(issued_tickets, many=True)
     return Response(
