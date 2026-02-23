@@ -62,6 +62,49 @@ const compactTicketId = (value) => {
   return `${text.slice(0, 8)}...${text.slice(-4)}`
 }
 
+const getTicketUiTheme = (ticketType) => {
+  const value = String(ticketType || '').trim().toLowerCase()
+
+  if (value.includes('vip')) {
+    return {
+      kind: 'vip',
+      headerClass:
+        'bg-linear-to-br from-[#B45309] via-[#D97706] to-[#F59E0B]',
+      cardAccentClass: 'ring-2 ring-[#F59E0B]/30',
+      badgeClass:
+        'border border-[#F59E0B]/40 bg-[#FFF7ED] text-[#B45309]',
+      badgeLabel: 'VIP Access',
+      qrBorderClass: 'border-[#F59E0B]',
+      actionClass: 'bg-[#D97706] hover:bg-[#B45309]',
+    }
+  }
+
+  if (value.includes('regular')) {
+    return {
+      kind: 'regular',
+      headerClass:
+        'bg-linear-to-br from-[#0F766E] via-[#0D9488] to-[#14B8A6]',
+      cardAccentClass: 'ring-2 ring-[#14B8A6]/20',
+      badgeClass:
+        'border border-[#14B8A6]/35 bg-[#F0FDFA] text-[#0F766E]',
+      badgeLabel: 'Regular',
+      qrBorderClass: 'border-[#14B8A6]',
+      actionClass: 'bg-[#0D9488] hover:bg-[#0F766E]',
+    }
+  }
+
+  return {
+    kind: 'default',
+    headerClass: 'bg-linear-to-br from-[#7C3AED] to-[#4F46E5]',
+    cardAccentClass: '',
+    badgeClass:
+      'border border-[rgba(124,58,237,0.22)] bg-[rgba(124,58,237,0.08)] text-[#5B21B6]',
+    badgeLabel: ticketType || 'General',
+    qrBorderClass: 'border-[#7C3AED]',
+    actionClass: 'bg-[#7C3AED] hover:bg-[#4F46E5]',
+  }
+}
+
 const MyTickets = () => {
   const { user, logout, role, isAuthenticated, tokens } = useAuth()
   const navigate = useNavigate()
@@ -271,18 +314,24 @@ const MyTickets = () => {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:grid-cols-3">
         {activeTickets.map((ticket) => {
           const statusLabel = isUpcoming ? 'Upcoming' : ticket.is_used ? 'Attended' : 'Past'
+          const ticketTheme = getTicketUiTheme(ticket.ticket_type)
           return (
             <article
               key={ticket.id}
-              className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+              className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${ticketTheme.cardAccentClass}`}
             >
-              <header className="relative bg-linear-to-br from-[#7C3AED] to-[#4F46E5] p-6 text-white">
+              <header className={`relative p-6 text-white ${ticketTheme.headerClass}`}>
                 <span
                   className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-black tracking-wide uppercase ${
                     isUpcoming ? 'bg-emerald-500/90' : 'bg-gray-500/90'
                   }`}
                 >
                   {statusLabel}
+                </span>
+                <span
+                  className={`mb-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black tracking-[0.14em] uppercase ${ticketTheme.kind === 'vip' ? 'bg-white/18 text-white ring-1 ring-white/35' : ticketTheme.kind === 'regular' ? 'bg-white/15 text-white ring-1 ring-white/25' : 'bg-white/15 text-white ring-1 ring-white/20'}`}
+                >
+                  {ticketTheme.badgeLabel}
                 </span>
                 <h3 className="mb-2 pr-28 text-2xl leading-tight font-black">{ticket.concert_title || 'Untitled Concert'}</h3>
                 <p className="text-sm font-semibold opacity-90">{formatConcertDateTime(ticket.concert_date_time)}</p>
@@ -305,7 +354,9 @@ const MyTickets = () => {
                   </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Category</span>
-                    <span className="text-sm font-black text-[#312E81]">{ticket.ticket_type || 'General'}</span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${ticketTheme.badgeClass}`}>
+                      {ticket.ticket_type || 'General'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
@@ -327,7 +378,7 @@ const MyTickets = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedTicket(ticket)}
-                        className="flex-1 rounded-xl bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                        className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition ${ticketTheme.actionClass}`}
                       >
                         View Ticket
                       </button>
@@ -466,8 +517,22 @@ const MyTickets = () => {
           }}
           role="presentation"
         >
+          {(() => {
+            const selectedTheme = getTicketUiTheme(selectedTicket.ticket_type)
+            return (
           <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white">
-            <div className="rounded-t-3xl bg-linear-to-br from-[#7C3AED] to-[#4F46E5] p-8 text-white">
+            <div className={`rounded-t-3xl p-8 text-white ${selectedTheme.headerClass}`}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black tracking-[0.14em] uppercase ${
+                  selectedTheme.kind === 'vip'
+                    ? 'bg-white/18 ring-1 ring-white/35'
+                    : selectedTheme.kind === 'regular'
+                      ? 'bg-white/15 ring-1 ring-white/25'
+                      : 'bg-white/15 ring-1 ring-white/20'
+                }`}>
+                  {selectedTheme.badgeLabel}
+                </span>
+              </div>
               <h3 className="mb-2 text-3xl font-black">{selectedTicket.concert_title || 'Untitled Concert'}</h3>
               <p className="text-sm opacity-90">
                 {formatConcertDateTime(selectedTicket.concert_date_time)} • {selectedTicket.ticket_type || 'General'}
@@ -479,7 +544,7 @@ const MyTickets = () => {
                 <img
                   src={ticketQrUrl(selectedTicket, user, 360)}
                   alt="Ticket QR code"
-                  className="mx-auto mb-4 h-64 w-64 rounded-2xl border-4 border-[#7C3AED] bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+                  className={`mx-auto mb-4 h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${selectedTheme.qrBorderClass}`}
                 />
                 <p className="font-semibold text-[#6B7280]">Present this QR code at the venue entrance</p>
               </div>
@@ -523,13 +588,15 @@ const MyTickets = () => {
                 <button
                   type="button"
                   onClick={() => handleDownloadQr(selectedTicket)}
-                  className="flex-1 rounded-xl bg-[#7C3AED] px-6 py-3 font-bold text-white transition hover:bg-[#4F46E5]"
+                  className={`flex-1 rounded-xl px-6 py-3 font-bold text-white transition ${selectedTheme.actionClass}`}
                 >
                   Download QR
                 </button>
               </div>
             </div>
           </div>
+            )
+          })()}
         </div>
       ) : null}
 
