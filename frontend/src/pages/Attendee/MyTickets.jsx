@@ -55,13 +55,6 @@ const ticketQrUrl = (ticket, user, size = 260) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
 }
 
-const compactTicketId = (value) => {
-  if (!value) return ''
-  const text = String(value)
-  if (text.length <= 14) return text
-  return `${text.slice(0, 8)}...${text.slice(-4)}`
-}
-
 const getTicketUiTheme = (ticketType) => {
   const value = String(ticketType || '').trim().toLowerCase()
 
@@ -116,7 +109,6 @@ const MyTickets = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
-  const [copiedTicketId, setCopiedTicketId] = useState('')
   const [deletingTicketId, setDeletingTicketId] = useState('')
 
   const initialsSource = user?.name || user?.username || user?.email || ''
@@ -244,19 +236,6 @@ const MyTickets = () => {
     }
   }
 
-  const handleCopyTicketId = async (ticketId) => {
-    if (!ticketId || !navigator?.clipboard?.writeText) return
-    try {
-      await navigator.clipboard.writeText(String(ticketId))
-      setCopiedTicketId(String(ticketId))
-      window.setTimeout(() => {
-        setCopiedTicketId((prev) => (prev === String(ticketId) ? '' : prev))
-      }, 1500)
-    } catch {
-      // no-op
-    }
-  }
-
   const handleDeletePastTicket = async (ticketId) => {
     if (!ticketId || !tokens?.access) return
     const confirmed = window.confirm('Delete this past ticket from your history?')
@@ -339,19 +318,6 @@ const MyTickets = () => {
 
               <div className="p-6">
                 <div className="mb-6 space-y-0">
-                  <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
-                    <span className="text-sm font-semibold text-[#6B7280]">Ticket ID</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-[#312E81]">{compactTicketId(ticket.id)}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyTicketId(ticket.id)}
-                        className="rounded-md border border-[#7C3AED] px-2 py-1 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
-                      >
-                        {copiedTicketId === String(ticket.id) ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
                   <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Category</span>
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${ticketTheme.badgeClass}`}>
@@ -550,19 +516,6 @@ const MyTickets = () => {
               </div>
 
               <div className="mb-8">
-                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
-                  <span className="text-sm font-semibold text-[#6B7280]">Ticket ID</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-[#312E81]">{compactTicketId(selectedTicket.id)}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyTicketId(selectedTicket.id)}
-                      className="rounded-md border border-[#7C3AED] px-2 py-1 text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
-                    >
-                      {copiedTicketId === String(selectedTicket.id) ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
                 <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
                   <span className="text-sm font-semibold text-[#6B7280]">Holder</span>
                   <span className="text-sm font-black text-[#312E81]">{attendeeName}</span>
