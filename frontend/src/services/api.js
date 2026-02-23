@@ -141,6 +141,22 @@ export const api = {
       handleError(error)
     }
   },
+  forgotPassword: async (payload) => {
+    try {
+      const { data } = await apiClient.post('/accounts/forgot-password/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  resetPasswordConfirm: async (payload) => {
+    try {
+      const { data } = await apiClient.post('/accounts/reset-password-confirm/', payload)
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   logout: async (token, refresh) => {
     try {
       const { data } = await apiClient.post(

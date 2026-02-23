@@ -5,6 +5,7 @@ import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
 import VerifyEmail from '../pages/public/VerifyEmail'
 import ForgotPassword from '../pages/public/ForgotPassword'
+import ResetPassword from '../pages/public/ResetPassword'
 import About from '../pages/public/About'
 import Privacy from '../pages/public/Privacy'
 import Terms from '../pages/public/Terms'
@@ -40,6 +41,7 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route element={<ProtectedRoute />}> 
         <Route element={<RoleRoute allowedRoles={[ROLES.ORGANIZER]} />}> 

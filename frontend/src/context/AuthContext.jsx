@@ -147,6 +147,8 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (payload) => api.register(payload), [])
   const verifyEmailOtp = useCallback(async (payload) => api.verifyEmailOtp(payload), [])
   const resendEmailOtp = useCallback(async (payload) => api.resendEmailOtp(payload), [])
+  const forgotPassword = useCallback(async (payload) => api.forgotPassword(payload), [])
+  const resetPasswordConfirm = useCallback(async (payload) => api.resetPasswordConfirm(payload), [])
 
   const updateProfile = useCallback(
     async (payload) => {
@@ -209,6 +211,8 @@ export const AuthProvider = ({ children }) => {
       register,
       verifyEmailOtp,
       resendEmailOtp,
+      forgotPassword,
+      resetPasswordConfirm,
       updateProfile,
       changePassword,
       deleteAccount,
@@ -222,6 +226,8 @@ export const AuthProvider = ({ children }) => {
       register,
       verifyEmailOtp,
       resendEmailOtp,
+      forgotPassword,
+      resetPasswordConfirm,
       updateProfile,
       changePassword,
       deleteAccount,

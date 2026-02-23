@@ -1,6 +1,32 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 
 const ForgotPassword = () => {
+  const { forgotPassword } = useAuth()
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [status, setStatus] = useState('idle')
+  const [message, setMessage] = useState('')
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setStatus('idle')
+    setMessage('')
+    try {
+      const response = await forgotPassword({ email: email.trim() })
+      setStatus('success')
+      setMessage(
+        response?.message || 'If an account with that email exists, a password reset link has been sent.'
+      )
+    } catch (error) {
+      setStatus('error')
+      setMessage(error?.message || 'Failed to send password reset link.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] text-[#312E81]">
       <div className="pointer-events-none absolute left-[-18%] top-[-38%] h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18)_0%,transparent_70%)]" />
@@ -24,7 +50,7 @@ const ForgotPassword = () => {
             </p>
           </div>
 
-          <form className="mt-8 flex flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
+          <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col">
               <label className="mb-1 text-sm font-semibold">Email</label>
               <input
@@ -32,15 +58,28 @@ const ForgotPassword = () => {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 required
               />
             </div>
 
+            {message ? (
+              <p
+                className={`text-sm font-semibold ${
+                  status === 'error' ? 'text-red-600' : 'text-emerald-700'
+                }`}
+              >
+                {message}
+              </p>
+            ) : null}
+
             <button
-              className="mt-2 rounded-full bg-[#7C3AED] py-4 text-base font-bold text-white"
+              className="mt-2 rounded-full bg-[#7C3AED] py-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
               type="submit"
+              disabled={submitting || !email.trim()}
             >
-              Send reset link
+              {submitting ? 'Sending...' : 'Send reset link'}
             </button>
           </form>
 
