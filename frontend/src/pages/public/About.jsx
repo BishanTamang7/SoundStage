@@ -1,13 +1,59 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import AttendeeHeader from '../../components/AttendeeHeader'
+import { api } from '../../services/api'
 
 const About = () => {
   const { isAuthenticated, role } = useAuth()
+  const [weeklyConcertCount, setWeeklyConcertCount] = useState(null)
   const homeLink = isAuthenticated ? (role === 'organizer' ? '/organizer' : '/attendee') : '/'
   const showAttendeeHeader = isAuthenticated && role === 'attendee'
   const attendeeCtas = showAttendeeHeader
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadWeeklyConcertCount = async () => {
+      try {
+        const data = await api.listConcerts()
+        const list = data?.data?.concerts || data?.concerts || []
+        const concerts = Array.isArray(list) ? list : []
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const day = startOfToday.getDay()
+        const diffToMonday = (day + 6) % 7
+        const startOfWeek = new Date(startOfToday)
+        startOfWeek.setDate(startOfWeek.getDate() - diffToMonday)
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(endOfWeek.getDate() + 6)
+        endOfWeek.setHours(23, 59, 59, 999)
+
+        const count = concerts.filter((concert) => {
+          const createdAt = concert?.created_at || concert?.createdAt
+          if (!createdAt) return false
+          const createdDate = new Date(createdAt)
+          if (Number.isNaN(createdDate.getTime())) return false
+          return createdDate >= startOfWeek && createdDate <= endOfWeek
+        }).length
+
+        if (isActive) setWeeklyConcertCount(count)
+      } catch {
+        if (isActive) setWeeklyConcertCount(null)
+      }
+    }
+
+    loadWeeklyConcertCount()
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+  const weeklyConcertHeadline = useMemo(() => {
+    if (weeklyConcertCount == null) return 'Live concert updates'
+    return `${weeklyConcertCount.toLocaleString('en-US')} concert${weeklyConcertCount === 1 ? '' : 's'} added`
+  }, [weeklyConcertCount])
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
@@ -84,8 +130,12 @@ const About = () => {
               <div className="grid gap-4">
                 <div className="rounded-2xl border border-white/10 bg-white/10 p-5">
                   <p className="text-xs uppercase tracking-[0.35em] text-[#A5B4FC]">This week</p>
-                  <h2 className="mt-2 text-2xl font-bold">38 concerts added</h2>
-                  <p className="mt-2 text-sm text-white/70">Fresh lineups and new dates from your favorite cities.</p>
+                  <h2 className="mt-2 text-2xl font-bold">{weeklyConcertHeadline}</h2>
+                  <p className="mt-2 text-sm text-white/70">
+                    {weeklyConcertCount == null
+                      ? 'Fresh lineups and new dates are loading.'
+                      : 'Fresh lineups and new dates from your favorite cities.'}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/10 p-5">
                   <p className="text-xs uppercase tracking-[0.35em] text-[#FDA4AF]">Instant access</p>
