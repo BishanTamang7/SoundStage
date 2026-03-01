@@ -137,7 +137,6 @@ const MyTickets = () => {
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
-  const attendeeName = user?.name || user?.username || user?.email || 'Attendee User'
 
   useEffect(() => {
     const handleClick = (event) => {
@@ -546,7 +545,7 @@ const MyTickets = () => {
 
       {selectedTicket ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-[2px] sm:p-6"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setSelectedTicket(null)
@@ -557,78 +556,34 @@ const MyTickets = () => {
           {(() => {
             const selectedTheme = getTicketUiTheme(selectedTicket.ticket_type)
             return (
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white">
-            <div className={`rounded-t-3xl p-8 text-white ${selectedTheme.headerClass}`}>
-              <div className="mb-3 flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black tracking-[0.14em] uppercase ${
-                  selectedTheme.kind === 'vip'
-                    ? 'bg-white/18 ring-1 ring-white/35'
-                    : selectedTheme.kind === 'regular'
-                      ? 'bg-white/15 ring-1 ring-white/25'
-                      : 'bg-white/15 ring-1 ring-white/20'
-                }`}>
-                  {selectedTheme.badgeLabel}
-                </span>
+          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-[#E5E7EB] bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.25)] sm:p-7">
+              <div className="mb-5">
+                <div className="text-xs font-black tracking-[0.14em] text-[#6B7280] uppercase">Ticket QR</div>
               </div>
-              <h3 className="mb-2 text-3xl font-black">{selectedTicket.concert_title || 'Untitled Concert'}</h3>
-              <p className="text-sm opacity-90">
-                {formatConcertDateTime(selectedTicket.concert_date_time)} • {selectedTicket.ticket_type || 'General'}
-              </p>
-            </div>
 
-            <div className="p-8">
-              <div className="mb-8 text-center">
+              <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 text-center sm:p-5">
                 {(selectedTicket._groupTickets || [selectedTicket]).length > 1 ? (
-                  <div className="space-y-6">
-                    <p className="font-semibold text-[#6B7280]">
-                      Present each QR code at the venue entrance ({getDisplayQuantity(selectedTicket)} tickets)
-                    </p>
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                      {(selectedTicket._groupTickets || [selectedTicket]).map((groupedTicket, index) => (
-                        <div key={groupedTicket.id || index} className="rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
-                          <p className="mb-3 text-xs font-black tracking-[0.12em] text-[#6B7280] uppercase">
-                            Ticket {index + 1}
-                          </p>
-                          <img
-                            src={ticketQrUrl(groupedTicket, user, 260)}
-                            alt={`Ticket QR code ${index + 1}`}
-                            className={`mx-auto h-52 w-52 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${selectedTheme.qrBorderClass}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {(selectedTicket._groupTickets || [selectedTicket]).map((groupedTicket, index) => (
+                      <div key={groupedTicket.id || index} className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+                        <img
+                          src={ticketQrUrl(groupedTicket, user, 260)}
+                          alt={`Ticket QR code ${index + 1}`}
+                          className={`mx-auto h-52 w-52 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)] ${selectedTheme.qrBorderClass}`}
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <>
-                    <img
-                      src={ticketQrUrl(selectedTicket, user, 360)}
-                      alt="Ticket QR code"
-                      className={`mx-auto mb-4 h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${selectedTheme.qrBorderClass}`}
-                    />
-                    <p className="font-semibold text-[#6B7280]">Present this QR code at the venue entrance</p>
-                  </>
+                  <img
+                    src={ticketQrUrl(selectedTicket, user, 360)}
+                    alt="Ticket QR code"
+                    className={`mx-auto h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_10px_26px_rgba(0,0,0,0.12)] ${selectedTheme.qrBorderClass}`}
+                  />
                 )}
               </div>
 
-              <div className="mb-8">
-                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
-                  <span className="text-sm font-semibold text-[#6B7280]">Holder</span>
-                  <span className="text-sm font-black text-[#312E81]">{attendeeName}</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-[#F3F4F6] py-3">
-                  <span className="text-sm font-semibold text-[#6B7280]">Quantity</span>
-                  <span className="text-sm font-black text-[#312E81]">
-                    {getDisplayQuantity(selectedTicket)}{' '}
-                    {getDisplayQuantity(selectedTicket) === 1 ? 'ticket' : 'tickets'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
-                  <span className="max-w-48 text-right text-sm font-black text-[#312E81]">{selectedTicket.concert_venue || 'TBD'}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <button
                   type="button"
                   onClick={() => setSelectedTicket(null)}
@@ -644,7 +599,6 @@ const MyTickets = () => {
                   {getDisplayQuantity(selectedTicket) > 1 ? 'Download QRs' : 'Download QR'}
                 </button>
               </div>
-            </div>
           </div>
             )
           })()}
