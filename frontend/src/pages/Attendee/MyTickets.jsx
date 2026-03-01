@@ -36,7 +36,6 @@ const ticketQrPayload = (ticket, user) => {
   const attendeeName = ticket?.attendee_name || user?.name || user?.username || user?.email || ''
   const attendeeEmail = ticket?.attendee_email || user?.email || ''
   const payloadLines = [
-    `SoundStage: ${ticket.qr_token}`,
     `Attendee Name: ${attendeeName}`,
     `Attendee Email: ${attendeeEmail}`,
     `Concert Title: ${ticket?.concert_title || ''}`,
