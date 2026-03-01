@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
 
 const MyConcerts = () => {
-  const { user, role, tokens } = useAuth()
+  const { user, role, tokens, logout } = useAuth()
+  const navigate = useNavigate()
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,6 +25,14 @@ const MyConcerts = () => {
   const initials = getInitials(initialsSource)
 
   const emojiSet = useMemo(() => ['🎸', '🎤', '🎹', '🎵', '🥁', '🎺', '🎷', '🎻'], [])
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } finally {
+      navigate('/', { replace: true })
+    }
+  }
 
   const formatDateTime = (value) => {
     if (!value) return 'TBD'
@@ -137,10 +146,11 @@ const MyConcerts = () => {
             <div className="text-sm font-extrabold leading-tight">{displayName}</div>
             <div className="mt-0.5 text-xs font-bold text-[#6B7280]">{displayRole}</div>
           </div>
-          <a
+          <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            href="/"
             title="Logout"
+            type="button"
+            onClick={handleLogout}
           >
             <svg
               width="18"
@@ -154,7 +164,7 @@ const MyConcerts = () => {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </a>
+          </button>
         </div>
       </aside>
 

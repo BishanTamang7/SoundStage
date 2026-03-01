@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
 const ViewConcert = () => {
   const { id } = useParams();
-  const { tokens, user, role } = useAuth();
+  const navigate = useNavigate();
+  const { tokens, user, role, logout } = useAuth();
   const [concert, setConcert] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -66,6 +67,14 @@ const ViewConcert = () => {
       isActive = false;
     };
   }, [id, tokens?.access]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/", { replace: true });
+    }
+  };
 
   const ticketCategories = useMemo(() => {
     if (!concert?.ticket_categories) return [];
@@ -128,10 +137,11 @@ const ViewConcert = () => {
               {displayRole}
             </div>
           </div>
-          <a
+          <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            href="/"
             title="Logout"
+            type="button"
+            onClick={handleLogout}
           >
             <svg
               width="18"
@@ -145,7 +155,7 @@ const ViewConcert = () => {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </a>
+          </button>
         </div>
       </aside>
 

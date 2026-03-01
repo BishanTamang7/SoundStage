@@ -5,7 +5,7 @@ import { api } from "../../services/api";
 
 const CreateConcert = () => {
   const navigate = useNavigate();
-  const { tokens, user, role } = useAuth();
+  const { tokens, user, role, logout } = useAuth();
   const [tickets, setTickets] = useState([
     { name: "", price: "", quantity: "" },
   ]);
@@ -33,6 +33,14 @@ const CreateConcert = () => {
     setOrganizerName((prev) => (prev ? prev : fallbackName));
     setContactEmail((prev) => (prev ? prev : user?.email || ""));
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/", { replace: true });
+    }
+  };
 
   const addTicket = () => {
     setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
@@ -262,10 +270,11 @@ const CreateConcert = () => {
               {displayRole}
             </div>
           </div>
-          <a
+          <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            href="/"
             title="Logout"
+            type="button"
+            onClick={handleLogout}
           >
             <svg
               width="18"
@@ -279,7 +288,7 @@ const CreateConcert = () => {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </a>
+          </button>
         </div>
       </aside>
 

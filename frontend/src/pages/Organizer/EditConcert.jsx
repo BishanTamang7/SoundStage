@@ -6,7 +6,7 @@ import { api } from "../../services/api";
 const EditConcert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tokens, user, role } = useAuth();
+  const { tokens, user, role, logout } = useAuth();
   const [tickets, setTickets] = useState([{ id: "", name: "", price: "", quantity: "" }]);
   const [formState, setFormState] = useState({
     title: "",
@@ -115,6 +115,14 @@ const EditConcert = () => {
       };
       img.src = objectUrl;
     });
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/", { replace: true });
+    }
+  };
 
   const handleCoverChange = async (event) => {
     const file = event.target.files?.[0] || null;
@@ -331,10 +339,11 @@ const EditConcert = () => {
               {displayRole}
             </div>
           </div>
-          <a
+          <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            href="/"
             title="Logout"
+            type="button"
+            onClick={handleLogout}
           >
             <svg
               width="18"
@@ -348,7 +357,7 @@ const EditConcert = () => {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </a>
+          </button>
         </div>
       </aside>
 
