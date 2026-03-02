@@ -118,6 +118,7 @@ const Settings = () => {
 
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   useEffect(() => {
     setProfileForm({
@@ -277,12 +278,18 @@ const Settings = () => {
     }
   }
 
+  const openDeleteDialog = () => {
+    setDeleteError('')
+    setShowDeleteDialog(true)
+  }
+
+  const closeDeleteDialog = () => {
+    if (deletingAccount) return
+    setShowDeleteDialog(false)
+  }
+
   const handleDeleteAccount = async () => {
     setDeleteError('')
-    const confirmed = window.confirm(
-      'Delete your organizer account permanently? This will remove access to your dashboard.'
-    )
-    if (!confirmed) return
 
     try {
       setDeletingAccount(true)
@@ -575,7 +582,7 @@ const Settings = () => {
             <button
               className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-5 py-2.5 text-sm font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
-              onClick={handleDeleteAccount}
+              onClick={openDeleteDialog}
               disabled={deletingAccount}
             >
               {deletingAccount ? 'Deleting Account...' : 'Delete Account'}
@@ -583,6 +590,49 @@ const Settings = () => {
           </section>
         </div>
       </main>
+
+      {showDeleteDialog ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111827]/55 px-4">
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#FECACA] bg-white p-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-organizer-account-dialog-title"
+            aria-describedby="delete-organizer-account-dialog-description"
+          >
+            <h3 id="delete-organizer-account-dialog-title" className="text-lg font-black text-[#B91C1C]">
+              Delete organizer account?
+            </h3>
+            <p
+              id="delete-organizer-account-dialog-description"
+              className="mt-3 text-sm leading-6 text-[#6B7280]"
+            >
+              This action cannot be undone. Your organizer dashboard access and account data will be permanently removed.
+            </p>
+            {deleteError ? (
+              <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p>
+            ) : null}
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="rounded-lg border border-[#D1D5DB] bg-white px-5 py-2.5 text-sm font-bold text-[#374151] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={closeDeleteDialog}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-[#DC2626] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
