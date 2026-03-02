@@ -54,6 +54,7 @@ const AttendeeProfile = () => {
   const [passwordError, setPasswordError] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showPassword, setShowPassword] = useState({
     currentPassword: false,
     newPassword: false,
@@ -182,12 +183,18 @@ const AttendeeProfile = () => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
+  const openDeleteDialog = () => {
+    setDeleteError('')
+    setShowDeleteDialog(true)
+  }
+
+  const closeDeleteDialog = () => {
+    if (deletingAccount) return
+    setShowDeleteDialog(false)
+  }
+
   const handleDeleteAccount = async () => {
     setDeleteError('')
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
-    )
-    if (!confirmed) return
 
     try {
       setDeletingAccount(true)
@@ -504,7 +511,7 @@ const AttendeeProfile = () => {
             <button
               className="mt-5 rounded-lg border border-[#EF4444] bg-white px-6 py-3 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
-              onClick={handleDeleteAccount}
+              onClick={openDeleteDialog}
               disabled={deletingAccount}
             >
               {deletingAccount ? 'Deleting...' : 'Delete Account'}
@@ -529,6 +536,46 @@ const AttendeeProfile = () => {
           <div>© 2026 SoundStage. All rights reserved.</div>
         </div>
       </footer>
+
+      {showDeleteDialog ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111827]/55 px-4">
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#FECACA] bg-white p-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-dialog-title"
+            aria-describedby="delete-account-dialog-description"
+          >
+            <h3 id="delete-account-dialog-title" className="text-lg font-black text-[#B91C1C]">
+              Delete account?
+            </h3>
+            <p id="delete-account-dialog-description" className="mt-3 text-sm leading-6 text-[#6B7280]">
+              This action cannot be undone. Your tickets, bookings, and profile data will be permanently removed.
+            </p>
+            {deleteError ? (
+              <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p>
+            ) : null}
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="rounded-lg border border-[#D1D5DB] bg-white px-5 py-2.5 text-sm font-bold text-[#374151] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={closeDeleteDialog}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-[#DC2626] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
