@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
+import { getStoredProfilePhoto } from '../../utils/profilePhoto'
 
 const CITY_OPTIONS = [
   'New York, NY',
@@ -46,6 +47,7 @@ const BrowseConcerts = () => {
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
+  const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {
     const handleClick = (event) => {
@@ -220,9 +222,17 @@ const BrowseConcerts = () => {
               aria-haspopup="menu"
               aria-expanded={open}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
-                {initials}
-              </span>
+              {profilePhoto ? (
+                <img
+                  src={profilePhoto}
+                  alt={`${user?.username || 'Attendee'} profile`}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
+                  {initials}
+                </span>
+              )}
             </button>
             <div
               className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${

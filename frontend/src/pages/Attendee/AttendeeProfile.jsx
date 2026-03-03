@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { getStoredProfilePhoto } from '../../utils/profilePhoto'
 
 const getInitials = (name) => {
   if (!name) return ''
@@ -60,6 +61,10 @@ const AttendeeProfile = () => {
     newPassword: false,
     confirmPassword: false,
   })
+  const [profilePhoto, setProfilePhoto] = useState('')
+  const [photoError, setPhotoError] = useState('')
+  const [savingPhoto, setSavingPhoto] = useState(false)
+  const photoInputRef = useRef(null)
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
@@ -82,6 +87,10 @@ const AttendeeProfile = () => {
       email: user?.email || '',
       phone: user?.phone || user?.phone_number || user?.phoneNumber || '',
     })
+  }, [user])
+
+  useEffect(() => {
+    setProfilePhoto(getStoredProfilePhoto(user))
   }, [user])
 
   useEffect(() => {
@@ -207,6 +216,48 @@ const AttendeeProfile = () => {
     }
   }
 
+  const handlePickPhoto = () => {
+    setPhotoError('')
+    photoInputRef.current?.click()
+  }
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please select a valid image file.')
+      return
+    }
+
+    const maxSizeInBytes = 5 * 1024 * 1024
+    if (file.size > maxSizeInBytes) {
+      setPhotoError('Image size must be 5MB or smaller.')
+      return
+    }
+
+    const uploadPhoto = async () => {
+      setPhotoError('')
+      setSavingPhoto(true)
+      setProfileMessage('')
+      setProfileError('')
+      try {
+        const payload = new FormData()
+        payload.append('profile_photo', file)
+        await updateProfile(payload)
+        setProfileMessage('Profile photo updated successfully.')
+      } catch (error) {
+        setPhotoError(error?.message || 'Failed to upload photo.')
+      } finally {
+        setSavingPhoto(false)
+      }
+    }
+
+    uploadPhoto()
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
       <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white/95 px-[5%] backdrop-blur">
@@ -231,9 +282,17 @@ const AttendeeProfile = () => {
               aria-haspopup="menu"
               aria-expanded={open}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
-                {initials}
-              </span>
+              {profilePhoto ? (
+                <img
+                  src={profilePhoto}
+                  alt={`${profileName} profile`}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
+                  {initials}
+                </span>
+              )}
             </button>
             <div
               className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
@@ -271,20 +330,38 @@ const AttendeeProfile = () => {
         <div className="mx-auto max-w-5xl px-6 pt-8 pb-12">
           <section className="mb-8 flex flex-col gap-6 rounded-2xl border border-[#E5E7EB] bg-white p-8 md:flex-row md:items-center">
             <div className="flex flex-col items-center gap-4 md:w-60">
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                {initials}
-              </div>
+              {profilePhoto ? (
+                <img
+                  src={profilePhoto}
+                  alt={`${profileName} profile`}
+                  className="h-28 w-28 rounded-full object-cover shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+                />
+              ) : (
+                <div className="flex h-28 w-28 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#4F46E5] text-4xl font-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                  {initials}
+                </div>
+              )}
               <button
                 className="rounded-lg border border-[#7C3AED] px-4 py-2 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                 type="button"
+                onClick={handlePickPhoto}
+                disabled={savingPhoto}
               >
-                Change Photo
+                {savingPhoto ? 'Uploading...' : 'Change Photo'}
               </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-black text-[#312E81]">{profileName}</h2>
               <p className="mt-1 text-sm font-semibold text-[#6B7280]">{profileEmail}</p>
               <p className="mt-1 text-sm font-semibold text-[#6B7280]">Member since {memberSince}</p>
+              {photoError ? <p className="mt-2 text-sm font-semibold text-[#EF4444]">{photoError}</p> : null}
               <span className="mt-3 inline-flex rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
                 {accountType}
               </span>
