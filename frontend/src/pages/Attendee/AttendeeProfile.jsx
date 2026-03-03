@@ -63,6 +63,7 @@ const AttendeeProfile = () => {
   })
   const [profilePhoto, setProfilePhoto] = useState('')
   const [photoError, setPhotoError] = useState('')
+  const [photoMessage, setPhotoMessage] = useState('')
   const [savingPhoto, setSavingPhoto] = useState(false)
   const photoInputRef = useRef(null)
 
@@ -218,6 +219,7 @@ const AttendeeProfile = () => {
 
   const handlePickPhoto = () => {
     setPhotoError('')
+    setPhotoMessage('')
     photoInputRef.current?.click()
   }
 
@@ -229,25 +231,26 @@ const AttendeeProfile = () => {
 
     if (!file.type.startsWith('image/')) {
       setPhotoError('Please select a valid image file.')
+      setPhotoMessage('')
       return
     }
 
     const maxSizeInBytes = 5 * 1024 * 1024
     if (file.size > maxSizeInBytes) {
       setPhotoError('Image size must be 5MB or smaller.')
+      setPhotoMessage('')
       return
     }
 
     const uploadPhoto = async () => {
       setPhotoError('')
+      setPhotoMessage('')
       setSavingPhoto(true)
-      setProfileMessage('')
-      setProfileError('')
       try {
         const payload = new FormData()
         payload.append('profile_photo', file)
         await updateProfile(payload)
-        setProfileMessage('Profile photo updated successfully.')
+        setPhotoMessage('Profile photo updated successfully.')
       } catch (error) {
         setPhotoError(error?.message || 'Failed to upload photo.')
       } finally {
@@ -361,6 +364,7 @@ const AttendeeProfile = () => {
               <h2 className="text-2xl font-black text-[#312E81]">{profileName}</h2>
               <p className="mt-1 text-sm font-semibold text-[#6B7280]">{profileEmail}</p>
               <p className="mt-1 text-sm font-semibold text-[#6B7280]">Member since {memberSince}</p>
+              {photoMessage ? <p className="mt-2 text-sm font-semibold text-[#059669]">{photoMessage}</p> : null}
               {photoError ? <p className="mt-2 text-sm font-semibold text-[#EF4444]">{photoError}</p> : null}
               <span className="mt-3 inline-flex rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
                 {accountType}
