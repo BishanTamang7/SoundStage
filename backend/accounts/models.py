@@ -54,6 +54,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(max_length=255, unique=True, db_index=True)
     username = models.CharField(max_length=150, unique=True, db_index=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ATTENDEE)
+    profile_photo = models.ImageField(upload_to='accounts/profile_photos/', blank=True, null=True)
 
     # Status fields
     is_active = models.BooleanField(default=True)

@@ -139,7 +139,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'username', 'role',
-            'is_active', 'email_verified', 'status', 'date_joined', 'updated_at'
+            'is_active', 'email_verified', 'status', 'date_joined', 'updated_at', 'profile_photo'
         ]
         read_only_fields = [
             'id', 'email', 'date_joined', 'updated_at', 'role', 'email_verified', 'status'
@@ -151,7 +151,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email']
+        fields = ['username', 'email', 'profile_photo']
 
     def validate_username(self, value):
         username = value.strip()
@@ -168,6 +168,14 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
             raise serializers.ValidationError("Email already exists.")
         return email
+
+    def validate_profile_photo(self, value):
+        if not value:
+            return value
+        max_size = 5 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError('Profile photo must be 5MB or smaller.')
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

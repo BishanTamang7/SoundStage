@@ -12,6 +12,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -347,17 +348,13 @@ class UserLoginAPIView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
+            user_data = UserSerializer(user, context={'request': request}).data
             return Response(
                 {
                     'success': True,
                     'message': 'Login successful',
                     'data': {
-                        'user': {
-                            'id': user.id,
-                            'email': user.email,
-                            'username': user.username,
-                            'role': user.role,
-                        },
+                        'user': user_data,
                         'tokens': {
                             'access': serializer.validated_data['access'],
                             'refresh': serializer.validated_data['refresh'],
@@ -411,16 +408,17 @@ class UserProfileAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get(self, request):
-        serializer = self.serializer_class(request.user)
+        serializer = self.serializer_class(request.user, context={'request': request})
         return Response({'success': True, 'data': serializer.data}, status=status.HTTP_200_OK)
 
     def patch(self, request):
         serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            response_serializer = self.serializer_class(request.user)
+            response_serializer = self.serializer_class(request.user, context={'request': request})
             return Response(
                 {
                     'success': True,
