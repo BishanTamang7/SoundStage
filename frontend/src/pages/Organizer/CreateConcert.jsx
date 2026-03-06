@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
-const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar"];
+const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
 
 const CreateConcert = () => {
   const navigate = useNavigate();
@@ -17,6 +17,8 @@ const CreateConcert = () => {
   const [coverPreview, setCoverPreview] = useState("");
   const [organizerName, setOrganizerName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [otherCity, setOtherCity] = useState("");
 
   const displayName = user?.username || user?.email || "User";
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -186,7 +188,11 @@ const CreateConcert = () => {
 
     const formData = new FormData();
     const venueName = getFieldValue("venue");
-    const city = getFieldValue("city");
+    const city = selectedCity === "Other" ? otherCity.trim() : selectedCity;
+    if (!city) {
+      setFormError("Please select a city.");
+      return;
+    }
     const composedVenue = `${venueName}, ${city}`;
     formData.append("title", getFieldValue("concert-title"));
     formData.append("description", getFieldValue("description"));
@@ -388,8 +394,9 @@ const CreateConcert = () => {
                 <select
                   id="city"
                   name="city"
-                  defaultValue=""
+                  value={selectedCity}
                   required
+                  onChange={(event) => setSelectedCity(event.target.value)}
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 >
                   <option value="" disabled>
@@ -402,6 +409,24 @@ const CreateConcert = () => {
                   ))}
                 </select>
               </div>
+
+              {selectedCity === "Other" ? (
+                <div>
+                  <label htmlFor="other-city" className="text-sm font-bold text-[#312E81]">
+                    Other City <span className="text-[#EF4444]">*</span>
+                  </label>
+                  <input
+                    id="other-city"
+                    name="other-city"
+                    type="text"
+                    required
+                    value={otherCity}
+                    onChange={(event) => setOtherCity(event.target.value)}
+                    placeholder="Enter city name"
+                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                  />
+                </div>
+              ) : null}
             </div>
           </section>
 

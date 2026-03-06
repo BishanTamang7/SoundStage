@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
-const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar"];
+const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
 
 const EditConcert = () => {
   const { id } = useParams();
@@ -16,6 +16,7 @@ const EditConcert = () => {
     date_time: "",
     venue_name: "",
     city: "",
+    other_city: "",
     organizer_name: "",
     contact_email: "",
     contact_phone: "",
@@ -65,8 +66,14 @@ const EditConcert = () => {
         return {
           venueName: parts.slice(0, -1).join(", "),
           city: matchedCity,
+          otherCity: "",
         };
       }
+      return {
+        venueName: parts.slice(0, -1).join(", "),
+        city: "Other",
+        otherCity: possibleCity,
+      };
     }
 
     const matchedByContains = CITY_OPTIONS.find((option) =>
@@ -76,10 +83,11 @@ const EditConcert = () => {
       return {
         venueName: source.replace(new RegExp(matchedByContains, "ig"), "").replace(/,\s*$/, "").trim() || source,
         city: matchedByContains,
+        otherCity: "",
       };
     }
 
-    return { venueName: source, city: "" };
+    return { venueName: source, city: "", otherCity: "" };
   };
 
   const addTicket = () => {
@@ -220,6 +228,7 @@ const EditConcert = () => {
               return {
                 venue_name: parsedVenue.venueName,
                 city: parsedVenue.city,
+                other_city: parsedVenue.otherCity || "",
               };
             })(),
             organizer_name: payload.organizer_name || "",
@@ -286,7 +295,9 @@ const EditConcert = () => {
       title: formState.title,
       description: formState.description,
       date_time: formState.date_time,
-      venue: `${(formState.venue_name || "").trim()}, ${(formState.city || "").trim()}`,
+      venue: `${(formState.venue_name || "").trim()}, ${(
+        formState.city === "Other" ? formState.other_city : formState.city
+      ).trim()}`,
       organizer_name: formState.organizer_name,
       contact_email: formState.contact_email,
       contact_phone: formState.contact_phone,
@@ -294,7 +305,11 @@ const EditConcert = () => {
       ticket_categories: normalizedTicketCategories,
     };
 
-    if (!formState.venue_name.trim() || !formState.city.trim()) {
+    if (
+      !formState.venue_name.trim() ||
+      !formState.city.trim() ||
+      (formState.city === "Other" && !formState.other_city.trim())
+    ) {
       setFormError("Venue name and city are required.");
       return;
     }
@@ -524,6 +539,24 @@ const EditConcert = () => {
                     ))}
                   </select>
                 </div>
+
+                {formState.city === "Other" ? (
+                  <div>
+                    <label htmlFor="other-city" className="text-sm font-bold text-[#312E81]">
+                      Other City <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="other-city"
+                      name="other-city"
+                      type="text"
+                      required
+                      placeholder="Enter city name"
+                      value={formState.other_city}
+                      onChange={handleFieldChange("other_city")}
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
 
