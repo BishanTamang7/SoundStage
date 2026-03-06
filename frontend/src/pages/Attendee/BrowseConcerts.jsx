@@ -5,14 +5,11 @@ import { api, resolveMediaUrl } from '../../services/api'
 import { getStoredProfilePhoto } from '../../utils/profilePhoto'
 
 const CITY_OPTIONS = [
-  'New York, NY',
-  'Los Angeles, CA',
-  'Chicago, IL',
-  'Austin, TX',
-  'Nashville, TN',
-  'Seattle, WA',
-  'Miami, FL',
-  'Kathmandu, Nepal',
+  'Kathmandu',
+  'Pokhara',
+  'Dharan',
+  'Butwal',
+  'Biatnagar',
 ]
 
 const GENRE_OPTIONS = [
