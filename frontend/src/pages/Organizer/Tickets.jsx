@@ -69,7 +69,6 @@ const getStatusClasses = (status) => {
   if (status === 'Sold Out') return 'border-[#FCA5A5] bg-[#FEF2F2] text-[#B91C1C]'
   if (status === 'Low Stock') return 'border-[#FCD34D] bg-[#FFFBEB] text-[#B45309]'
   if (status === 'Closed') return 'border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280]'
-  if (status === 'No Tickets') return 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
   return 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
 }
 
@@ -79,7 +78,7 @@ const Tickets = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
+  const [concertFilter, setConcertFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
   const displayName = user?.username || user?.email || 'User'
@@ -168,25 +167,9 @@ const Tickets = () => {
           status,
         }
       })
-
-      const normalizedRows = rows.length
-        ? rows
-        : [
-            {
-              id: `${concert?.id || 'concert'}-no-ticket`,
-              ticketType: 'No ticket category',
-              price: 0,
-              capacity: 0,
-              sold: 0,
-              remaining: 0,
-              revenue: 0,
-              status: 'No Tickets',
-            },
-          ]
-
-      const totalCapacity = normalizedRows.reduce((sum, row) => sum + row.capacity, 0)
-      const totalRemaining = normalizedRows.reduce((sum, row) => sum + row.remaining, 0)
-      const totalRevenue = normalizedRows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
+      const totalCapacity = rows.reduce((sum, row) => sum + row.capacity, 0)
+      const totalRemaining = rows.reduce((sum, row) => sum + row.remaining, 0)
+      const totalRevenue = rows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
 
       return {
         concertId: concert?.id,
@@ -195,27 +178,26 @@ const Tickets = () => {
         coverImage: resolveMediaUrl(concert?.cover_image),
         venueName,
         city,
-        rows: normalizedRows,
+        rows,
         totalCapacity,
         totalRemaining,
         totalRevenue,
       }
-    })
+    }).filter((block) => block.rows.length > 0)
   }, [concerts])
 
-  const filteredBlocks = useMemo(() => {
-    const needle = search.trim().toLowerCase()
+  const concertOptions = useMemo(() => {
+    return concertBlocks
+      .map((block) => block.concertTitle)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))
+  }, [concertBlocks])
 
+  const filteredBlocks = useMemo(() => {
     return concertBlocks
       .map((block) => {
-        const searchMatched =
-          !needle ||
-          block.concertTitle.toLowerCase().includes(needle) ||
-          block.venueName.toLowerCase().includes(needle) ||
-          block.city.toLowerCase().includes(needle) ||
-          block.rows.some((row) => row.ticketType.toLowerCase().includes(needle))
-
-        if (!searchMatched) return null
+        const concertMatched = concertFilter === 'all' || block.concertTitle === concertFilter
+        if (!concertMatched) return null
 
         const rows = block.rows.filter((row) => statusFilter === 'all' || row.status === statusFilter)
         if (!rows.length) return null
@@ -233,19 +215,7 @@ const Tickets = () => {
         }
       })
       .filter(Boolean)
-  }, [concertBlocks, search, statusFilter])
-
-  const stats = useMemo(() => {
-    const allRows = filteredBlocks.flatMap((block) => block.rows)
-    const totalTypes = allRows.filter((row) => row.status !== 'No Tickets').length
-    const totalCapacity = allRows.reduce((sum, row) => sum + row.capacity, 0)
-    const totalRemaining = allRows.reduce((sum, row) => sum + row.remaining, 0)
-    const lowStockAlerts = allRows.filter(
-      (row) => row.status === 'Low Stock' || row.status === 'Sold Out'
-    ).length
-
-    return { totalTypes, totalCapacity, totalRemaining, lowStockAlerts }
-  }, [filteredBlocks])
+  }, [concertBlocks, concertFilter, statusFilter])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -327,34 +297,22 @@ const Tickets = () => {
             Manage ticket inventory and sales by concert.
           </p>
 
-          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Ticket Types</div>
-              <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalTypes}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Capacity</div>
-              <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.totalCapacity}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining Stock</div>
-              <div className="mt-2 text-2xl font-black text-[#D97706]">{stats.totalRemaining}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Low Stock Alerts</div>
-              <div className="mt-2 text-2xl font-black text-[#DC2626]">{stats.lowStockAlerts}</div>
-            </div>
-          </div>
         </header>
 
         <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
           <div className="grid gap-3 min-[900px]:grid-cols-[1fr_220px]">
-            <input
-              className="h-11 rounded-lg border border-[#D1D5DB] px-4 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
-              placeholder="Search by concert or ticket type"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <select
+              className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
+              value={concertFilter}
+              onChange={(event) => setConcertFilter(event.target.value)}
+            >
+              <option value="all">All Concerts</option>
+              {concertOptions.map((concertTitle) => (
+                <option key={concertTitle} value={concertTitle}>
+                  {concertTitle}
+                </option>
+              ))}
+            </select>
             <select
               className="h-11 rounded-lg border border-[#D1D5DB] px-3 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
               value={statusFilter}
@@ -365,7 +323,6 @@ const Tickets = () => {
               <option value="Low Stock">Low Stock</option>
               <option value="Sold Out">Sold Out</option>
               <option value="Closed">Closed</option>
-              <option value="No Tickets">No Tickets</option>
             </select>
           </div>
         </section>
