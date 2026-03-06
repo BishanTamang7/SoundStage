@@ -322,9 +322,9 @@ const Tickets = () => {
 
       <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
         <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <h1 className="text-3xl font-black text-[#312E81]">Ticket Command Center</h1>
+          <h1 className="text-3xl font-black text-[#312E81]">Tickets</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
-            Track ticket inventory by concert and spot low stock before it sells out.
+            Manage ticket inventory and sales by concert.
           </p>
 
           <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
@@ -337,11 +337,11 @@ const Tickets = () => {
               <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.totalCapacity}</div>
             </div>
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining Stock</div>
               <div className="mt-2 text-2xl font-black text-[#D97706]">{stats.totalRemaining}</div>
             </div>
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Alerts</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Low Stock Alerts</div>
               <div className="mt-2 text-2xl font-black text-[#DC2626]">{stats.lowStockAlerts}</div>
             </div>
           </div>
@@ -351,7 +351,7 @@ const Tickets = () => {
           <div className="grid gap-3 min-[900px]:grid-cols-[1fr_220px]">
             <input
               className="h-11 rounded-lg border border-[#D1D5DB] px-4 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
-              placeholder="Search by concert, venue, city, or ticket type"
+              placeholder="Search by concert or ticket type"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />

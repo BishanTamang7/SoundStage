@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
@@ -181,37 +181,45 @@ const MyConcerts = () => {
       </aside>
 
       <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-black text-[#312E81]">My Concerts</h1>
-          <Link
-            className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
-            to="/organizer/concerts/new"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-black text-[#312E81]">My Concerts</h1>
+              <p className="mt-1 text-sm font-semibold text-[#6B7280]">
+                Create and manage your concert events.
+              </p>
+            </div>
+            <Link
+              className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+              to="/organizer/concerts/new"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Create New Concert
-          </Link>
-        </div>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create New Concert
+            </Link>
+          </div>
+
+        </header>
 
         {loading ? (
-          <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Loading concerts...
           </div>
         ) : error ? (
-          <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+          <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
         ) : concerts.length === 0 ? (
-          <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
             <div className="text-5xl">🎵</div>
             <h2 className="mt-4 text-2xl font-black text-[#312E81]">No Concerts Yet</h2>
             <p className="mt-2 text-sm font-semibold text-[#6B7280]">
@@ -231,7 +239,7 @@ const MyConcerts = () => {
               return (
                 <div
                   key={concert.id}
-                  className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(49,46,129,0.12)]"
                 >
                 {concert.cover_image ? (
                   <div className="h-40 w-full bg-[#F3F4F6]">

@@ -141,13 +141,14 @@ const Analytics = () => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5)
   }, [concerts])
+
   const maxRevenue = topEvents.reduce((max, event) => Math.max(max, event.revenue), 0)
   const maxTicketsSold = topEvents.reduce((max, event) => Math.max(max, event.sold), 0)
   const topEvent = topEvents[0] || null
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
-      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6">
+      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6 max-[768px]:-translate-x-full">
         <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
           SoundStage
         </div>
@@ -182,42 +183,42 @@ const Analytics = () => {
         </div>
       </aside>
 
-      <main className="ml-60 px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
-        <header className="mb-8">
-          <h1 className="text-2xl font-black text-[#312E81]">Analytics</h1>
+      <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+          <h1 className="text-3xl font-black text-[#312E81]">Analytics</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">Simple overview of sales performance.</p>
+
+          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Concerts</div>
+              <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalConcerts}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
+              <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.ticketsSold.toLocaleString('en-US')}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
+              <div className="mt-2 text-2xl font-black text-[#7C3AED]">{formatCurrency(stats.revenue)}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
+              <div className="mt-2 text-2xl font-black text-[#D97706]">{stats.sellThrough.toFixed(1)}%</div>
+            </div>
+          </div>
         </header>
 
         {loading ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Loading analytics...
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+          <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
         ) : (
           <>
-            <section className="mb-6 grid grid-cols-1 gap-4 min-[900px]:grid-cols-4">
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-                <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Concerts</div>
-                <div className="mt-2 text-3xl font-black text-[#312E81]">{stats.totalConcerts}</div>
-              </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-                <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
-                <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.ticketsSold.toLocaleString('en-US')}</div>
-              </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-                <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
-                <div className="mt-2 text-3xl font-black text-[#7C3AED]">{formatCurrency(stats.revenue)}</div>
-              </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-                <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
-                <div className="mt-2 text-3xl font-black text-[#D97706]">{stats.sellThrough.toFixed(1)}%</div>
-              </div>
-            </section>
-
-            <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
+            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-5">
               <h2 className="mb-4 text-lg font-black text-[#312E81]">Revenue by Concert</h2>
               {topEvents.length === 0 ? (
                 <div className="text-sm font-semibold text-[#6B7280]">No graph data available yet.</div>
@@ -226,15 +227,17 @@ const Analytics = () => {
                   {topEvents.map((event) => {
                     const widthPct = maxRevenue > 0 ? Math.max(8, (event.revenue / maxRevenue) * 100) : 8
                     return (
-                      <div key={`graph-${event.id || event.title}`} className="grid grid-cols-[240px_1fr_110px] items-center gap-3 max-[900px]:grid-cols-1">
-                        <div className="truncate text-sm font-semibold text-[#312E81]">{event.title}</div>
-                        <div className="h-3 rounded-full bg-[#E5E7EB]">
-                          <div
-                            className="h-3 rounded-full bg-[#7C3AED]"
-                            style={{ width: `${widthPct}%` }}
-                          />
+                      <div
+                        key={`graph-${event.id || event.title}`}
+                        className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4"
+                      >
+                        <div className="mb-2 truncate text-sm font-black text-[#312E81]">{event.title}</div>
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                          <div className="h-2.5 rounded-full bg-[#E5E7EB]">
+                            <div className="h-2.5 rounded-full bg-[#7C3AED]" style={{ width: `${widthPct}%` }} />
+                          </div>
+                          <div className="text-sm font-extrabold text-[#7C3AED]">{formatCurrency(event.revenue)}</div>
                         </div>
-                        <div className="text-right text-sm font-extrabold text-[#7C3AED]">{formatCurrency(event.revenue)}</div>
                       </div>
                     )
                   })}
@@ -242,7 +245,7 @@ const Analytics = () => {
               )}
             </section>
 
-            <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-5">
+            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-5">
               <h2 className="mb-4 text-lg font-black text-[#312E81]">Tickets Sold by Concert</h2>
               {topEvents.length === 0 ? (
                 <div className="text-sm font-semibold text-[#6B7280]">No ticket volume data available yet.</div>
@@ -251,12 +254,17 @@ const Analytics = () => {
                   {topEvents.map((event) => {
                     const widthPct = maxTicketsSold > 0 ? Math.max(8, (event.sold / maxTicketsSold) * 100) : 8
                     return (
-                      <div key={`sold-${event.id || event.title}`} className="grid grid-cols-[240px_1fr_110px] items-center gap-3 max-[900px]:grid-cols-1">
-                        <div className="truncate text-sm font-semibold text-[#312E81]">{event.title}</div>
-                        <div className="h-3 rounded-full bg-[#E5E7EB]">
-                          <div className="h-3 rounded-full bg-[#16A34A]" style={{ width: `${widthPct}%` }} />
+                      <div
+                        key={`sold-${event.id || event.title}`}
+                        className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4"
+                      >
+                        <div className="mb-2 truncate text-sm font-black text-[#312E81]">{event.title}</div>
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                          <div className="h-2.5 rounded-full bg-[#E5E7EB]">
+                            <div className="h-2.5 rounded-full bg-[#16A34A]" style={{ width: `${widthPct}%` }} />
+                          </div>
+                          <div className="text-sm font-extrabold text-[#16A34A]">{event.sold.toLocaleString('en-US')}</div>
                         </div>
-                        <div className="text-right text-sm font-extrabold text-[#16A34A]">{event.sold.toLocaleString('en-US')}</div>
                       </div>
                     )
                   })}
@@ -264,20 +272,20 @@ const Analytics = () => {
               )}
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-5">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
               <h2 className="mb-4 text-lg font-black text-[#312E81]">Insights</h2>
               <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3">
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                   <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert</div>
                   <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent?.title || 'N/A'}</div>
                 </div>
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                   <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Revenue</div>
                   <div className="mt-2 text-sm font-extrabold text-[#7C3AED]">
                     {topEvent ? formatCurrency(topEvent.revenue) : 'Rs 0'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                   <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Date</div>
                   <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent ? formatDate(topEvent.date) : 'N/A'}</div>
                 </div>

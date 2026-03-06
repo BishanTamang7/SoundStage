@@ -238,15 +238,15 @@ const OrganizerHome = () => {
         </div>
       </aside>
 
-      <main className="ml-60 px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
-        <header className="mb-8">
+      <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h1 className="text-2xl font-black text-[#312E81]">Dashboard</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
             Welcome back, {displayName}! Here's your concert overview.
           </p>
         </header>
 
-        <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-6">
+        <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h2 className="mb-4 text-lg font-black text-[#312E81]">Quick Actions</h2>
           <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-4">
             <Link
@@ -276,23 +276,23 @@ const OrganizerHome = () => {
           </div>
         </section>
 
-        <section className="mb-8 grid grid-cols-1 gap-6 min-[1024px]:grid-cols-2 min-[1280px]:grid-cols-4">
+        <section className="mb-6 grid grid-cols-1 gap-3 min-[720px]:grid-cols-4">
           {[
             { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
             { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toLocaleString('en-US') },
             { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
             { label: 'Unique Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-lg border border-[#E5E7EB] bg-white p-5">
+            <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
                 {stat.label}
               </div>
-              <div className="mt-2 text-3xl font-black text-[#312E81]">{stat.value}</div>
+              <div className="mt-2 text-2xl font-black text-[#312E81]">{stat.value}</div>
             </div>
           ))}
         </section>
 
-        <section className="mb-6 rounded-lg border border-[#E5E7EB] bg-white p-6">
+        <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-black text-[#312E81]">Upcoming Events</h3>
             <Link className="text-sm font-extrabold text-[#7C3AED]" to="/organizer/concerts">
@@ -308,7 +308,7 @@ const OrganizerHome = () => {
               return (
                 <div
                   key={event.id || event.title}
-                  className="flex items-center justify-between border-b border-[#E5E7EB] py-4 last:border-b-0"
+                  className="mb-3 flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4 last:mb-0"
                 >
                   <div>
                     <div className="text-sm font-extrabold text-[#312E81]">{event.title || 'Untitled Event'}</div>
@@ -331,7 +331,7 @@ const OrganizerHome = () => {
           )}
         </section>
 
-        <section className="rounded-lg border border-[#E5E7EB] bg-white p-6">
+        <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-black text-[#312E81]">Recent Bookings</h3>
             <Link className="text-sm font-extrabold text-[#7C3AED]" to="/organizer/bookings">

@@ -35,10 +35,10 @@ const formatDate = (value) => {
 
 const ToggleRow = ({ label, description, checked, disabled, onChange }) => (
   <label
-    className={`flex items-start justify-between gap-4 rounded-xl border bg-white p-4 transition ${
+    className={`flex items-start justify-between gap-4 rounded-xl border bg-[#FCFCFF] p-4 transition ${
       disabled
         ? 'cursor-not-allowed border-[#E5E7EB] opacity-70'
-        : 'cursor-pointer border-[#E5E7EB] hover:border-[#C4B5FD]'
+        : 'cursor-pointer border-[#E5E7EB] hover:border-[#C4B5FD] hover:bg-white'
     }`}
   >
     <div>
@@ -342,7 +342,7 @@ const Settings = () => {
       </aside>
 
       <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
-        <header className="mb-8">
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h1 className="text-2xl font-black text-[#312E81]">Settings</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
             Manage your organizer account, security, and notification preferences.
@@ -350,34 +350,34 @@ const Settings = () => {
         </header>
 
         <div className="space-y-6">
-          <section className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
               <div>
                 <h2 className="text-lg font-black text-[#312E81]">Account Summary</h2>
                 <p className="text-sm text-[#6B7280]">Basic information for your organizer account.</p>
               </div>
-              <span className="rounded-md bg-[#F3F4F6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
+              <span className="rounded-full border border-[#DDD6FE] bg-[#F5F3FF] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
                 {accountType}
               </span>
             </div>
 
             <div className="grid gap-4 min-[900px]:grid-cols-3">
-              <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                 <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Username</div>
                 <div className="mt-2 text-sm font-bold text-[#312E81]">{user?.username || 'N/A'}</div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                 <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Status</div>
                 <div className="mt-2 text-sm font-bold text-[#16A34A]">{accountStatus}</div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                 <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Member Since</div>
                 <div className="mt-2 text-sm font-bold text-[#312E81]">{memberSince}</div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
             <div className="mb-5 border-b border-[#E5E7EB] pb-4">
               <h2 className="text-lg font-black text-[#312E81]">Profile Details</h2>
               <p className="text-sm text-[#6B7280]">Update the contact details used for your organizer account.</p>
@@ -439,7 +439,7 @@ const Settings = () => {
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
             <div className="mb-5 border-b border-[#E5E7EB] pb-4">
               <h2 className="text-lg font-black text-[#312E81]">Security</h2>
               <p className="text-sm text-[#6B7280]">Change your password to protect dashboard access.</p>
@@ -537,7 +537,7 @@ const Settings = () => {
             </button>
           </section>
 
-          <section className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E7EB] pb-4">
               <div>
                 <h2 className="text-lg font-black text-[#312E81]">Notifications</h2>
@@ -569,7 +569,7 @@ const Settings = () => {
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-[#FECACA] bg-white p-6">
+          <section className="rounded-2xl border border-[#FECACA] bg-white p-6">
             <div className="mb-4 border-b border-[#FEE2E2] pb-4">
               <h2 className="text-lg font-black text-[#991B1B]">Danger Zone</h2>
               <p className="text-sm text-[#B91C1C]">
