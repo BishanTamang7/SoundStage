@@ -5,6 +5,7 @@ from django.db.models import Count, Prefetch
 from django.utils.datastructures import MultiValueDict
 from rest_framework import serializers
 
+from events.constants import ALLOWED_CONCERT_CITIES
 from events.models import Concert
 from tickets.models import TicketCategory
 
@@ -77,6 +78,16 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
                         mutable_data.pop(key, None)
 
         return super().to_internal_value(mutable_data)
+
+    def validate_venue(self, value):
+        venue = (value or '').strip()
+        normalized_venue = venue.lower()
+        if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
+            return venue
+        allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
+        raise serializers.ValidationError(
+            f'Venue must include one of the allowed cities: {allowed_cities}.'
+        )
 
     def create(self, validated_data):
         ticket_categories_data = validated_data.pop('ticket_categories', None)
@@ -154,6 +165,16 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
                     pass
 
         return super().to_internal_value(mutable_data)
+
+    def validate_venue(self, value):
+        venue = (value or '').strip()
+        normalized_venue = venue.lower()
+        if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
+            return venue
+        allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
+        raise serializers.ValidationError(
+            f'Venue must include one of the allowed cities: {allowed_cities}.'
+        )
 
     def update(self, instance, validated_data):
         validated_ticket_categories = validated_data.pop('ticket_categories', None)
