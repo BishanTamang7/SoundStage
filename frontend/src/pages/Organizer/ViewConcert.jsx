@@ -172,7 +172,7 @@ const ViewConcert = () => {
         </div>
       </aside>
 
-      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6">
+      <main className="ml-60 max-w-4xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <Link
           to="/organizer/concerts"
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
@@ -191,20 +191,20 @@ const ViewConcert = () => {
         </Link>
 
         {loading ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Loading concert...
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+          <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
         ) : !concert ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Concert not found.
           </div>
         ) : (
           <>
-            <section className="mb-8 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
+            <section className="mb-6 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
               <div className="relative h-64 bg-[#F3F4F6] sm:h-72">
                 {concert.cover_image ? (
                   <img
@@ -220,7 +220,7 @@ const ViewConcert = () => {
               </div>
             </section>
 
-            <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h1 className="mb-6 text-3xl font-black text-[#312E81]">
                 {concert.title || "Untitled Concert"}
               </h1>
@@ -270,19 +270,19 @@ const ViewConcert = () => {
               </div>
             </section>
 
-            <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-4 text-xl font-black text-[#312E81]">Description</h2>
               <p className="text-sm font-medium leading-7 text-[#6B7280]">
                 {concert.description || "No description provided."}
               </p>
             </section>
 
-            <section className="mb-8 rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-4 text-xl font-black text-[#312E81]">
                 Ticket Categories
               </h2>
               {ticketCategories.length === 0 ? (
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-6 text-sm font-semibold text-[#6B7280]">
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-6 text-sm font-semibold text-[#6B7280]">
                   No ticket categories available.
                 </div>
               ) : (
@@ -290,7 +290,7 @@ const ViewConcert = () => {
                   {ticketCategories.map((ticket) => (
                     <div
                       key={ticket.id || ticket.name}
-                      className="rounded-lg bg-[#F3F4F6] p-5"
+                      className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-5"
                     >
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-lg font-black text-[#312E81]">

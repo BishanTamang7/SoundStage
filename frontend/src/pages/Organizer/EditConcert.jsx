@@ -406,8 +406,8 @@ const EditConcert = () => {
         </div>
       </aside>
 
-      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6">
-        <div className="mb-8">
+      <main className="ml-60 max-w-4xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+        <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h1 className="mb-2 text-3xl font-black text-[#312E81]">Edit Concert</h1>
           <p className="font-semibold text-[#6B7280]">
             Update the details of your concert event
@@ -415,18 +415,18 @@ const EditConcert = () => {
         </div>
 
         {loading ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Loading concert...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {formError ? (
-              <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
+              <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
                 {formError}
               </div>
             ) : null}
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
                 1. Basic Info
               </h2>
@@ -527,7 +527,7 @@ const EditConcert = () => {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
                 2. Cover Image
               </h2>
@@ -558,7 +558,7 @@ const EditConcert = () => {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
                 3. Organizer Info
               </h2>
@@ -621,7 +621,7 @@ const EditConcert = () => {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
                 4. Artist
               </h2>
@@ -647,7 +647,7 @@ const EditConcert = () => {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
                 5. Ticket Categories
               </h2>
@@ -655,7 +655,7 @@ const EditConcert = () => {
                 {tickets.map((ticket, index) => (
                   <div
                     key={`ticket-${index}`}
-                    className="grid grid-cols-1 items-end gap-4 rounded-lg bg-[#F3F4F6] p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
+                    className="grid grid-cols-1 items-end gap-4 rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
                   >
                     <div>
                       <label className="text-sm font-bold text-[#312E81]">
@@ -717,7 +717,7 @@ const EditConcert = () => {
               <button
                 type="button"
                 onClick={addTicket}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-[#7C3AED] bg-white px-6 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-[#7C3AED] bg-white px-6 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
               >
                 <svg
                   width="20"
@@ -737,14 +737,14 @@ const EditConcert = () => {
             <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-end">
               <Link
                 to="/organizer/concerts"
-                className="inline-flex justify-center rounded-lg border border-[#E5E7EB] bg-white px-8 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
+                className="inline-flex justify-center rounded-xl border border-[#E5E7EB] bg-white px-8 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex justify-center rounded-lg bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
+                className="inline-flex justify-center rounded-xl bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
               >
                 {submitting ? "Saving..." : "Save Changes"}
               </button>
