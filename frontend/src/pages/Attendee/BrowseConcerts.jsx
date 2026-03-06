@@ -87,10 +87,16 @@ const BrowseConcerts = () => {
     await logout()
   }
 
-  const extractCity = (venue) => {
-    if (!venue) return ''
+  const getVenueParts = (venue) => {
+    if (!venue) return { venueName: '', city: '' }
     const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
-    return parts.length > 1 ? parts[parts.length - 1] : venue.trim()
+    if (parts.length > 1) {
+      return {
+        venueName: parts.slice(0, -1).join(', '),
+        city: parts[parts.length - 1],
+      }
+    }
+    return { venueName: venue.trim(), city: '' }
   }
 
   const cityOptions = CITY_OPTIONS
@@ -108,7 +114,7 @@ const BrowseConcerts = () => {
       const haystack = `${title} ${artist} ${venue}`.toLowerCase()
       const matchesQuery = normalizedQuery ? haystack.includes(normalizedQuery) : true
       const matchesCity = normalizedCity
-        ? extractCity(venue).toLowerCase() === normalizedCity
+        ? getVenueParts(venue).city.toLowerCase() === normalizedCity
         : true
       const matchesGenre = normalizedGenre
         ? `${title} ${artist}`.toLowerCase().includes(normalizedGenre)
@@ -363,6 +369,7 @@ const BrowseConcerts = () => {
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {filteredConcerts.map((concert) => {
                     const imageUrl = resolveMediaUrl(concert?.cover_image)
+                    const { venueName, city: concertCity } = getVenueParts(concert?.venue || '')
                     return (
                       <article
                         key={concert.id}
@@ -395,7 +402,11 @@ const BrowseConcerts = () => {
                             </div>
                             <div className="flex items-center gap-2">
                               <span>📍</span>
-                              <span>{concert?.venue || 'Venue TBD'}</span>
+                              <span>{venueName || 'Venue TBD'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span>🏙️</span>
+                              <span>{concertCity || 'City TBD'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span>🎤</span>

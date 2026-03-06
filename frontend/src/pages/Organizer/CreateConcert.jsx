@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
+const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar"];
+
 const CreateConcert = () => {
   const navigate = useNavigate();
   const { tokens, user, role, logout } = useAuth();
@@ -183,10 +185,13 @@ const CreateConcert = () => {
     };
 
     const formData = new FormData();
+    const venueName = getFieldValue("venue");
+    const city = getFieldValue("city");
+    const composedVenue = `${venueName}, ${city}`;
     formData.append("title", getFieldValue("concert-title"));
     formData.append("description", getFieldValue("description"));
     formData.append("date_time", getFieldValue("date-time"));
-    formData.append("venue", getFieldValue("venue"));
+    formData.append("venue", composedVenue);
     formData.append("organizer_name", organizerNameTrimmed);
     formData.append("contact_email", contactEmailTrimmed);
     formData.append("contact_phone", getFieldValue("contact-phone"));
@@ -364,16 +369,38 @@ const CreateConcert = () => {
 
               <div>
                 <label htmlFor="venue" className="text-sm font-bold text-[#312E81]">
-                  Venue/Location <span className="text-[#EF4444]">*</span>
+                  Venue Name <span className="text-[#EF4444]">*</span>
                 </label>
                 <input
                   id="venue"
                   name="venue"
                   type="text"
                   required
-                  placeholder="e.g., Kathmandu Valley Concert Hall"
+                  placeholder="e.g., Valley Concert Hall"
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="city" className="text-sm font-bold text-[#312E81]">
+                  City <span className="text-[#EF4444]">*</span>
+                </label>
+                <select
+                  id="city"
+                  name="city"
+                  defaultValue=""
+                  required
+                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                >
+                  <option value="" disabled>
+                    Select a city
+                  </option>
+                  {CITY_OPTIONS.map((cityOption) => (
+                    <option key={cityOption} value={cityOption}>
+                      {cityOption}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </section>

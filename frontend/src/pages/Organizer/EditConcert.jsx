@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
+const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar"];
+
 const EditConcert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -12,7 +14,8 @@ const EditConcert = () => {
     title: "",
     description: "",
     date_time: "",
-    venue: "",
+    venue_name: "",
+    city: "",
     organizer_name: "",
     contact_email: "",
     contact_phone: "",
@@ -46,6 +49,37 @@ const EditConcert = () => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
       date.getDate()
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const splitVenueAndCity = (value) => {
+    const source = (value || "").trim();
+    if (!source) return { venueName: "", city: "" };
+
+    const parts = source.split(",").map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const possibleCity = parts[parts.length - 1];
+      const matchedCity = CITY_OPTIONS.find(
+        (option) => option.toLowerCase() === possibleCity.toLowerCase()
+      );
+      if (matchedCity) {
+        return {
+          venueName: parts.slice(0, -1).join(", "),
+          city: matchedCity,
+        };
+      }
+    }
+
+    const matchedByContains = CITY_OPTIONS.find((option) =>
+      source.toLowerCase().includes(option.toLowerCase())
+    );
+    if (matchedByContains) {
+      return {
+        venueName: source.replace(new RegExp(matchedByContains, "ig"), "").replace(/,\s*$/, "").trim() || source,
+        city: matchedByContains,
+      };
+    }
+
+    return { venueName: source, city: "" };
   };
 
   const addTicket = () => {
@@ -181,7 +215,13 @@ const EditConcert = () => {
             title: payload.title || "",
             description: payload.description || "",
             date_time: toInputDateTime(payload.date_time),
-            venue: payload.venue || "",
+            ...(() => {
+              const parsedVenue = splitVenueAndCity(payload.venue || "");
+              return {
+                venue_name: parsedVenue.venueName,
+                city: parsedVenue.city,
+              };
+            })(),
             organizer_name: payload.organizer_name || "",
             contact_email: payload.contact_email || "",
             contact_phone: payload.contact_phone || "",
@@ -246,13 +286,18 @@ const EditConcert = () => {
       title: formState.title,
       description: formState.description,
       date_time: formState.date_time,
-      venue: formState.venue,
+      venue: `${(formState.venue_name || "").trim()}, ${(formState.city || "").trim()}`,
       organizer_name: formState.organizer_name,
       contact_email: formState.contact_email,
       contact_phone: formState.contact_phone,
       main_artist: formState.main_artist,
       ticket_categories: normalizedTicketCategories,
     };
+
+    if (!formState.venue_name.trim() || !formState.city.trim()) {
+      setFormError("Venue name and city are required.");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -443,18 +488,41 @@ const EditConcert = () => {
 
                 <div>
                   <label htmlFor="venue" className="text-sm font-bold text-[#312E81]">
-                    Venue/Location <span className="text-[#EF4444]">*</span>
+                    Venue Name <span className="text-[#EF4444]">*</span>
                   </label>
                   <input
                     id="venue"
                     name="venue"
                     type="text"
                     required
-                    placeholder="e.g., Kathmandu Valley Concert Hall"
-                    value={formState.venue}
-                    onChange={handleFieldChange("venue")}
+                    placeholder="e.g., Valley Concert Hall"
+                    value={formState.venue_name}
+                    onChange={handleFieldChange("venue_name")}
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="city" className="text-sm font-bold text-[#312E81]">
+                    City <span className="text-[#EF4444]">*</span>
+                  </label>
+                  <select
+                    id="city"
+                    name="city"
+                    required
+                    value={formState.city}
+                    onChange={handleFieldChange("city")}
+                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                  >
+                    <option value="" disabled>
+                      Select a city
+                    </option>
+                    {CITY_OPTIONS.map((cityOption) => (
+                      <option key={cityOption} value={cityOption}>
+                        {cityOption}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </section>

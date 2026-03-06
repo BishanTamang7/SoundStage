@@ -68,6 +68,18 @@ const ConcertDetails = () => {
     return `${datePart} · ${timePart}`
   }
 
+  const getVenueParts = (venue) => {
+    if (!venue) return { venueName: '', city: '' }
+    const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      return {
+        venueName: parts.slice(0, -1).join(', '),
+        city: parts[parts.length - 1],
+      }
+    }
+    return { venueName: venue.trim(), city: '' }
+  }
+
   const ticketCategories = useMemo(() => {
     if (Array.isArray(concert?.ticket_categories)) return concert.ticket_categories
     if (Array.isArray(concert?.tickets)) return concert.tickets
@@ -88,6 +100,7 @@ const ConcertDetails = () => {
   }
 
   const coverImage = resolveMediaUrl(concert?.cover_image)
+  const { venueName, city } = getVenueParts(concert?.venue || '')
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
@@ -212,7 +225,11 @@ const ConcertDetails = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span>📍</span>
-                          <span>{concert?.venue || 'Venue TBD'}</span>
+                          <span>{venueName || 'Venue TBD'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>🏙️</span>
+                          <span>{city || 'City TBD'}</span>
                         </div>
                       </div>
                       <div className="mt-6">
