@@ -3,6 +3,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from events.constants import CONCERT_GENRE_CHOICES
+
 
 class Concert(models.Model):
     """Concert model - MVP version with essential fields only"""
@@ -16,6 +18,7 @@ class Concert(models.Model):
 
     title = models.CharField(max_length=255)
     description = models.TextField()
+    genre = models.CharField(max_length=32, choices=CONCERT_GENRE_CHOICES, blank=True, null=True)
     date_time = models.DateTimeField()
     venue = models.CharField(max_length=255)
     main_artist = models.CharField(max_length=255)

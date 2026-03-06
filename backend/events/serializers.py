@@ -57,11 +57,12 @@ class TicketCategorySerializer(serializers.ModelSerializer):
 class ConcertCreateSerializer(serializers.ModelSerializer):
     ticket_categories = TicketCategorySerializer(many=True, required=False)
     cover_image = serializers.ImageField(required=False, allow_null=True)
+    genre_display = serializers.CharField(source='get_genre_display', read_only=True)
 
     class Meta:
         model = Concert
         fields = [
-            'id', 'title', 'description', 'date_time', 'venue',
+            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue',
             'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories', 'cover_image'
         ]
@@ -138,20 +139,22 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
 
 class ConcertListSerializer(serializers.ModelSerializer):
     cover_image = serializers.ImageField(read_only=True)
+    genre_display = serializers.CharField(source='get_genre_display', read_only=True)
 
     class Meta:
         model = Concert
-        fields = ['id', 'title', 'date_time', 'venue', 'main_artist', 'cover_image']
+        fields = ['id', 'title', 'genre', 'genre_display', 'date_time', 'venue', 'main_artist', 'cover_image']
 
 
 class ConcertDetailSerializer(serializers.ModelSerializer):
     ticket_categories = TicketCategorySerializer(many=True, required=False)
     cover_image = serializers.ImageField(required=False, allow_null=True)
+    genre_display = serializers.CharField(source='get_genre_display', read_only=True)
 
     class Meta:
         model = Concert
         fields = [
-            'id', 'title', 'description', 'date_time', 'venue',
+            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue',
             'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories', 'cover_image', 'created_at', 'updated_at'
         ]
