@@ -4,6 +4,12 @@ import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
 const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
+const GENRE_OPTIONS = [
+  { value: "rock", label: "Rock" },
+  { value: "hip-hop-rap", label: "Hip-Hop / Rap" },
+  { value: "pop", label: "Pop" },
+  { value: "folk-dohori", label: "Folk / Dohori" },
+];
 
 const EditConcert = () => {
   const { id } = useParams();
@@ -13,6 +19,7 @@ const EditConcert = () => {
   const [formState, setFormState] = useState({
     title: "",
     description: "",
+    genre: "",
     date_time: "",
     venue_name: "",
     city: "",
@@ -222,6 +229,7 @@ const EditConcert = () => {
           setFormState({
             title: payload.title || "",
             description: payload.description || "",
+            genre: payload.genre || "",
             date_time: toInputDateTime(payload.date_time),
             ...(() => {
               const parsedVenue = splitVenueAndCity(payload.venue || "");
@@ -294,6 +302,7 @@ const EditConcert = () => {
     const basePayload = {
       title: formState.title,
       description: formState.description,
+      genre: formState.genre,
       date_time: formState.date_time,
       venue: `${(formState.venue_name || "").trim()}, ${(
         formState.city === "Other" ? formState.other_city : formState.city
@@ -321,6 +330,7 @@ const EditConcert = () => {
         const payload = new FormData();
         payload.append("title", basePayload.title);
         payload.append("description", basePayload.description);
+        payload.append("genre", basePayload.genre);
         payload.append("date_time", basePayload.date_time);
         payload.append("venue", basePayload.venue);
         payload.append("organizer_name", basePayload.organizer_name);
@@ -481,6 +491,29 @@ const EditConcert = () => {
                     onChange={handleFieldChange("description")}
                     className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="genre" className="text-sm font-bold text-[#312E81]">
+                    Genre <span className="text-[#EF4444]">*</span>
+                  </label>
+                  <select
+                    id="genre"
+                    name="genre"
+                    required
+                    value={formState.genre}
+                    onChange={handleFieldChange("genre")}
+                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                  >
+                    <option value="" disabled>
+                      Select a genre
+                    </option>
+                    {GENRE_OPTIONS.map((genreOption) => (
+                      <option key={genreOption.value} value={genreOption.value}>
+                        {genreOption.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

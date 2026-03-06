@@ -14,10 +14,9 @@ const CITY_OPTIONS = [
 
 const GENRE_OPTIONS = [
   { value: 'rock', label: 'Rock' },
-  { value: 'jazz', label: 'Jazz' },
-  { value: 'edm', label: 'EDM' },
-  { value: 'acoustic', label: 'Acoustic' },
-  { value: 'hip hop', label: 'Hip Hop' },
+  { value: 'hip-hop-rap', label: 'Hip-Hop / Rap' },
+  { value: 'pop', label: 'Pop' },
+  { value: 'folk-dohori', label: 'Folk / Dohori' },
 ]
 
 const getInitials = (name) => {
@@ -116,9 +115,7 @@ const BrowseConcerts = () => {
       const matchesCity = normalizedCity
         ? getVenueParts(venue).city.toLowerCase() === normalizedCity
         : true
-      const matchesGenre = normalizedGenre
-        ? `${title} ${artist}`.toLowerCase().includes(normalizedGenre)
-        : true
+      const matchesGenre = normalizedGenre ? (concert?.genre || '').toLowerCase() === normalizedGenre : true
 
       const concertDate = concert?.date_time ? new Date(concert.date_time) : null
       if (!concertDate || Number.isNaN(concertDate.getTime())) return false
@@ -412,6 +409,12 @@ const BrowseConcerts = () => {
                               <span>🎤</span>
                               <span>{concert?.main_artist || 'Artist lineup TBD'}</span>
                             </div>
+                            {concert?.genre_display ? (
+                              <div className="flex items-center gap-2">
+                                <span>🎼</span>
+                                <span>{concert.genre_display}</span>
+                              </div>
+                            ) : null}
                           </div>
                           <div className="my-4 h-px bg-[#E5E7EB]" />
                           <div className="flex items-center justify-between gap-3">

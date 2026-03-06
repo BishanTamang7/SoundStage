@@ -4,6 +4,12 @@ import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
 const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
+const GENRE_OPTIONS = [
+  { value: "rock", label: "Rock" },
+  { value: "hip-hop-rap", label: "Hip-Hop / Rap" },
+  { value: "pop", label: "Pop" },
+  { value: "folk-dohori", label: "Folk / Dohori" },
+];
 
 const CreateConcert = () => {
   const navigate = useNavigate();
@@ -19,6 +25,7 @@ const CreateConcert = () => {
   const [contactEmail, setContactEmail] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [otherCity, setOtherCity] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
 
   const displayName = user?.username || user?.email || "User";
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -196,6 +203,7 @@ const CreateConcert = () => {
     const composedVenue = `${venueName}, ${city}`;
     formData.append("title", getFieldValue("concert-title"));
     formData.append("description", getFieldValue("description"));
+    formData.append("genre", selectedGenre);
     formData.append("date_time", getFieldValue("date-time"));
     formData.append("venue", composedVenue);
     formData.append("organizer_name", organizerNameTrimmed);
@@ -355,6 +363,29 @@ const CreateConcert = () => {
                   placeholder="Tell attendees about your concert..."
                   className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="genre" className="text-sm font-bold text-[#312E81]">
+                  Genre <span className="text-[#EF4444]">*</span>
+                </label>
+                <select
+                  id="genre"
+                  name="genre"
+                  value={selectedGenre}
+                  required
+                  onChange={(event) => setSelectedGenre(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                >
+                  <option value="" disabled>
+                    Select a genre
+                  </option>
+                  {GENRE_OPTIONS.map((genreOption) => (
+                    <option key={genreOption.value} value={genreOption.value}>
+                      {genreOption.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
