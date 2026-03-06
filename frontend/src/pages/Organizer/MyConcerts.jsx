@@ -50,6 +50,18 @@ const MyConcerts = () => {
     return `${datePart} • ${timePart}`
   }
 
+  const getVenueParts = (venue) => {
+    if (!venue) return { venueName: '', city: '' }
+    const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      return {
+        venueName: parts.slice(0, -1).join(', '),
+        city: parts[parts.length - 1],
+      }
+    }
+    return { venueName: venue.trim(), city: '' }
+  }
+
   useEffect(() => {
     let isActive = true
 
@@ -214,11 +226,13 @@ const MyConcerts = () => {
           </div>
         ) : (
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
-            {concerts.map((concert, index) => (
-              <div
-                key={concert.id}
-                className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
-              >
+            {concerts.map((concert, index) => {
+              const { venueName, city } = getVenueParts(concert.venue || '')
+              return (
+                <div
+                  key={concert.id}
+                  className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
+                >
                 {concert.cover_image ? (
                   <div className="h-40 w-full bg-[#F3F4F6]">
                     <img
@@ -242,7 +256,11 @@ const MyConcerts = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span>📍</span>
-                      <span>{concert.venue || 'TBD'}</span>
+                      <span>{venueName || 'TBD'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🏙️</span>
+                      <span>{city || 'TBD'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span>🎤</span>
@@ -278,7 +296,7 @@ const MyConcerts = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </main>

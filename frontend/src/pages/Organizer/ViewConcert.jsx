@@ -39,6 +39,18 @@ const ViewConcert = () => {
     return `${datePart} • ${timePart}`;
   };
 
+  const getVenueParts = (venue) => {
+    if (!venue) return { venueName: "", city: "" };
+    const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return {
+        venueName: parts.slice(0, -1).join(", "),
+        city: parts[parts.length - 1],
+      };
+    }
+    return { venueName: venue.trim(), city: "" };
+  };
+
   useEffect(() => {
     let isActive = true;
 
@@ -80,6 +92,7 @@ const ViewConcert = () => {
     if (!concert?.ticket_categories) return [];
     return Array.isArray(concert.ticket_categories) ? concert.ticket_categories : [];
   }, [concert]);
+  const { venueName, city } = getVenueParts(concert?.venue || "");
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
@@ -221,7 +234,13 @@ const ViewConcert = () => {
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
                   <span className="text-base font-bold text-[#312E81]">
-                    {concert.venue || "TBD"}
+                    {venueName || "TBD"}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-[#6B7280]">City</span>
+                  <span className="text-base font-bold text-[#312E81]">
+                    {city || "TBD"}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
