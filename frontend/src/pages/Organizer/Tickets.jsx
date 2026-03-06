@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { api } from '../../services/api'
+import { api, resolveMediaUrl } from '../../services/api'
 
 const parseNumber = (value) => {
   const num = Number(value)
@@ -43,6 +43,18 @@ const formatDateTime = (value) => {
   return `${datePart} • ${timePart}`
 }
 
+const getVenueParts = (venue) => {
+  if (!venue) return { venueName: '', city: '' }
+  const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
+  if (parts.length > 1) {
+    return {
+      venueName: parts.slice(0, -1).join(', '),
+      city: parts[parts.length - 1],
+    }
+  }
+  return { venueName: venue.trim(), city: '' }
+}
+
 const getTicketStatus = (remaining, dateValue) => {
   const date = dateValue ? new Date(dateValue) : null
   const isPast = date instanceof Date && !Number.isNaN(date.getTime()) && date.getTime() < Date.now()
@@ -51,6 +63,14 @@ const getTicketStatus = (remaining, dateValue) => {
   if (remaining <= 0) return 'Sold Out'
   if (remaining <= 10) return 'Low Stock'
   return 'On Sale'
+}
+
+const getStatusClasses = (status) => {
+  if (status === 'Sold Out') return 'border-[#FCA5A5] bg-[#FEF2F2] text-[#B91C1C]'
+  if (status === 'Low Stock') return 'border-[#FCD34D] bg-[#FFFBEB] text-[#B45309]'
+  if (status === 'Closed') return 'border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280]'
+  if (status === 'No Tickets') return 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
+  return 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
 }
 
 const Tickets = () => {
@@ -119,33 +139,16 @@ const Tickets = () => {
     }
   }, [tokens?.access])
 
-  const allTicketRows = useMemo(() => {
-    return concerts.flatMap((concert) => {
+  const concertBlocks = useMemo(() => {
+    return concerts.map((concert) => {
       const categories = normalizeTicketCategories(concert?.ticket_categories)
+      const { venueName, city } = getVenueParts(concert?.venue || '')
 
-      if (categories.length === 0) {
-        return [
-          {
-            id: `${concert?.id || 'concert'}-no-ticket`,
-            concertTitle: concert?.title || 'Untitled Concert',
-            dateTime: concert?.date_time || null,
-            ticketType: 'No ticket category',
-            price: 0,
-            capacity: 0,
-            sold: 0,
-            remaining: 0,
-            revenue: 0,
-            status: 'No Tickets',
-          },
-        ]
-      }
-
-      return categories.map((ticket, index) => {
+      const rows = categories.map((ticket, index) => {
         const remainingFromApi = ticket?.remaining ?? ticket?.quantity
         const capacity = parseNumber(ticket?.capacity ?? ticket?.total_quantity ?? ticket?.quantity)
         const soldValue = ticket?.sold ?? ticket?.sold_quantity ?? ticket?.tickets_sold
-        const hasSoldData =
-          soldValue !== null && soldValue !== undefined && String(soldValue).trim() !== ''
+        const hasSoldData = soldValue !== null && soldValue !== undefined && String(soldValue).trim() !== ''
         const sold = hasSoldData ? Math.min(capacity, parseNumber(soldValue)) : null
         const remaining = hasSoldData
           ? parseNumber(remainingFromApi ?? Math.max(0, capacity - sold))
@@ -156,8 +159,6 @@ const Tickets = () => {
 
         return {
           id: `${concert?.id || 'concert'}-${ticket?.id || index}`,
-          concertTitle: concert?.title || 'Untitled Concert',
-          dateTime: concert?.date_time || null,
           ticketType: ticket?.name || 'Ticket',
           price,
           capacity,
@@ -167,48 +168,88 @@ const Tickets = () => {
           status,
         }
       })
+
+      const normalizedRows = rows.length
+        ? rows
+        : [
+            {
+              id: `${concert?.id || 'concert'}-no-ticket`,
+              ticketType: 'No ticket category',
+              price: 0,
+              capacity: 0,
+              sold: 0,
+              remaining: 0,
+              revenue: 0,
+              status: 'No Tickets',
+            },
+          ]
+
+      const totalCapacity = normalizedRows.reduce((sum, row) => sum + row.capacity, 0)
+      const totalRemaining = normalizedRows.reduce((sum, row) => sum + row.remaining, 0)
+      const totalRevenue = normalizedRows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
+
+      return {
+        concertId: concert?.id,
+        concertTitle: concert?.title || 'Untitled Concert',
+        dateTime: concert?.date_time || null,
+        coverImage: resolveMediaUrl(concert?.cover_image),
+        venueName,
+        city,
+        rows: normalizedRows,
+        totalCapacity,
+        totalRemaining,
+        totalRevenue,
+      }
     })
   }, [concerts])
 
-  const filteredRows = useMemo(() => {
+  const filteredBlocks = useMemo(() => {
     const needle = search.trim().toLowerCase()
 
-    return allTicketRows.filter((row) => {
-      const searchMatched =
-        !needle ||
-        row.concertTitle.toLowerCase().includes(needle) ||
-        row.ticketType.toLowerCase().includes(needle)
+    return concertBlocks
+      .map((block) => {
+        const searchMatched =
+          !needle ||
+          block.concertTitle.toLowerCase().includes(needle) ||
+          block.venueName.toLowerCase().includes(needle) ||
+          block.city.toLowerCase().includes(needle) ||
+          block.rows.some((row) => row.ticketType.toLowerCase().includes(needle))
 
-      const statusMatched = statusFilter === 'all' || row.status === statusFilter
+        if (!searchMatched) return null
 
-      return searchMatched && statusMatched
-    })
-  }, [allTicketRows, search, statusFilter])
+        const rows = block.rows.filter((row) => statusFilter === 'all' || row.status === statusFilter)
+        if (!rows.length) return null
+
+        const totalCapacity = rows.reduce((sum, row) => sum + row.capacity, 0)
+        const totalRemaining = rows.reduce((sum, row) => sum + row.remaining, 0)
+        const totalRevenue = rows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
+
+        return {
+          ...block,
+          rows,
+          totalCapacity,
+          totalRemaining,
+          totalRevenue,
+        }
+      })
+      .filter(Boolean)
+  }, [concertBlocks, search, statusFilter])
 
   const stats = useMemo(() => {
-    const activeRows = allTicketRows.filter((row) => row.status !== 'Closed')
-    const totalTypes = new Set(
-      activeRows
-        .map((row) => row.ticketType?.trim().toLowerCase())
-        .filter((value) => value && value !== 'no ticket category')
-    ).size
-    const totalCapacity = activeRows.reduce((sum, row) => sum + row.capacity, 0)
-    const totalRemaining = activeRows.reduce((sum, row) => sum + row.remaining, 0)
-    const lowStockAlerts = activeRows.filter(
+    const allRows = filteredBlocks.flatMap((block) => block.rows)
+    const totalTypes = allRows.filter((row) => row.status !== 'No Tickets').length
+    const totalCapacity = allRows.reduce((sum, row) => sum + row.capacity, 0)
+    const totalRemaining = allRows.reduce((sum, row) => sum + row.remaining, 0)
+    const lowStockAlerts = allRows.filter(
       (row) => row.status === 'Low Stock' || row.status === 'Sold Out'
     ).length
 
-    return {
-      totalTypes,
-      totalCapacity,
-      totalRemaining,
-      lowStockAlerts,
-    }
-  }, [allTicketRows])
+    return { totalTypes, totalCapacity, totalRemaining, lowStockAlerts }
+  }, [filteredBlocks])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
-      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6">
+      <aside className="fixed left-0 top-0 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6 max-[768px]:-translate-x-full">
         <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
           SoundStage
         </div>
@@ -279,38 +320,38 @@ const Tickets = () => {
         </div>
       </aside>
 
-      <main className="ml-60 px-12 pt-2 pb-8 max-[1024px]:px-6 max-[768px]:ml-0">
-        <header className="mb-8">
-          <h1 className="text-2xl font-black text-[#312E81]">Tickets</h1>
+      <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+          <h1 className="text-3xl font-black text-[#312E81]">Ticket Command Center</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
-            Manage ticket inventory and sales by concert.
+            Track ticket inventory by concert and spot low stock before it sells out.
           </p>
+
+          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Ticket Types</div>
+              <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalTypes}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Capacity</div>
+              <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.totalCapacity}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining</div>
+              <div className="mt-2 text-2xl font-black text-[#D97706]">{stats.totalRemaining}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Alerts</div>
+              <div className="mt-2 text-2xl font-black text-[#DC2626]">{stats.lowStockAlerts}</div>
+            </div>
+          </div>
         </header>
 
-        <section className="mb-6 grid grid-cols-1 gap-4 min-[900px]:grid-cols-4">
-          <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Ticket Types</div>
-            <div className="mt-2 text-3xl font-black text-[#312E81]">{stats.totalTypes}</div>
-          </div>
-          <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Capacity</div>
-            <div className="mt-2 text-3xl font-black text-[#16A34A]">{stats.totalCapacity}</div>
-          </div>
-          <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining Stock</div>
-            <div className="mt-2 text-3xl font-black text-[#D97706]">{stats.totalRemaining}</div>
-          </div>
-          <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Low Stock Alerts</div>
-            <div className="mt-2 text-3xl font-black text-[#7C3AED]">{stats.lowStockAlerts}</div>
-          </div>
-        </section>
-
-        <section className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
-          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-[1fr_200px]">
+        <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+          <div className="grid gap-3 min-[900px]:grid-cols-[1fr_220px]">
             <input
               className="h-11 rounded-lg border border-[#D1D5DB] px-4 text-sm font-semibold text-[#312E81] outline-none transition focus:border-[#7C3AED]"
-              placeholder="Search by concert or ticket type"
+              placeholder="Search by concert, venue, city, or ticket type"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -324,20 +365,21 @@ const Tickets = () => {
               <option value="Low Stock">Low Stock</option>
               <option value="Sold Out">Sold Out</option>
               <option value="Closed">Closed</option>
+              <option value="No Tickets">No Tickets</option>
             </select>
           </div>
         </section>
 
         {loading ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             Loading ticket data...
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
+          <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="rounded-lg border border-[#E5E7EB] bg-white px-6 py-16 text-center">
+        ) : filteredBlocks.length === 0 ? (
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
             <div className="text-sm font-semibold text-[#6B7280]">No ticket categories found.</div>
             <Link
               to="/organizer/concerts/new"
@@ -347,58 +389,111 @@ const Tickets = () => {
             </Link>
           </div>
         ) : (
-          <section className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-230 text-left">
-                <thead>
-                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
-                    <th className="px-5 py-3">Concert</th>
-                    <th className="px-5 py-3">Date</th>
-                    <th className="px-5 py-3">Type</th>
-                    <th className="px-5 py-3">Price</th>
-                    <th className="px-5 py-3">Capacity</th>
-                    <th className="px-5 py-3">Sold</th>
-                    <th className="px-5 py-3">Remaining</th>
-                    <th className="px-5 py-3">Revenue</th>
-                    <th className="px-5 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm font-semibold text-[#312E81]">
-                  {filteredRows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#E5E7EB] last:border-b-0">
-                      <td className="px-5 py-4">{row.concertTitle}</td>
-                      <td className="px-5 py-4 text-[#6B7280]">{formatDateTime(row.dateTime)}</td>
-                      <td className="px-5 py-4">{row.ticketType}</td>
-                      <td className="px-5 py-4">{formatCurrency(row.price)}</td>
-                      <td className="px-5 py-4">{row.capacity}</td>
-                      <td className="px-5 py-4 text-[#16A34A]">{row.sold ?? '-'}</td>
-                      <td className="px-5 py-4 text-[#D97706]">{row.remaining}</td>
-                      <td className="px-5 py-4 font-black text-[#7C3AED]">
-                        {row.revenue === null ? '-' : formatCurrency(row.revenue)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={
-            row.status === 'Sold Out'
-                              ? 'rounded-full border border-[rgba(239,68,68,0.2)] bg-[#FEE2E2] px-3 py-1 text-xs font-extrabold text-[#DC2626]'
-                              : row.status === 'Low Stock'
-                                ? 'rounded-full border border-[rgba(217,119,6,0.2)] bg-[#FEF3C7] px-3 py-1 text-xs font-extrabold text-[#D97706]'
-                                : row.status === 'Closed'
-                                  ? 'rounded-full border border-[rgba(107,114,128,0.2)] bg-[#F3F4F6] px-3 py-1 text-xs font-extrabold text-[#6B7280]'
-                                  : row.status === 'No Tickets'
-                                    ? 'rounded-full border border-[rgba(59,130,246,0.2)] bg-[#DBEAFE] px-3 py-1 text-xs font-extrabold text-[#2563EB]'
-                                  : 'rounded-full border border-[rgba(22,163,74,0.2)] bg-[#DCFCE7] px-3 py-1 text-xs font-extrabold text-[#16A34A]'
-                          }
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <div className="space-y-5">
+            {filteredBlocks.map((block) => (
+              <article key={block.concertId} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+                <div className="grid gap-4 border-b border-[#E5E7EB] bg-[#FCFCFF] p-5 min-[950px]:grid-cols-[180px_1fr_auto] min-[950px]:items-center">
+                  <div className="h-28 overflow-hidden rounded-xl bg-[#EEF2FF]">
+                    {block.coverImage ? (
+                      <img src={block.coverImage} alt={`${block.concertTitle} cover`} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl">🎫</div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-black text-[#2E2B72]">{block.concertTitle}</h2>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-[#6B7280]">
+                      <span>📅 {formatDateTime(block.dateTime)}</span>
+                      <span>📍 {block.venueName || 'Venue TBD'}</span>
+                      <span>🏙️ {block.city || 'City TBD'}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
+                      <span className="rounded-full border border-[#D1D5DB] bg-white px-3 py-1 text-[#374151]">
+                        Capacity {block.totalCapacity}
+                      </span>
+                      <span className="rounded-full border border-[#FCD34D] bg-[#FFFBEB] px-3 py-1 text-[#B45309]">
+                        Remaining {block.totalRemaining}
+                      </span>
+                      <span className="rounded-full border border-[#C4B5FD] bg-[#F5F3FF] px-3 py-1 text-[#5B21B6]">
+                        Revenue {formatCurrency(block.totalRevenue)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 min-[950px]:justify-end">
+                    <Link
+                      to={`/organizer/concerts/${block.concertId}`}
+                      className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-xs font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
+                    >
+                      View Concert
+                    </Link>
+                    <Link
+                      to={`/organizer/concerts/${block.concertId}/edit`}
+                      className="rounded-lg bg-[#7C3AED] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#6D28D9]"
+                    >
+                      Edit Tickets
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 p-5 min-[840px]:grid-cols-2 xl:grid-cols-3">
+                  {block.rows.map((row) => {
+                    const soldValue = row.sold ?? 0
+                    const progress = row.capacity > 0 ? Math.min(100, Math.round((soldValue / row.capacity) * 100)) : 0
+
+                    return (
+                      <div key={row.id} className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-sm font-black text-[#312E81]">{row.ticketType}</h3>
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
+                            {row.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-[#6B7280]">
+                          <div>
+                            <div className="uppercase tracking-wide">Price</div>
+                            <div className="mt-1 text-sm font-black text-[#1F2937]">{formatCurrency(row.price)}</div>
+                          </div>
+                          <div>
+                            <div className="uppercase tracking-wide">Revenue</div>
+                            <div className="mt-1 text-sm font-black text-[#5B21B6]">
+                              {row.revenue === null ? '-' : formatCurrency(row.revenue)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="uppercase tracking-wide">Sold</div>
+                            <div className="mt-1 text-sm font-black text-[#16A34A]">{row.sold ?? '-'}</div>
+                          </div>
+                          <div>
+                            <div className="uppercase tracking-wide">Remaining</div>
+                            <div className="mt-1 text-sm font-black text-[#D97706]">{row.remaining}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="mb-1 flex items-center justify-between text-[11px] font-bold text-[#6B7280]">
+                            <span>Sales Progress</span>
+                            <span>{row.capacity > 0 ? `${progress}%` : '0%'}</span>
+                          </div>
+                          <div className="h-2.5 overflow-hidden rounded-full bg-[#E5E7EB]">
+                            <div
+                              className={`h-full ${progress >= 80 ? 'bg-[#16A34A]' : progress >= 40 ? 'bg-[#7C3AED]' : 'bg-[#D97706]'}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <div className="mt-1 text-[11px] font-semibold text-[#9CA3AF]">
+                            Capacity: {row.capacity}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </article>
+            ))}
+          </div>
         )}
       </main>
     </div>
