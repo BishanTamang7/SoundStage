@@ -10,6 +10,22 @@ from events.models import Concert
 from tickets.models import TicketCategory
 
 
+def _validate_concert_venue_city(value):
+    venue = (value or '').strip()
+    normalized_venue = venue.lower()
+    if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
+        return venue
+
+    parts = [part.strip() for part in venue.split(',') if part.strip()]
+    if len(parts) >= 2 and parts[-1]:
+        return venue
+
+    allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
+    raise serializers.ValidationError(
+        f'Venue must include a city. Use one of: {allowed_cities}, or select Other and enter a city.'
+    )
+
+
 class TicketCategorySerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(required=False)
     sold = serializers.SerializerMethodField()
@@ -80,14 +96,7 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
         return super().to_internal_value(mutable_data)
 
     def validate_venue(self, value):
-        venue = (value or '').strip()
-        normalized_venue = venue.lower()
-        if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
-            return venue
-        allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
-        raise serializers.ValidationError(
-            f'Venue must include one of the allowed cities: {allowed_cities}.'
-        )
+        return _validate_concert_venue_city(value)
 
     def create(self, validated_data):
         ticket_categories_data = validated_data.pop('ticket_categories', None)
@@ -167,14 +176,7 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
         return super().to_internal_value(mutable_data)
 
     def validate_venue(self, value):
-        venue = (value or '').strip()
-        normalized_venue = venue.lower()
-        if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
-            return venue
-        allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
-        raise serializers.ValidationError(
-            f'Venue must include one of the allowed cities: {allowed_cities}.'
-        )
+        return _validate_concert_venue_city(value)
 
     def update(self, instance, validated_data):
         validated_ticket_categories = validated_data.pop('ticket_categories', None)
