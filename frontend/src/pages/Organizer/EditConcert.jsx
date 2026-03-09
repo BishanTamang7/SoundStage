@@ -373,6 +373,12 @@ const EditConcert = () => {
           </Link>
           <Link
             className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+            to="/organizer/confirm-ticket"
+          >
+            Confirm Ticket
+          </Link>
+          <Link
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
             to="/organizer/bookings"
           >
             Bookings

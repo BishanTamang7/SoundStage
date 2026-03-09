@@ -121,6 +121,12 @@ const ViewConcert = () => {
             Tickets
           </Link>
           <Link
+            to="/organizer/confirm-ticket"
+            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+          >
+            Confirm Ticket
+          </Link>
+          <Link
             to="/organizer/bookings"
             className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
           >
