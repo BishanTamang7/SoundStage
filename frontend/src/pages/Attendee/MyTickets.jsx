@@ -135,6 +135,7 @@ const MyTickets = () => {
   const [error, setError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [deletingTicketId, setDeletingTicketId] = useState('')
+  const [deleteDialogTicket, setDeleteDialogTicket] = useState(null)
 
   const initialsSource = user?.name || user?.username || user?.email || ''
   const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
@@ -156,6 +157,7 @@ const MyTickets = () => {
     const onEsc = (e) => {
       if (e.key === 'Escape') {
         setSelectedTicket(null)
+        setDeleteDialogTicket(null)
       }
     }
 
@@ -306,10 +308,9 @@ const MyTickets = () => {
     }
   }
 
-  const handleDeletePastTicket = async (ticketId) => {
+  const handleDeletePastTicket = async () => {
+    const ticketId = deleteDialogTicket?.id
     if (!ticketId || !tokens?.access) return
-    const confirmed = window.confirm('Delete this past ticket from your history?')
-    if (!confirmed) return
 
     try {
       setDeletingTicketId(String(ticketId))
@@ -317,6 +318,7 @@ const MyTickets = () => {
       await api.deleteMyTicket(tokens.access, ticketId)
       setTickets((prev) => prev.filter((ticket) => String(ticket.id) !== String(ticketId)))
       setSelectedTicket((prev) => (String(prev?.id) === String(ticketId) ? null : prev))
+      setDeleteDialogTicket(null)
     } catch (err) {
       setError(err?.message || 'Failed to delete ticket.')
     } finally {
@@ -440,7 +442,7 @@ const MyTickets = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeletePastTicket(ticket.id)}
+                      onClick={() => setDeleteDialogTicket(ticket)}
                       disabled={deletingTicketId === String(ticket.id)}
                       className="flex-1 rounded-xl border-2 border-[#DC2626] bg-white px-4 py-3 text-sm font-bold text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -612,6 +614,43 @@ const MyTickets = () => {
           </div>
             )
           })()}
+        </div>
+      ) : null}
+
+      {deleteDialogTicket ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[1px]"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && deletingTicketId !== String(deleteDialogTicket.id)) {
+              setDeleteDialogTicket(null)
+            }
+          }}
+          role="presentation"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(0,0,0,0.25)]">
+            <h3 className="text-lg font-black text-[#111827]">Delete Ticket?</h3>
+            <p className="mt-2 text-sm font-medium text-[#4B5563]">
+              This will remove this past ticket from your history.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteDialogTicket(null)}
+                disabled={deletingTicketId === String(deleteDialogTicket.id)}
+                className="flex-1 rounded-xl bg-[#F3F4F6] px-4 py-3 text-sm font-bold text-[#312E81] transition hover:bg-[#E5E7EB] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeletePastTicket}
+                disabled={deletingTicketId === String(deleteDialogTicket.id)}
+                className="flex-1 rounded-xl bg-[#DC2626] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingTicketId === String(deleteDialogTicket.id) ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 
