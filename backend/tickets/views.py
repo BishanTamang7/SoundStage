@@ -1,4 +1,6 @@
 from decimal import Decimal
+import re
+from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 from rest_framework import status
@@ -10,6 +12,15 @@ from accounts.permissions import IsAttendee, IsOrganizer
 from payments.models import PaymentTransaction
 from tickets.models import Ticket
 from .serializers import OrganizerBookingSerializer, TicketSerializer
+
+NEPAL_TZ = ZoneInfo('Asia/Kathmandu')
+
+
+def _format_nepal_datetime(value):
+    if not value:
+        return ''
+    localized = timezone.localtime(value, NEPAL_TZ)
+    return localized.strftime('%Y-%m-%d %H:%M:%S')
 
 
 @api_view(['GET'])
@@ -66,44 +77,69 @@ def delete_my_ticket(request, ticket_id):
 @permission_classes([IsAuthenticated, IsOrganizer])
 def verify_ticket(request):
     qr_token = (request.data.get('qr_token') or '').strip()
+    raw_value = qr_token
+    pin_token = None
     if ':' in qr_token:
         prefix, possible_token = qr_token.split(':', 1)
         if prefix.strip().upper() == 'SOUNDSTAGE':
             qr_token = possible_token.strip().splitlines()[0].strip()
+        elif prefix.strip().upper() == 'TOKEN':
+            maybe_pin = possible_token.strip().splitlines()[0].strip()
+            if re.fullmatch(r'\d{4}', maybe_pin):
+                pin_token = maybe_pin
 
-    if not qr_token:
+    if not re.fullmatch(r'[a-fA-F0-9]{32}', qr_token or ''):
+        token_match = re.search(r'(?i)\b([a-f0-9]{32})\b', raw_value or '')
+        if token_match:
+            qr_token = token_match.group(1).lower()
+        else:
+            pin_match = re.search(r'\b(\d{4})\b', raw_value or '')
+            if pin_match:
+                pin_token = pin_match.group(1)
+
+    if not qr_token and not pin_token:
         return Response({'detail': 'qr_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    ticket = (
-        Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
-        .filter(qr_token=qr_token)
-        .first()
-    )
-    if not ticket:
-        return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if ticket.concert.organizer_id != request.user.id:
-        return Response({'detail': 'You cannot validate tickets for this concert.'}, status=status.HTTP_403_FORBIDDEN)
+    ticket = None
+    if qr_token:
+        ticket = (
+            Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
+            .filter(qr_token=qr_token)
+            .first()
+        )
+        if not ticket:
+            return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
+        if ticket.concert.organizer_id != request.user.id:
+            return Response({'detail': 'You cannot validate tickets for this concert.'}, status=status.HTTP_403_FORBIDDEN)
+    else:
+        matched_tickets = list(
+            Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
+            .filter(concert__organizer=request.user)
+            .filter(token_pin=pin_token)
+            .order_by('created_at')
+        )
+        if not matched_tickets:
+            return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
+        if len(matched_tickets) > 1:
+            return Response(
+                {'detail': 'Token matches multiple tickets. Please scan a full QR token.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        ticket = matched_tickets[0]
 
     attendee_name = ticket.attendee.get_full_name() or ticket.attendee.username or ticket.attendee.email
     payment = ticket.payment_transaction
+    total_booking_quantity = payment.quantity
     ticket_data = {
-        'ticket_id': str(ticket.id),
-        'qr_value': f'SOUNDSTAGE:{ticket.qr_token}',
-        'concert_title': ticket.concert.title,
-        'concert_date_time': ticket.concert.date_time,
-        'concert_venue': ticket.concert.venue,
-        'ticket_type': ticket.ticket_category.name,
-        'seat_number': ticket.seat_number,
+        'token': ticket.token_pin,
         'attendee_name': attendee_name,
         'attendee_email': ticket.attendee.email,
-        'booked_at': ticket.created_at,
-        'booking_id': str(payment.id),
-        'booking_quantity': payment.quantity,
-        'booking_total_paisa': payment.amount_paisa,
-        'booking_total_rupees': str(Decimal(payment.amount_paisa) / Decimal('100')),
-        'is_used': ticket.is_used,
-        'used_at': ticket.used_at,
+        'concert_title': ticket.concert.title,
+        'concert_date_time': _format_nepal_datetime(ticket.concert.date_time),
+        'concert_venue': ticket.concert.venue,
+        'ticket_type': ticket.ticket_category.name,
+        'booked_at': _format_nepal_datetime(ticket.created_at),
+        'total_booking_quantity': total_booking_quantity,
+        'total_amount': f"NPR {Decimal(payment.amount_paisa) / Decimal('100')}",
     }
 
     if ticket.is_used:
@@ -125,12 +161,7 @@ def verify_ticket(request):
         {
             'success': True,
             'message': 'Ticket is valid. Entry granted.',
-            'data': {
-                **ticket_data,
-                'is_used': ticket.is_used,
-                'used_at': ticket.used_at,
-                'validated_at': ticket.used_at,
-            },
+            'data': ticket_data,
         },
         status=status.HTTP_200_OK,
     )

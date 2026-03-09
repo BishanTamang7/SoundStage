@@ -1,5 +1,6 @@
 import json
 import logging
+import secrets
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from urllib import error as url_error
@@ -21,6 +22,19 @@ from tickets.models import Ticket, TicketCategory
 from tickets.serializers import TicketSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_token_pin(used_pins=None) -> str:
+    used = used_pins if used_pins is not None else set()
+    for _ in range(2000):
+        candidate = f'{secrets.randbelow(10000):04d}'
+        if candidate in used:
+            continue
+        if Ticket.objects.filter(token_pin=candidate).exists():
+            continue
+        used.add(candidate)
+        return candidate
+    raise ValueError('Could not allocate unique token pin.')
 
 
 def _khalti_request(path: str, payload: dict):
@@ -74,12 +88,12 @@ def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
 
 def _issue_tickets(payment: PaymentTransaction):
     if payment.tickets_issued:
-        return list(payment.tickets.order_by('seat_number')), False
+        return list(payment.tickets.order_by('created_at', 'id')), False
 
     with transaction.atomic():
         locked_payment = PaymentTransaction.objects.select_for_update().get(id=payment.id)
         if locked_payment.tickets_issued:
-            return list(locked_payment.tickets.order_by('seat_number')), False
+            return list(locked_payment.tickets.order_by('created_at', 'id')), False
 
         if locked_payment.status != 'Completed':
             return [], False
@@ -92,14 +106,15 @@ def _issue_tickets(payment: PaymentTransaction):
         category.save(update_fields=['quantity'])
 
         tickets = []
-        for seat_number in range(1, locked_payment.quantity + 1):
+        for _ in range(locked_payment.quantity):
+            qr_token = uuid.uuid4().hex
             ticket = Ticket.objects.create(
                 attendee=locked_payment.attendee,
                 concert=locked_payment.concert,
                 ticket_category=locked_payment.ticket_category,
                 payment_transaction=locked_payment,
-                seat_number=seat_number,
-                qr_token=uuid.uuid4().hex,
+                qr_token=qr_token,
+                token_pin=_generate_token_pin(),
             )
             tickets.append(ticket)
 
@@ -121,7 +136,7 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
     category = payment.ticket_category
     total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
     ticket_lines = '\n'.join(
-        f'- Ticket {index + 1}: Seat {ticket.seat_number} | QR {ticket.qr_token}'
+        f'- Ticket {index + 1}: QR {ticket.qr_token}'
         for index, ticket in enumerate(tickets)
     )
     subject = 'SoundStage booking confirmation'

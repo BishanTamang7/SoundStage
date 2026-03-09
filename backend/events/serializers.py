@@ -9,6 +9,8 @@ from events.constants import ALLOWED_CONCERT_CITIES
 from events.models import Concert
 from tickets.models import TicketCategory
 
+ALLOWED_TICKET_CATEGORY_NAMES = {'vip', 'regular'}
+
 
 def _validate_concert_venue_city(value):
     venue = (value or '').strip()
@@ -24,6 +26,35 @@ def _validate_concert_venue_city(value):
     raise serializers.ValidationError(
         f'Venue must include a city. Use one of: {allowed_cities}, or select Other and enter a city.'
     )
+
+
+def _normalize_ticket_category_name(name):
+    value = str(name or '').strip().lower()
+    if value not in ALLOWED_TICKET_CATEGORY_NAMES:
+        raise serializers.ValidationError({'ticket_categories': 'Only VIP and Regular ticket types are allowed.'})
+    return 'VIP' if value == 'vip' else 'Regular'
+
+
+def _validate_and_normalize_ticket_categories(ticket_categories_data):
+    if not isinstance(ticket_categories_data, list) or len(ticket_categories_data) != 2:
+        raise serializers.ValidationError({'ticket_categories': 'Exactly two ticket categories are required: VIP and Regular.'})
+
+    normalized = []
+    seen = set()
+    for raw_category in ticket_categories_data:
+        payload = dict(raw_category)
+        normalized_name = _normalize_ticket_category_name(payload.get('name'))
+        key = normalized_name.lower()
+        if key in seen:
+            raise serializers.ValidationError({'ticket_categories': 'VIP and Regular must each appear once.'})
+        seen.add(key)
+        payload['name'] = normalized_name
+        normalized.append(payload)
+
+    if seen != ALLOWED_TICKET_CATEGORY_NAMES:
+        raise serializers.ValidationError({'ticket_categories': 'Both VIP and Regular categories are required.'})
+
+    return normalized
 
 
 class TicketCategorySerializer(serializers.ModelSerializer):
@@ -120,6 +151,7 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
 
         if not ticket_categories_data:
             raise serializers.ValidationError({'ticket_categories': 'This field is required.'})
+        ticket_categories_data = _validate_and_normalize_ticket_categories(ticket_categories_data)
 
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user and request.user.is_authenticated:
@@ -199,15 +231,14 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'ticket_categories': 'Invalid ticket_categories payload.'})
         elif raw_categories is not None:
             ticket_categories_data = raw_categories
+        if ticket_categories_data is not None:
+            ticket_categories_data = _validate_and_normalize_ticket_categories(ticket_categories_data)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if ticket_categories_data is not None:
-            if len(ticket_categories_data) == 0:
-                raise serializers.ValidationError({'ticket_categories': 'At least one ticket category is required.'})
-
             existing_categories = {str(category.id): category for category in instance.ticket_categories.all()}
             kept_category_ids = set()
             for category_data in ticket_categories_data:

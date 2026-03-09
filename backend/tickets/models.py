@@ -53,8 +53,8 @@ class Ticket(models.Model):
         on_delete=models.CASCADE,
         related_name='tickets',
     )
-    seat_number = models.PositiveIntegerField()
     qr_token = models.CharField(max_length=64, unique=True)
+    token_pin = models.CharField(max_length=4, db_index=True)
     is_used = models.BooleanField(default=False)
     used_at = models.DateTimeField(blank=True, null=True)
     used_by = models.ForeignKey(
@@ -69,7 +69,6 @@ class Ticket(models.Model):
     class Meta:
         db_table = 'tickets'
         ordering = ['-created_at']
-        unique_together = ['payment_transaction', 'seat_number']
 
     def __str__(self):
         return f'Ticket {self.qr_token} - {self.concert.title}'
