@@ -123,6 +123,11 @@ const getDisplayTotalPaid = (ticket) => {
   return Number(ticket?.ticket_price) || 0
 }
 
+const getPrimaryTicket = (ticket) => {
+  const groupedTickets = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets : []
+  return groupedTickets[0] || ticket
+}
+
 const MyTickets = () => {
   const { user, logout, role, isAuthenticated, tokens } = useAuth()
   const navigate = useNavigate()
@@ -295,17 +300,7 @@ const MyTickets = () => {
   }
 
   const handleDownloadQrGroup = async (ticket) => {
-    const groupedTickets = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets : []
-    if (groupedTickets.length <= 1) {
-      await handleDownloadQr(ticket)
-      return
-    }
-
-    for (const groupedTicket of groupedTickets) {
-      // Download each ticket QR for grouped cards.
-      // eslint-disable-next-line no-await-in-loop
-      await handleDownloadQr(groupedTicket)
-    }
+    await handleDownloadQr(getPrimaryTicket(ticket))
   }
 
   const handleDeletePastTicket = async () => {
@@ -420,14 +415,14 @@ const MyTickets = () => {
                         onClick={() => setSelectedTicket(ticket)}
                         className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition ${ticketTheme.actionClass}`}
                       >
-                        {getDisplayQuantity(ticket) > 1 ? 'View Tickets' : 'View Ticket'}
+                        View Ticket
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDownloadQrGroup(ticket)}
                         className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                       >
-                        {getDisplayQuantity(ticket) > 1 ? 'Download QRs' : 'Download QR'}
+                        Download QR
                       </button>
                     </div>
                   </>
@@ -438,7 +433,7 @@ const MyTickets = () => {
                       onClick={() => handleDownloadQrGroup(ticket)}
                       className="flex-1 rounded-xl border-2 border-[#7C3AED] bg-white px-4 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
                     >
-                      {getDisplayQuantity(ticket) > 1 ? 'Download Tickets' : 'Download Ticket'}
+                      Download Ticket
                     </button>
                     <button
                       type="button"
@@ -574,25 +569,11 @@ const MyTickets = () => {
               </div>
 
               <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 text-center sm:p-5">
-                {(selectedTicket._groupTickets || [selectedTicket]).length > 1 ? (
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {(selectedTicket._groupTickets || [selectedTicket]).map((groupedTicket, index) => (
-                      <div key={groupedTicket.id || index} className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-                        <img
-                          src={ticketQrUrl(groupedTicket, user, 260)}
-                          alt={`Ticket QR code ${index + 1}`}
-                          className={`mx-auto h-52 w-52 rounded-2xl border-4 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)] ${selectedTheme.qrBorderClass}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <img
-                    src={ticketQrUrl(selectedTicket, user, 360)}
-                    alt="Ticket QR code"
-                    className={`mx-auto h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_10px_26px_rgba(0,0,0,0.12)] ${selectedTheme.qrBorderClass}`}
-                  />
-                )}
+                <img
+                  src={ticketQrUrl(getPrimaryTicket(selectedTicket), user, 360)}
+                  alt="Ticket QR code"
+                  className={`mx-auto h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_10px_26px_rgba(0,0,0,0.12)] ${selectedTheme.qrBorderClass}`}
+                />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -608,7 +589,7 @@ const MyTickets = () => {
                   onClick={() => handleDownloadQrGroup(selectedTicket)}
                   className={`flex-1 rounded-xl px-6 py-3 font-bold text-white transition ${selectedTheme.actionClass}`}
                 >
-                  {getDisplayQuantity(selectedTicket) > 1 ? 'Download QRs' : 'Download QR'}
+                  Download QR
                 </button>
               </div>
           </div>
