@@ -281,7 +281,7 @@ const OrganizerHome = () => {
             { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
             { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toLocaleString('en-US') },
             { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
-            { label: 'Unique Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
+            { label: 'Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
@@ -303,8 +303,8 @@ const OrganizerHome = () => {
           {upcomingEvents.length === 0 ? (
             <div className="py-4 text-sm font-semibold text-[#6B7280]">No upcoming events.</div>
           ) : (
-            upcomingEvents.map((event, index) => {
-              const status = index === 0 ? 'Active' : 'Upcoming'
+            upcomingEvents.map((event) => {
+              const status = 'Upcoming'
               return (
                 <div
                   key={event.id || event.title}

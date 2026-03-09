@@ -161,16 +161,10 @@ const Bookings = () => {
   }, [organizerConcertTitles])
 
   const stats = useMemo(() => {
-    const totalTransactions = filteredRows.length
     const ticketsBooked = filteredRows.reduce((sum, row) => sum + row.quantity, 0)
-    const totalRevenue = filteredRows.reduce((sum, row) => sum + row.revenue, 0)
-    const averageOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
 
     return {
-      totalTransactions,
       ticketsBooked,
-      totalRevenue,
-      averageOrderValue,
     }
   }, [filteredRows])
 
@@ -243,18 +237,10 @@ const Bookings = () => {
             Simple view of all ticket bookings and revenue.
           </p>
 
-          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-3">
+          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-1">
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Transactions</div>
-              <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalTransactions.toLocaleString('en-US')}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Booked</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Tickets Booked</div>
               <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.ticketsBooked.toLocaleString('en-US')}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Revenue</div>
-              <div className="mt-2 text-2xl font-black text-[#7C3AED]">{formatCurrency(stats.totalRevenue)}</div>
             </div>
           </div>
         </header>
