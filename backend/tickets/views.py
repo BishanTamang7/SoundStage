@@ -76,55 +76,25 @@ def delete_my_ticket(request, ticket_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsOrganizer])
 def verify_ticket(request):
-    qr_token = (request.data.get('qr_token') or '').strip()
-    raw_value = qr_token
-    pin_token = None
-    if ':' in qr_token:
-        prefix, possible_token = qr_token.split(':', 1)
-        if prefix.strip().upper() == 'SOUNDSTAGE':
-            qr_token = possible_token.strip().splitlines()[0].strip()
-        elif prefix.strip().upper() == 'TOKEN':
-            maybe_pin = possible_token.strip().splitlines()[0].strip()
-            if re.fullmatch(r'\d{4}', maybe_pin):
-                pin_token = maybe_pin
+    pin_token = (request.data.get('qr_token') or '').strip()
+    confirm_entry = bool(request.data.get('confirm_entry'))
+    if not re.fullmatch(r'\d{4}', pin_token):
+        return Response({'detail': 'A valid 4-digit PIN is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not re.fullmatch(r'[a-fA-F0-9]{32}', qr_token or ''):
-        token_match = re.search(r'(?i)\b([a-f0-9]{32})\b', raw_value or '')
-        if token_match:
-            qr_token = token_match.group(1).lower()
-        else:
-            pin_match = re.search(r'\b(\d{4})\b', raw_value or '')
-            if pin_match:
-                pin_token = pin_match.group(1)
-
-    if not qr_token and not pin_token:
-        return Response({'detail': 'qr_token is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    ticket = None
-    if qr_token:
-        ticket = (
-            Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
-            .filter(qr_token=qr_token)
-            .first()
+    matched_tickets = list(
+        Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
+        .filter(concert__organizer=request.user)
+        .filter(token_pin=pin_token)
+        .order_by('created_at')
+    )
+    if not matched_tickets:
+        return Response({'detail': 'Invalid PIN.'}, status=status.HTTP_404_NOT_FOUND)
+    if len(matched_tickets) > 1:
+        return Response(
+            {'detail': 'PIN matches multiple tickets. Please contact support.'},
+            status=status.HTTP_409_CONFLICT,
         )
-        if not ticket:
-            return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
-        if ticket.concert.organizer_id != request.user.id:
-            return Response({'detail': 'You cannot validate tickets for this concert.'}, status=status.HTTP_403_FORBIDDEN)
-    else:
-        matched_tickets = list(
-            Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
-            .filter(concert__organizer=request.user)
-            .filter(token_pin=pin_token)
-            .order_by('created_at')
-        )
-        if not matched_tickets:
-            return Response({'detail': 'Invalid QR code.'}, status=status.HTTP_404_NOT_FOUND)
-        if len(matched_tickets) > 1:
-            return Response(
-                {'detail': 'Token matches multiple tickets. Please scan a full QR token.'},
-                status=status.HTTP_409_CONFLICT,
-            )
-        ticket = matched_tickets[0]
+    ticket = matched_tickets[0]
 
     attendee_name = ticket.attendee.get_full_name() or ticket.attendee.username or ticket.attendee.email
     payment = ticket.payment_transaction
@@ -148,6 +118,17 @@ def verify_ticket(request):
                 'success': False,
                 'message': 'Ticket already used.',
                 'data': ticket_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    if not confirm_entry:
+        return Response(
+            {
+                'success': True,
+                'message': 'PIN is valid. Please confirm entry to mark this ticket as used.',
+                'data': ticket_data,
+                'requires_confirmation': True,
             },
             status=status.HTTP_200_OK,
         )
