@@ -37,6 +37,7 @@ const Bookings = () => {
   const { user, role, tokens, logout } = useAuth()
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
+  const [organizerConcertTitles, setOrganizerConcertTitles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
@@ -72,6 +73,7 @@ const Bookings = () => {
       if (!tokens?.access) {
         if (isActive) {
           setBookings([])
+          setOrganizerConcertTitles([])
           setLoading(false)
         }
         return
@@ -80,13 +82,27 @@ const Bookings = () => {
       try {
         setLoading(true)
         setError('')
-        const data = await api.organizerBookings(tokens.access)
-        const list = data?.data?.bookings || data?.bookings || []
-        if (isActive) setBookings(Array.isArray(list) ? list : [])
+        const [bookingsData, concertsData] = await Promise.all([
+          api.organizerBookings(tokens.access),
+          api.organizerConcerts(tokens.access),
+        ])
+        const bookingsList = bookingsData?.data?.bookings || bookingsData?.bookings || []
+        const concertsList = concertsData?.data?.concerts || concertsData?.concerts || []
+        if (isActive) {
+          setBookings(Array.isArray(bookingsList) ? bookingsList : [])
+          setOrganizerConcertTitles(
+            Array.isArray(concertsList)
+              ? concertsList
+                  .map((concert) => String(concert?.title || '').trim())
+                  .filter(Boolean)
+              : []
+          )
+        }
       } catch (err) {
         if (isActive) {
           setError(err?.message || 'Failed to load bookings.')
           setBookings([])
+          setOrganizerConcertTitles([])
         }
       } finally {
         if (isActive) setLoading(false)
@@ -139,10 +155,10 @@ const Bookings = () => {
   }, [bookingRows, search, dateRange, concertFilter])
 
   const concertOptions = useMemo(() => {
-    return Array.from(new Set(bookingRows.map((row) => row.concertTitle))).sort((a, b) =>
+    return Array.from(new Set(organizerConcertTitles)).sort((a, b) =>
       a.localeCompare(b)
     )
-  }, [bookingRows])
+  }, [organizerConcertTitles])
 
   const stats = useMemo(() => {
     const totalTransactions = filteredRows.length
