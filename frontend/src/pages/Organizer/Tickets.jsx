@@ -8,6 +8,11 @@ const parseNumber = (value) => {
   return Number.isFinite(num) ? num : 0
 }
 
+const FIXED_TICKET_TYPES = [
+  { key: 'vip', label: 'VIP', accent: 'orange' },
+  { key: 'regular', label: 'Regular', accent: 'teal' },
+]
+
 const normalizeTicketCategories = (raw) => {
   if (Array.isArray(raw)) return raw
   if (typeof raw === 'string') {
@@ -66,6 +71,7 @@ const getTicketStatus = (remaining, dateValue) => {
 }
 
 const getStatusClasses = (status) => {
+  if (status === 'Not Set') return 'border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280]'
   if (status === 'Sold Out') return 'border-[#FCA5A5] bg-[#FEF2F2] text-[#B91C1C]'
   if (status === 'Low Stock') return 'border-[#FCD34D] bg-[#FFFBEB] text-[#B45309]'
   if (status === 'Closed') return 'border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280]'
@@ -141,9 +147,14 @@ const Tickets = () => {
   const concertBlocks = useMemo(() => {
     return concerts.map((concert) => {
       const categories = normalizeTicketCategories(concert?.ticket_categories)
+      const categoryByName = new Map(
+        categories.map((item) => [String(item?.name || '').trim().toLowerCase(), item])
+      )
       const { venueName, city } = getVenueParts(concert?.venue || '')
 
-      const rows = categories.map((ticket, index) => {
+      const rows = FIXED_TICKET_TYPES.map((type, index) => {
+        const ticket = categoryByName.get(type.key)
+        const hasTicketConfig = Boolean(ticket)
         const remainingFromApi = ticket?.remaining ?? ticket?.quantity
         const capacity = parseNumber(ticket?.capacity ?? ticket?.total_quantity ?? ticket?.quantity)
         const soldValue = ticket?.sold ?? ticket?.sold_quantity ?? ticket?.tickets_sold
@@ -154,11 +165,12 @@ const Tickets = () => {
           : parseNumber(remainingFromApi ?? capacity)
         const price = parseNumber(ticket?.price)
         const revenue = hasSoldData ? parseNumber(ticket?.revenue ?? sold * price) : null
-        const status = getTicketStatus(remaining, concert?.date_time)
+        const status = hasTicketConfig ? getTicketStatus(remaining, concert?.date_time) : 'Not Set'
 
         return {
-          id: `${concert?.id || 'concert'}-${ticket?.id || index}`,
-          ticketType: ticket?.name || 'Ticket',
+          id: `${concert?.id || 'concert'}-${ticket?.id || type.key || index}`,
+          ticketType: type.label,
+          accent: type.accent,
           price,
           capacity,
           sold,
@@ -183,7 +195,7 @@ const Tickets = () => {
         totalRemaining,
         totalRevenue,
       }
-    }).filter((block) => block.rows.length > 0)
+    })
   }, [concerts])
 
   const concertOptions = useMemo(() => {
@@ -394,15 +406,25 @@ const Tickets = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3 p-5 min-[840px]:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 p-5 min-[840px]:grid-cols-2">
                   {block.rows.map((row) => {
                     const soldValue = row.sold ?? 0
                     const progress = row.capacity > 0 ? Math.min(100, Math.round((soldValue / row.capacity) * 100)) : 0
+                    const cardAccentClass =
+                      row.accent === 'orange'
+                        ? 'border-[#F59E0B]/35 bg-[#FFF7ED]'
+                        : 'border-[#14B8A6]/30 bg-[#F0FDFA]'
+                    const titleAccentClass =
+                      row.accent === 'orange'
+                        ? 'border-[#F59E0B]/45 bg-[#FFEDD5] text-[#B45309]'
+                        : 'border-[#14B8A6]/40 bg-[#CCFBF1] text-[#0F766E]'
 
                     return (
-                      <div key={row.id} className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                      <div key={row.id} className={`rounded-xl border p-4 ${cardAccentClass}`}>
                         <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-sm font-black text-[#312E81]">{row.ticketType}</h3>
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold tracking-[0.12em] uppercase ${titleAccentClass}`}>
+                            {row.ticketType}
+                          </span>
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
                             {row.status}
                           </span>
