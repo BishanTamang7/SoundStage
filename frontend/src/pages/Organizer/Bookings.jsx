@@ -144,36 +144,6 @@ const Bookings = () => {
     )
   }, [bookingRows])
 
-  const bookingBlocks = useMemo(() => {
-    const map = new Map()
-
-    filteredRows.forEach((row) => {
-      if (!map.has(row.concertTitle)) {
-        map.set(row.concertTitle, {
-          concertTitle: row.concertTitle,
-          rows: [],
-          totalOrders: 0,
-          totalTickets: 0,
-          totalRevenue: 0,
-          latestBookedAt: null,
-        })
-      }
-
-      const block = map.get(row.concertTitle)
-      block.rows.push(row)
-      block.totalOrders += 1
-      block.totalTickets += row.quantity
-      block.totalRevenue += row.revenue
-      if (!block.latestBookedAt || rowTime(row.bookedAt) > rowTime(block.latestBookedAt)) {
-        block.latestBookedAt = row.bookedAt
-      }
-    })
-
-    return Array.from(map.values()).sort(
-      (a, b) => rowTime(b.latestBookedAt) - rowTime(a.latestBookedAt)
-    )
-  }, [filteredRows])
-
   const stats = useMemo(() => {
     const totalTransactions = filteredRows.length
     const ticketsBooked = filteredRows.reduce((sum, row) => sum + row.quantity, 0)
@@ -254,10 +224,10 @@ const Bookings = () => {
         <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h1 className="text-3xl font-black text-[#312E81]">Bookings</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
-            Track ticket bookings and revenue by event.
+            Simple view of all ticket bookings and revenue.
           </p>
 
-          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
+          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-3">
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Transactions</div>
               <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalTransactions.toLocaleString('en-US')}</div>
@@ -269,10 +239,6 @@ const Bookings = () => {
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Revenue</div>
               <div className="mt-2 text-2xl font-black text-[#7C3AED]">{formatCurrency(stats.totalRevenue)}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Avg Order Value</div>
-              <div className="mt-2 text-2xl font-black text-[#D97706]">{formatCurrency(stats.averageOrderValue)}</div>
             </div>
           </div>
         </header>
@@ -325,94 +291,41 @@ const Bookings = () => {
           <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
-        ) : bookingBlocks.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
             No bookings found yet.
           </div>
         ) : (
-          <div className="space-y-5">
-            {bookingBlocks.map((block) => (
-              <article key={block.concertTitle} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-                <div className="grid gap-4 border-b border-[#E5E7EB] bg-[#FCFCFF] p-5 min-[950px]:grid-cols-[120px_1fr_auto] min-[950px]:items-center">
-                  <div className="flex h-24 w-full items-center justify-center rounded-xl bg-[#EEF2FF] text-3xl">🎟️</div>
-
+          <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+            <div className="hidden grid-cols-[1.3fr_1.5fr_0.8fr_0.6fr_0.8fr_1fr] gap-4 border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-xs font-black tracking-[0.08em] text-[#6B7280] uppercase md:grid">
+              <div>Customer</div>
+              <div>Concert</div>
+              <div>Type</div>
+              <div>Qty</div>
+              <div>Amount</div>
+              <div>Booked At</div>
+            </div>
+            <div className="divide-y divide-[#E5E7EB]">
+              {filteredRows.map((row) => (
+                <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.3fr_1.5fr_0.8fr_0.6fr_0.8fr_1fr] md:items-center md:gap-4">
                   <div>
-                    <h2 className="text-xl font-black text-[#2E2B72]">{block.concertTitle}</h2>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-[#6B7280]">
-                      <span>🧾 {block.totalOrders} transactions</span>
-                      <span>🎫 {block.totalTickets} tickets booked</span>
-                      <span>⏱️ Booked At {formatDateTime(block.latestBookedAt)}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-                      <span className="rounded-full border border-[#D1D5DB] bg-white px-3 py-1 text-[#374151]">
-                        Transactions {block.totalOrders}
-                      </span>
-                      <span className="rounded-full border border-[#FCD34D] bg-[#FFFBEB] px-3 py-1 text-[#B45309]">
-                        Tickets Booked {block.totalTickets}
-                      </span>
-                      <span className="rounded-full border border-[#C4B5FD] bg-[#F5F3FF] px-3 py-1 text-[#5B21B6]">
-                        Total Revenue {formatCurrency(block.totalRevenue)}
-                      </span>
-                    </div>
+                    <div className="text-sm font-black text-[#312E81]">{row.customer}</div>
+                    {row.customerEmail ? (
+                      <div className="text-xs font-semibold text-[#6B7280]">{row.customerEmail}</div>
+                    ) : null}
                   </div>
-
-                  <div className="flex gap-2 min-[950px]:justify-end">
-                    <Link
-                      to="/organizer/analytics"
-                      className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-xs font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
-                    >
-                      View Analytics
-                    </Link>
-                    <Link
-                      to="/organizer/tickets"
-                      className="rounded-lg bg-[#7C3AED] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#6D28D9]"
-                    >
-                      Manage Tickets
-                    </Link>
+                  <div className="text-sm font-semibold text-[#312E81]">{row.concertTitle}</div>
+                  <div>
+                    <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-extrabold text-[#1D4ED8]">
+                      {row.ticketType}
+                    </span>
                   </div>
+                  <div className="text-sm font-black text-[#16A34A]">{row.quantity}</div>
+                  <div className="text-sm font-black text-[#7C3AED]">{formatCurrency(row.revenue)}</div>
+                  <div className="text-sm font-semibold text-[#6B7280]">{formatDateTime(row.bookedAt)}</div>
                 </div>
-
-                <div className="grid gap-3 p-5 min-[840px]:grid-cols-2 xl:grid-cols-3">
-                  {block.rows.map((row) => (
-                    <div key={row.id} className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-sm font-black text-[#312E81]">{row.customer}</h3>
-                        <span className="rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-extrabold text-[#1D4ED8]">
-                          {row.ticketType}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-[#6B7280]">
-                        <div>
-                          <div className="uppercase tracking-wide">Booked At</div>
-                          <div className="mt-1 text-sm font-black text-[#1F2937]">{formatDateTime(row.bookedAt)}</div>
-                        </div>
-                        <div>
-                          <div className="uppercase tracking-wide">Amount</div>
-                          <div className="mt-1 text-sm font-black text-[#5B21B6]">{formatCurrency(row.revenue)}</div>
-                        </div>
-                        <div>
-                          <div className="uppercase tracking-wide">Booked</div>
-                          <div className="mt-1 text-sm font-black text-[#16A34A]">{row.quantity}</div>
-                        </div>
-                        <div>
-                          <div className="uppercase tracking-wide">Amount</div>
-                          <div className="mt-1 text-sm font-black text-[#D97706]">
-                            {formatCurrency(row.revenue)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {row.customerEmail ? (
-                        <div className="mt-3 rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-2 text-xs font-semibold text-[#6B7280]">
-                          {row.customerEmail}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </main>
