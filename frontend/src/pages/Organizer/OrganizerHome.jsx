@@ -30,12 +30,6 @@ const OrganizerHome = () => {
   const navigate = useNavigate()
   const [organizerConcerts, setOrganizerConcerts] = useState([])
   const [currentTime, setCurrentTime] = useState(0)
-  const [dashboardStats, setDashboardStats] = useState({
-    totalConcerts: 0,
-    upcomingEvents: 0,
-    totalRevenue: 0,
-    attendees: 0,
-  })
   const [recentBookings, setRecentBookings] = useState([])
 
   const displayName = user?.username || user?.email || 'User'
@@ -58,12 +52,6 @@ const OrganizerHome = () => {
         if (isActive) {
           setOrganizerConcerts([])
           setCurrentTime(0)
-          setDashboardStats({
-            totalConcerts: 0,
-            upcomingEvents: 0,
-            totalRevenue: 0,
-            attendees: 0,
-          })
           setRecentBookings([])
         }
         return
@@ -80,26 +68,6 @@ const OrganizerHome = () => {
         const concerts = Array.isArray(list) ? list : []
         const nowTs = Date.now()
 
-        const upcomingEvents = concerts.filter((concert) => {
-          const date = new Date(concert?.date_time)
-          return !Number.isNaN(date.getTime()) && date.getTime() >= nowTs
-        }).length
-
-        const totalRevenue = concerts.reduce((concertSum, concert) => {
-          const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
-          return (
-            concertSum +
-            categories.reduce((categorySum, category) => {
-              const sold = parseNumber(
-                category?.sold ?? category?.sold_quantity ?? category?.tickets_sold
-              )
-              const price = parseNumber(category?.price)
-              const revenue = parseNumber(category?.revenue)
-              return categorySum + (revenue > 0 ? revenue : sold * price)
-            }, 0)
-          )
-        }, 0)
-
         if (isActive) {
           setOrganizerConcerts(concerts)
           setCurrentTime(nowTs)
@@ -107,33 +75,12 @@ const OrganizerHome = () => {
             bookingsResult.status === 'fulfilled' ? bookingsResult.value : { data: { bookings: [] } }
           const bookingList = bookingsData?.data?.bookings || bookingsData?.bookings || []
           const normalizedBookings = Array.isArray(bookingList) ? bookingList : []
-          const uniqueAttendees = new Set(
-            normalizedBookings
-              .map((booking) => {
-                const email = booking?.attendee_email
-                return typeof email === 'string' ? email.trim().toLowerCase() : ''
-              })
-              .filter(Boolean)
-          ).size
-
-          setDashboardStats({
-            totalConcerts: concerts.length,
-            upcomingEvents,
-            totalRevenue,
-            attendees: uniqueAttendees,
-          })
           setRecentBookings(normalizedBookings)
         }
       } catch {
         if (isActive) {
           setOrganizerConcerts([])
           setCurrentTime(0)
-          setDashboardStats({
-            totalConcerts: 0,
-            upcomingEvents: 0,
-            totalRevenue: 0,
-            attendees: 0,
-          })
           setRecentBookings([])
         }
       }
@@ -152,7 +99,7 @@ const OrganizerHome = () => {
       return !Number.isNaN(date.getTime()) && date.getTime() >= currentTime
     })
     .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
-    .slice(0, 3)
+    .slice(0, 2)
 
   const handleLogout = async () => {
     try {
@@ -276,22 +223,6 @@ const OrganizerHome = () => {
           </div>
         </section>
 
-        <section className="mb-6 grid grid-cols-1 gap-3 min-[720px]:grid-cols-4">
-          {[
-            { label: 'Total Concerts', value: String(dashboardStats.totalConcerts) },
-            { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toLocaleString('en-US') },
-            { label: 'Total Revenue', value: formatCurrency(dashboardStats.totalRevenue) },
-            { label: 'Attendees', value: dashboardStats.attendees.toLocaleString('en-US') },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-                {stat.label}
-              </div>
-              <div className="mt-2 text-2xl font-black text-[#312E81]">{stat.value}</div>
-            </div>
-          ))}
-        </section>
-
         <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-black text-[#312E81]">Upcoming Events</h3>
@@ -357,7 +288,7 @@ const OrganizerHome = () => {
                     </td>
                   </tr>
                 ) : (
-                  recentBookings.slice(0, 5).map((row) => (
+                  recentBookings.slice(0, 2).map((row) => (
                     <tr key={row.id} className="border-b border-[#E5E7EB] last:border-b-0">
                       <td className="py-4">{row.attendee_name || row.attendee_email || 'Customer'}</td>
                       <td className="py-4">
