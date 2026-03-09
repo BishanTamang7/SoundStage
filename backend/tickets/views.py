@@ -20,7 +20,16 @@ def my_tickets(request):
         .filter(attendee=request.user)
         .order_by('-created_at')
     )
-    serializer = TicketSerializer(queryset, many=True)
+    grouped_by_booking = []
+    seen_booking_ids = set()
+    for ticket in queryset:
+        booking_id = str(ticket.payment_transaction_id)
+        if booking_id in seen_booking_ids:
+            continue
+        seen_booking_ids.add(booking_id)
+        grouped_by_booking.append(ticket)
+
+    serializer = TicketSerializer(grouped_by_booking, many=True)
     return Response({'success': True, 'data': {'tickets': serializer.data}}, status=status.HTTP_200_OK)
 
 
