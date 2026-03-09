@@ -31,27 +31,75 @@ const formatCurrency = (amount) => {
   return `Rs ${parsed.toLocaleString()}`
 }
 
-const ticketQrPayload = (ticket, user) => {
+const formatNepalDateTime = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kathmandu',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date)
+}
+
+const getTokenPin = (qrToken) => {
+  const value = String(qrToken || '')
+  if (!value) return '0000'
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) % 10000
+  }
+  return String(hash).padStart(4, '0')
+}
+
+const ticketQrPayload = (ticket, user, aggregateSource) => {
   if (!ticket?.qr_token) return ''
 
   const attendeeName = ticket?.attendee_name || user?.name || user?.username || user?.email || ''
   const attendeeEmail = ticket?.attendee_email || user?.email || ''
+  const tokenPin = ticket?.token_pin
+    ? String(ticket.token_pin).padStart(4, '0')
+    : getTokenPin(ticket?.qr_token)
+  const groupedTickets = Array.isArray(aggregateSource?._groupTickets)
+    ? aggregateSource._groupTickets
+    : []
+  const totalBookingQuantity = groupedTickets.length > 0
+    ? groupedTickets.reduce((sum, item) => sum + (Number(item?.booking_quantity) || 1), 0)
+    : Number(ticket?.booking_quantity) || 1
+  const bookedAtValue = (() => {
+    if (groupedTickets.length > 1) {
+      const values = groupedTickets
+        .map((item) => item?.booked_at || item?.created_at || '')
+        .filter(Boolean)
+      return values.length > 0 ? values.join(' | ') : ''
+    }
+    return ticket?.booked_at || ticket?.created_at || ''
+  })()
   const payloadLines = [
+    `Token: ${tokenPin}`,
     `Attendee Name: ${attendeeName}`,
     `Attendee Email: ${attendeeEmail}`,
     `Concert Title: ${ticket?.concert_title || ''}`,
-    `Concert Date Time: ${ticket?.concert_date_time || ''}`,
+    `Concert Date Time: ${formatNepalDateTime(ticket?.concert_date_time)}`,
     `Concert Venue: ${ticket?.concert_venue || ''}`,
     `Ticket Type: ${ticket?.ticket_type || ''}`,
-    `Booked At: ${ticket?.booked_at || ticket?.created_at || ''}`,
-    `Booking Quantity: ${ticket?.booking_quantity ?? ''}`,
+    `Booked At: ${bookedAtValue
+      .split(' | ')
+      .map((value) => formatNepalDateTime(value))
+      .join(' | ')}`,
+    `Total Booking Quantity: ${totalBookingQuantity}`,
     `Total Amount: NPR ${ticket?.booking_total_rupees ?? ''}`,
   ]
   return payloadLines.join('\n')
 }
 
-const ticketQrUrl = (ticket, user, size = 260) => {
-  const data = ticketQrPayload(ticket, user)
+const ticketQrUrl = (ticket, user, size = 260, aggregateSource = null) => {
+  const data = ticketQrPayload(ticket, user, aggregateSource)
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
 }
 
@@ -111,16 +159,27 @@ const getTicketGroupKey = (ticket) => {
 
 const getDisplayQuantity = (ticket) => {
   const grouped = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets.length : 0
-  return grouped > 0 ? grouped : 1
+  if (grouped > 0) {
+    const totalQuantity = ticket._groupTickets.reduce(
+      (sum, item) => sum + (Number(item?.booking_quantity) || 1),
+      0
+    )
+    return totalQuantity
+  }
+  return Number(ticket?.booking_quantity) || 1
 }
 
 const getDisplayTotalPaid = (ticket) => {
   const groupedTickets = Array.isArray(ticket?._groupTickets) ? ticket._groupTickets : []
   if (groupedTickets.length > 0) {
-    const total = groupedTickets.reduce((sum, item) => sum + (Number(item?.ticket_price) || 0), 0)
+    const total = groupedTickets.reduce((sum, item) => {
+      const price = Number(item?.ticket_price) || 0
+      const quantity = Number(item?.booking_quantity) || 1
+      return sum + price * quantity
+    }, 0)
     return total
   }
-  return Number(ticket?.ticket_price) || 0
+  return (Number(ticket?.ticket_price) || 0) * (Number(ticket?.booking_quantity) || 1)
 }
 
 const getPrimaryTicket = (ticket) => {
@@ -218,15 +277,21 @@ const MyTickets = () => {
       .map((ticket) => {
         const date = ticket?.concert_date_time ? new Date(ticket.concert_date_time) : null
         const dateMs = date && !Number.isNaN(date.getTime()) ? date.getTime() : null
+        const createdAt = ticket?.created_at ? new Date(ticket.created_at) : null
+        const createdAtMs = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.getTime() : null
         return {
           ...ticket,
           _dateMs: dateMs,
+          _createdAtMs: createdAtMs,
         }
       })
       .sort((a, b) => {
         const aValue = a._dateMs ?? 0
         const bValue = b._dateMs ?? 0
-        return aValue - bValue
+        if (aValue !== bValue) return aValue - bValue
+        const aCreated = a._createdAtMs ?? 0
+        const bCreated = b._createdAtMs ?? 0
+        return aCreated - bCreated
       })
     const groupedMap = new Map()
 
@@ -243,15 +308,6 @@ const MyTickets = () => {
       }
 
       existing._groupTickets.push(ticket)
-      const existingCreatedAt = existing?.created_at ? new Date(existing.created_at).getTime() : 0
-      const nextCreatedAt = ticket?.created_at ? new Date(ticket.created_at).getTime() : 0
-      if (nextCreatedAt > existingCreatedAt) {
-        Object.assign(existing, {
-          ...ticket,
-          _groupKey: key,
-          _groupTickets: existing._groupTickets,
-        })
-      }
     })
 
     return Array.from(groupedMap.values()).sort((a, b) => {
@@ -275,9 +331,9 @@ const MyTickets = () => {
   const activeTickets = activeTab === 0 ? upcomingTickets : pastTickets
   const isUpcoming = activeTab === 0
 
-  const handleDownloadQr = async (ticket) => {
+  const handleDownloadQr = async (ticket, aggregateSource = null) => {
     if (!ticket?.qr_token) return
-    const url = ticketQrUrl(ticket, user, 600)
+    const url = ticketQrUrl(ticket, user, 600, aggregateSource)
     const filename = `soundstage-ticket-${ticket.id}.png`
 
     try {
@@ -300,7 +356,7 @@ const MyTickets = () => {
   }
 
   const handleDownloadQrGroup = async (ticket) => {
-    await handleDownloadQr(getPrimaryTicket(ticket))
+    await handleDownloadQr(getPrimaryTicket(ticket), ticket)
   }
 
   const handleDeletePastTicket = async () => {
@@ -570,7 +626,7 @@ const MyTickets = () => {
 
               <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 text-center sm:p-5">
                 <img
-                  src={ticketQrUrl(getPrimaryTicket(selectedTicket), user, 360)}
+                  src={ticketQrUrl(getPrimaryTicket(selectedTicket), user, 360, selectedTicket)}
                   alt="Ticket QR code"
                   className={`mx-auto h-64 w-64 rounded-2xl border-4 bg-white p-2 shadow-[0_10px_26px_rgba(0,0,0,0.12)] ${selectedTheme.qrBorderClass}`}
                 />

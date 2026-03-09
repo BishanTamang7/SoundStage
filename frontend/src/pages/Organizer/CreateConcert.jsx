@@ -10,13 +10,14 @@ const GENRE_OPTIONS = [
   { value: "pop", label: "Pop" },
   { value: "folk-dohori", label: "Folk / Dohori" },
 ];
+const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 
 const CreateConcert = () => {
   const navigate = useNavigate();
   const { tokens, user, role, logout } = useAuth();
-  const [tickets, setTickets] = useState([
-    { name: "", price: "", quantity: "" },
-  ]);
+  const [tickets, setTickets] = useState(
+    FIXED_TICKET_TYPES.map((name) => ({ name, price: "", quantity: "" }))
+  );
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [coverImage, setCoverImage] = useState(null);
@@ -51,20 +52,6 @@ const CreateConcert = () => {
     } finally {
       navigate("/", { replace: true });
     }
-  };
-
-  const addTicket = () => {
-    setTickets((prev) => [...prev, { name: "", price: "", quantity: "" }]);
-  };
-
-  const removeTicket = (index) => {
-    setTickets((prev) => {
-      if (prev.length <= 1) {
-        window.alert("You must have at least one ticket category!");
-        return prev;
-      }
-      return prev.filter((_, i) => i !== index);
-    });
   };
 
   const updateTicket = (index, field, value) => {
@@ -594,11 +581,9 @@ const CreateConcert = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g., VIP, Regular, Student"
                       value={ticket.name}
-                      onChange={(event) =>
-                        updateTicket(index, "name", event.target.value)
-                      }
+                      readOnly
+                      aria-readonly="true"
                       className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                     />
                   </div>
@@ -634,34 +619,10 @@ const CreateConcert = () => {
                       className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeTicket(index)}
-                    className="rounded-lg border border-[#EF4444] bg-white px-4 py-3 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
-                  >
-                    Remove
-                  </button>
+                  <div />
                 </div>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={addTicket}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-[#7C3AED] bg-white px-6 py-3 text-sm font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Another Ticket Type
-            </button>
           </section>
 
           <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-end">
