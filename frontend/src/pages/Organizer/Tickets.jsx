@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { api, resolveMediaUrl } from '../../services/api'
+import { api } from '../../services/api'
 
 const parseNumber = (value) => {
   const num = Number(value)
@@ -31,34 +31,6 @@ const normalizeTicketCategories = (raw) => {
 }
 
 const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
-
-const formatDateTime = (value) => {
-  if (!value) return 'TBD'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'TBD'
-  const datePart = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-  const timePart = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
-  return `${datePart} • ${timePart}`
-}
-
-const getVenueParts = (venue) => {
-  if (!venue) return { venueName: '', city: '' }
-  const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
-  if (parts.length > 1) {
-    return {
-      venueName: parts.slice(0, -1).join(', '),
-      city: parts[parts.length - 1],
-    }
-  }
-  return { venueName: venue.trim(), city: '' }
-}
 
 const getTicketStatus = (remaining, dateValue) => {
   const date = dateValue ? new Date(dateValue) : null
@@ -150,7 +122,6 @@ const Tickets = () => {
       const categoryByName = new Map(
         categories.map((item) => [String(item?.name || '').trim().toLowerCase(), item])
       )
-      const { venueName, city } = getVenueParts(concert?.venue || '')
 
       const rows = FIXED_TICKET_TYPES.map((type, index) => {
         const ticket = categoryByName.get(type.key)
@@ -186,10 +157,6 @@ const Tickets = () => {
       return {
         concertId: concert?.id,
         concertTitle: concert?.title || 'Untitled Concert',
-        dateTime: concert?.date_time || null,
-        coverImage: resolveMediaUrl(concert?.cover_image),
-        venueName,
-        city,
         rows,
         totalCapacity,
         totalRemaining,
@@ -228,6 +195,27 @@ const Tickets = () => {
       })
       .filter(Boolean)
   }, [concertBlocks, concertFilter, statusFilter])
+
+  const tableRows = useMemo(
+    () =>
+      filteredBlocks.flatMap((block) =>
+        block.rows.map((row) => ({
+          id: row.id,
+          concertId: block.concertId,
+          concertTitle: block.concertTitle,
+          ...row,
+        }))
+      ),
+    [filteredBlocks]
+  )
+
+  const tableStats = useMemo(() => {
+    const totalConfigs = tableRows.length
+    const totalCapacity = tableRows.reduce((sum, row) => sum + row.capacity, 0)
+    const totalRemaining = tableRows.reduce((sum, row) => sum + row.remaining, 0)
+    const totalRevenue = tableRows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
+    return { totalConfigs, totalCapacity, totalRemaining, totalRevenue }
+  }, [tableRows])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -306,9 +294,22 @@ const Tickets = () => {
         <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <h1 className="text-3xl font-black text-[#312E81]">Tickets</h1>
           <p className="mt-1 text-sm font-semibold text-[#6B7280]">
-            Manage ticket inventory and sales by concert.
+            Simple view of VIP and Regular ticket inventory.
           </p>
-
+          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-3">
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Capacity</div>
+              <div className="mt-2 text-2xl font-black text-[#312E81]">{tableStats.totalCapacity}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Remaining</div>
+              <div className="mt-2 text-2xl font-black text-[#D97706]">{tableStats.totalRemaining}</div>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
+              <div className="mt-2 text-2xl font-black text-[#7C3AED]">{formatCurrency(tableStats.totalRevenue)}</div>
+            </div>
+          </div>
         </header>
 
         <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
@@ -347,7 +348,7 @@ const Tickets = () => {
           <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
             {error}
           </div>
-        ) : filteredBlocks.length === 0 ? (
+        ) : tableRows.length === 0 ? (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
             <div className="text-sm font-semibold text-[#6B7280]">No ticket categories found.</div>
             <Link
@@ -358,120 +359,55 @@ const Tickets = () => {
             </Link>
           </div>
         ) : (
-          <div className="space-y-5">
-            {filteredBlocks.map((block) => (
-              <article key={block.concertId} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-                <div className="grid gap-4 border-b border-[#E5E7EB] bg-[#FCFCFF] p-5 min-[950px]:grid-cols-[180px_1fr_auto] min-[950px]:items-center">
-                  <div className="h-28 overflow-hidden rounded-xl bg-[#EEF2FF]">
-                    {block.coverImage ? (
-                      <img src={block.coverImage} alt={`${block.concertTitle} cover`} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl">🎫</div>
-                    )}
+          <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+            <div className="hidden grid-cols-[1.7fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr] gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-xs font-black tracking-[0.08em] text-[#6B7280] uppercase md:grid">
+              <div>Concert</div>
+              <div>Type</div>
+              <div>Price</div>
+              <div>Capacity</div>
+              <div>Sold</div>
+              <div>Remaining</div>
+              <div>Revenue</div>
+              <div>Status</div>
+            </div>
+            <div className="divide-y divide-[#E5E7EB]">
+              {tableRows.map((row) => (
+                <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.7fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr] md:items-center md:gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-black text-[#312E81]">{row.concertTitle}</span>
+                    <Link
+                      to={`/organizer/concerts/${row.concertId}/edit`}
+                      className="rounded-md border border-[#D1D5DB] px-2 py-1 text-[11px] font-bold text-[#374151] transition hover:bg-[#F9FAFB] md:hidden"
+                    >
+                      Edit
+                    </Link>
                   </div>
-
                   <div>
-                    <h2 className="text-xl font-black text-[#2E2B72]">{block.concertTitle}</h2>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-[#6B7280]">
-                      <span>📅 {formatDateTime(block.dateTime)}</span>
-                      <span>📍 {block.venueName || 'Venue TBD'}</span>
-                      <span>🏙️ {block.city || 'City TBD'}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-                      <span className="rounded-full border border-[#D1D5DB] bg-white px-3 py-1 text-[#374151]">
-                        Capacity {block.totalCapacity}
-                      </span>
-                      <span className="rounded-full border border-[#FCD34D] bg-[#FFFBEB] px-3 py-1 text-[#B45309]">
-                        Remaining {block.totalRemaining}
-                      </span>
-                      <span className="rounded-full border border-[#C4B5FD] bg-[#F5F3FF] px-3 py-1 text-[#5B21B6]">
-                        Revenue {formatCurrency(block.totalRevenue)}
-                      </span>
-                    </div>
+                    <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-extrabold text-[#1D4ED8]">
+                      {row.ticketType}
+                    </span>
                   </div>
-
-                  <div className="flex gap-2 min-[950px]:justify-end">
+                  <div className="text-sm font-bold text-[#312E81]">{formatCurrency(row.price)}</div>
+                  <div className="text-sm font-bold text-[#312E81]">{row.capacity}</div>
+                  <div className="text-sm font-bold text-[#16A34A]">{row.sold ?? '-'}</div>
+                  <div className="text-sm font-bold text-[#D97706]">{row.remaining}</div>
+                  <div className="text-sm font-bold text-[#7C3AED]">
+                    {row.revenue === null ? '-' : formatCurrency(row.revenue)}
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
+                      {row.status}
+                    </span>
                     <Link
-                      to={`/organizer/concerts/${block.concertId}`}
-                      className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-xs font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
+                      to={`/organizer/concerts/${row.concertId}/edit`}
+                      className="hidden rounded-md border border-[#D1D5DB] px-2 py-1 text-[11px] font-bold text-[#374151] transition hover:bg-[#F9FAFB] md:inline-flex"
                     >
-                      View Concert
-                    </Link>
-                    <Link
-                      to={`/organizer/concerts/${block.concertId}/edit`}
-                      className="rounded-lg bg-[#7C3AED] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#6D28D9]"
-                    >
-                      Edit Tickets
+                      Edit
                     </Link>
                   </div>
                 </div>
-
-                <div className="grid gap-3 p-5 min-[840px]:grid-cols-2">
-                  {block.rows.map((row) => {
-                    const soldValue = row.sold ?? 0
-                    const progress = row.capacity > 0 ? Math.min(100, Math.round((soldValue / row.capacity) * 100)) : 0
-                    const cardAccentClass =
-                      row.accent === 'orange'
-                        ? 'border-[#F59E0B]/35 bg-[#FFF7ED]'
-                        : 'border-[#14B8A6]/30 bg-[#F0FDFA]'
-                    const titleAccentClass =
-                      row.accent === 'orange'
-                        ? 'border-[#F59E0B]/45 bg-[#FFEDD5] text-[#B45309]'
-                        : 'border-[#14B8A6]/40 bg-[#CCFBF1] text-[#0F766E]'
-
-                    return (
-                      <div key={row.id} className={`rounded-xl border p-4 ${cardAccentClass}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold tracking-[0.12em] uppercase ${titleAccentClass}`}>
-                            {row.ticketType}
-                          </span>
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
-                            {row.status}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-[#6B7280]">
-                          <div>
-                            <div className="uppercase tracking-wide">Price</div>
-                            <div className="mt-1 text-sm font-black text-[#1F2937]">{formatCurrency(row.price)}</div>
-                          </div>
-                          <div>
-                            <div className="uppercase tracking-wide">Revenue</div>
-                            <div className="mt-1 text-sm font-black text-[#5B21B6]">
-                              {row.revenue === null ? '-' : formatCurrency(row.revenue)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="uppercase tracking-wide">Sold</div>
-                            <div className="mt-1 text-sm font-black text-[#16A34A]">{row.sold ?? '-'}</div>
-                          </div>
-                          <div>
-                            <div className="uppercase tracking-wide">Remaining</div>
-                            <div className="mt-1 text-sm font-black text-[#D97706]">{row.remaining}</div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4">
-                          <div className="mb-1 flex items-center justify-between text-[11px] font-bold text-[#6B7280]">
-                            <span>Sales Progress</span>
-                            <span>{row.capacity > 0 ? `${progress}%` : '0%'}</span>
-                          </div>
-                          <div className="h-2.5 overflow-hidden rounded-full bg-[#E5E7EB]">
-                            <div
-                              className={`h-full ${progress >= 80 ? 'bg-[#16A34A]' : progress >= 40 ? 'bg-[#7C3AED]' : 'bg-[#D97706]'}`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <div className="mt-1 text-[11px] font-semibold text-[#9CA3AF]">
-                            Capacity: {row.capacity}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </article>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </main>
