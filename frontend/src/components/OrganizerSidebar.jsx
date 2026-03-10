@@ -99,7 +99,7 @@ const OrganizerSidebar = () => {
           <div className="mb-2 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_16px_40px_rgba(49,46,129,0.14)]">
             <Link
               className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#312E81] transition hover:bg-[#F8FAFC]"
-              to="/organizer/settings"
+              to="/organizer/profile"
             >
               <span className="text-lg">👤</span>
               <span>My profile</span>

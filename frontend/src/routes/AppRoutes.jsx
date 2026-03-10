@@ -18,6 +18,7 @@ import Tickets from '../pages/Organizer/Tickets'
 import ConfirmTicket from '../pages/Organizer/ConfirmTicket'
 import Bookings from '../pages/Organizer/Bookings'
 import Analytics from '../pages/Organizer/Analytics'
+import OrganizerProfile from '../pages/Organizer/Profile'
 import Settings from '../pages/Organizer/Settings'
 import AttendeeHome from '../pages/Attendee/AttendeeHome'
 import BrowseConcerts from '../pages/Attendee/BrowseConcerts'
@@ -56,6 +57,7 @@ const AppRoutes = () => {
           <Route path="/organizer/confirm-ticket" element={<ConfirmTicket />} />
           <Route path="/organizer/bookings" element={<Bookings />} />
           <Route path="/organizer/analytics" element={<Analytics />} />
+          <Route path="/organizer/profile" element={<OrganizerProfile />} />
           <Route path="/organizer/settings" element={<Settings />} />
         </Route>
         <Route element={<RoleRoute allowedRoles={[ROLES.ATTENDEE]} />}>
