@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { getStoredProfilePhoto } from '../utils/profilePhoto'
 
 const navItems = [
   { label: 'Dashboard', href: '/organizer' },
@@ -29,6 +30,7 @@ const OrganizerSidebar = () => {
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
   const initials = useMemo(() => getInitials(user?.username || user?.email || ''), [user])
+  const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -128,9 +130,17 @@ const OrganizerSidebar = () => {
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-xs font-extrabold text-white">
-            {initials}
-          </div>
+          {profilePhoto ? (
+            <img
+              src={profilePhoto}
+              alt={`${displayName} profile`}
+              className="h-9 w-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-xs font-extrabold text-white">
+              {initials}
+            </div>
+          )}
           <div className="flex-1">
             <div className="text-sm font-extrabold leading-tight text-[#312E81]">{displayName}</div>
             <div className="mt-0.5 text-xs font-bold text-[#6B7280]">{displayRole}</div>
