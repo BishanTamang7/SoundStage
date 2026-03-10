@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
+import OrganizerSidebar from "../../components/OrganizerSidebar";
 
 const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
 const GENRE_OPTIONS = [
@@ -15,7 +16,7 @@ const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 const EditConcert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tokens, user, role, logout } = useAuth();
+  const { tokens } = useAuth();
   const [tickets, setTickets] = useState(
     FIXED_TICKET_TYPES.map((name) => ({ id: "", name, price: "", quantity: "" }))
   );
@@ -39,18 +40,6 @@ const EditConcert = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-
-  const displayName = user?.username || user?.email || "User";
-  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
-  const initialsSource = user?.username || user?.email || "";
-  const getInitials = (value) => {
-    if (!value) return "UU";
-    const base = value.split("@")[0];
-    const parts = base.split(/[\s._-]+/).filter(Boolean);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  };
-  const initials = getInitials(initialsSource);
 
   const toInputDateTime = (value) => {
     if (!value) return "";
@@ -153,14 +142,6 @@ const EditConcert = () => {
       };
       img.src = objectUrl;
     });
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      navigate("/", { replace: true });
-    }
-  };
 
   const handleCoverChange = async (event) => {
     const file = event.target.files?.[0] || null;
@@ -348,85 +329,7 @@ const EditConcert = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
-      <aside className="fixed left-0 top-0 z-10 h-screen w-60 border-r border-[#E5E7EB] bg-white py-6">
-        <div className="px-6 pb-6 font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]">
-          SoundStage
-        </div>
-        <nav className="flex flex-col">
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer"
-          >
-            Dashboard
-          </Link>
-          <Link
-            className="border-l-4 border-[#7C3AED] bg-[#F3F4F6] px-6 py-3 text-base font-semibold text-[#7C3AED]"
-            to="/organizer/concerts"
-          >
-            My Concerts
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer/tickets"
-          >
-            Tickets
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer/confirm-ticket"
-          >
-            Confirm Ticket
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer/bookings"
-          >
-            Bookings
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer/analytics"
-          >
-            Analytics
-          </Link>
-          <Link
-            className="border-l-4 border-transparent px-6 py-3 text-base font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-            to="/organizer/settings"
-          >
-            Settings
-          </Link>
-        </nav>
-        <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-lg border border-[rgba(124,58,237,0.12)] bg-[#F3F4F6] p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-xs font-extrabold text-white">
-            {initials}
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-extrabold leading-tight">{displayName}</div>
-            <div className="mt-0.5 text-xs font-bold text-[#6B7280]">
-              {displayRole}
-            </div>
-          </div>
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[rgba(239,68,68,0.08)] hover:text-[#EF4444]"
-            title="Logout"
-            type="button"
-            onClick={handleLogout}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
-      </aside>
+      <OrganizerSidebar />
 
       <main className="ml-60 max-w-4xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
