@@ -160,3 +160,76 @@ class VerifyTicketTests(APITestCase):
         vip_tickets = Ticket.objects.filter(ticket_category=self.vip_category)
         self.assertTrue(vip_tickets.exists())
         self.assertFalse(vip_tickets.filter(is_used=True).exists())
+
+    def test_verify_ticket_uses_payment_quantity_for_legacy_single_row_booking(self):
+        created_at = timezone.now() - timedelta(hours=1)
+        payment, tickets = self._create_booking(
+            category=self.vip_category,
+            token_pin='8082',
+            purchase_order_id='vip-legacy',
+            pidx='pidx-vip-legacy',
+            amount_paisa=5000,
+            quantity=2,
+            created_at=created_at,
+        )
+        Ticket.objects.filter(payment_transaction=payment).exclude(id=tickets[0].id).delete()
+
+        self.client.force_authenticate(user=self.organizer)
+
+        verify_response = self.client.post(
+            self.verify_url,
+            {'qr_token': '8082', 'confirm_entry': False},
+            format='json',
+        )
+
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(verify_response.data['success'])
+        self.assertEqual(verify_response.data['data']['total_booking_quantity'], 2)
+        self.assertEqual(verify_response.data['data']['total_amount'], 'NPR 50')
+
+    def test_verify_ticket_shows_full_group_for_partially_used_booking(self):
+        created_at = timezone.now() - timedelta(hours=1)
+        payment, tickets = self._create_booking(
+            category=self.vip_category,
+            token_pin='8082',
+            purchase_order_id='vip-partial',
+            pidx='pidx-vip-partial',
+            amount_paisa=5000,
+            quantity=2,
+            created_at=created_at,
+        )
+        used_ticket = tickets[0]
+        used_ticket.is_used = True
+        used_ticket.used_at = timezone.now() - timedelta(minutes=5)
+        used_ticket.used_by = self.organizer
+        used_ticket.save(update_fields=['is_used', 'used_at', 'used_by'])
+
+        self.client.force_authenticate(user=self.organizer)
+
+        verify_response = self.client.post(
+            self.verify_url,
+            {'qr_token': '8082', 'confirm_entry': False},
+            format='json',
+        )
+
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(verify_response.data['success'])
+        self.assertTrue(verify_response.data['requires_confirmation'])
+        self.assertEqual(verify_response.data['data']['total_booking_quantity'], 2)
+        self.assertEqual(verify_response.data['data']['total_amount'], 'NPR 50')
+        self.assertIn('1 of 2 tickets already used', verify_response.data['message'])
+
+        confirm_response = self.client.post(
+            self.verify_url,
+            {'qr_token': '8082', 'confirm_entry': True},
+            format='json',
+        )
+
+        self.assertEqual(confirm_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(confirm_response.data['success'])
+        self.assertEqual(confirm_response.data['data']['total_booking_quantity'], 2)
+        self.assertEqual(confirm_response.data['data']['total_amount'], 'NPR 50')
+
+        for ticket in Ticket.objects.filter(payment_transaction=payment):
+            ticket.refresh_from_db()
+            self.assertTrue(ticket.is_used)
