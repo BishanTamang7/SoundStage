@@ -3,10 +3,36 @@ import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
 
+const formatBackendDateTime = (value) => {
+  const text = String(value || '').trim()
+  if (!text) return ''
+
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (!match) return text
+
+  const [, year, month, day, hourValue, minute, second = '00'] = match
+  const hour24 = Number(hourValue)
+  if (Number.isNaN(hour24)) return text
+
+  const meridiem = hour24 >= 12 ? 'PM' : 'AM'
+  const hour12 = hour24 % 12 || 12
+
+  return `${year}-${month}-${day} ${String(hour12).padStart(2, '0')}:${minute}:${second} ${meridiem}`
+}
+
+const formatBackendDateTimeList = (value) => {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text
+    .split(' | ')
+    .map((item) => formatBackendDateTime(item))
+    .join(' | ')
+}
+
 const DetailRow = ({ label, value }) => (
   <div className="rounded-lg border border-[#E5E7EB] bg-[#FCFCFF] p-3">
     <div className="text-[11px] font-bold uppercase tracking-wide text-[#6B7280]">{label}</div>
-    <div className="mt-1 text-sm font-semibold text-[#312E81]">{value || '-'}</div>
+    <div className="mt-1 break-words text-sm font-semibold text-[#312E81]">{value || '-'}</div>
   </div>
 )
 
@@ -171,11 +197,11 @@ const ConfirmTicket = () => {
               <DetailRow label="Attendee" value={ticketData.attendee_name} />
               <DetailRow label="Attendee Email" value={ticketData.attendee_email} />
               <DetailRow label="Concert" value={ticketData.concert_title} />
-              <DetailRow label="Date & Time" value={ticketData.concert_date_time} />
+              <DetailRow label="Date & Time" value={formatBackendDateTime(ticketData.concert_date_time)} />
               <DetailRow label="Venue" value={ticketData.concert_venue} />
               <DetailRow label="Ticket Type" value={ticketData.ticket_type} />
-              <DetailRow label="Booked At" value={ticketData.booked_at} />
-              <DetailRow label="Booking Quantity" value={ticketData.total_booking_quantity} />
+              <DetailRow label="Booked At" value={formatBackendDateTimeList(ticketData.booked_at)} />
+              <DetailRow label="Total Booking Quantity" value={ticketData.total_booking_quantity} />
               <DetailRow label="Total Amount" value={ticketData.total_amount} />
             </div>
           </section>

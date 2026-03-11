@@ -31,6 +31,12 @@ const formatCurrency = (amount) => {
   return `Rs ${parsed.toLocaleString()}`
 }
 
+const formatQrAmount = (amount) => {
+  const parsed = Number(amount)
+  if (Number.isNaN(parsed)) return '0'
+  return Number.isInteger(parsed) ? String(parsed) : parsed.toFixed(2)
+}
+
 const formatNepalDateTime = (value) => {
   if (!value) return ''
   const date = new Date(value)
@@ -71,6 +77,9 @@ const ticketQrPayload = (ticket, user, aggregateSource) => {
   const totalBookingQuantity = groupedTickets.length > 0
     ? groupedTickets.reduce((sum, item) => sum + (Number(item?.booking_quantity) || 1), 0)
     : Number(ticket?.booking_quantity) || 1
+  const totalAmount = groupedTickets.length > 0
+    ? groupedTickets.reduce((sum, item) => sum + (Number(item?.booking_total_rupees) || 0), 0)
+    : Number(ticket?.booking_total_rupees) || 0
   const bookedAtValue = (() => {
     if (groupedTickets.length > 1) {
       const values = groupedTickets
@@ -93,7 +102,7 @@ const ticketQrPayload = (ticket, user, aggregateSource) => {
       .map((value) => formatNepalDateTime(value))
       .join(' | ')}`,
     `Total Booking Quantity: ${totalBookingQuantity}`,
-    `Total Amount: NPR ${ticket?.booking_total_rupees ?? ''}`,
+    `Total Amount: NPR ${formatQrAmount(totalAmount)}`,
   ]
   return payloadLines.join('\n')
 }
