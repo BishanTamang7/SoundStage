@@ -32,7 +32,7 @@ const formatBackendDateTimeList = (value) => {
 const DetailRow = ({ label, value }) => (
   <div className="rounded-lg border border-[#E5E7EB] bg-[#FCFCFF] p-3">
     <div className="text-[11px] font-bold uppercase tracking-wide text-[#6B7280]">{label}</div>
-    <div className="mt-1 break-words text-sm font-semibold text-[#312E81]">{value || '-'}</div>
+    <div className="mt-1 word-break text-sm font-semibold text-[#312E81]">{value || '-'}</div>
   </div>
 )
 

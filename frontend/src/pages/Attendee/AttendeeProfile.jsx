@@ -619,7 +619,7 @@ const AttendeeProfile = () => {
       </footer>
 
       {showDeleteDialog ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111827]/55 px-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#111827]/55 px-4">
           <div
             className="w-full max-w-md rounded-2xl border border-[#FECACA] bg-white p-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
             role="dialog"
