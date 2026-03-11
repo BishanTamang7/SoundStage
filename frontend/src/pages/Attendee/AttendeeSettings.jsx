@@ -196,7 +196,6 @@ const AttendeeSettings = () => {
                 <span className="text-lg">👤</span>
                 <span>My Profile</span>
               </Link>
-              <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
               <Link
                 className="flex items-center gap-3 bg-[#F5F3FF] px-4 py-3 text-sm font-semibold text-[#5B21B6]"
                 to="/attendee/settings"
@@ -204,6 +203,7 @@ const AttendeeSettings = () => {
                 <span className="text-lg">⚙️</span>
                 <span>Settings</span>
               </Link>
+              <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
               <button
                 className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
                 type="button"
