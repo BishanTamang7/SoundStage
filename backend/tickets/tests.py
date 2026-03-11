@@ -1,0 +1,162 @@
+from datetime import timedelta
+
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from accounts.models import User
+from events.models import Concert
+from payments.models import PaymentTransaction
+from tickets.models import Ticket, TicketCategory
+
+
+class VerifyTicketTests(APITestCase):
+    verify_url = '/api/tickets/verify/'
+
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='organizer@example.com',
+            username='organizer',
+            password='StrongPass123!',
+            role=User.ORGANIZER,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.attendee = User.objects.create_user(
+            email='attendee@example.com',
+            username='attendee',
+            password='StrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.concert = Concert.objects.create(
+            organizer=self.organizer,
+            title='Spring Fest',
+            description='Live show',
+            date_time=timezone.now() + timedelta(days=7),
+            venue='Pokhara',
+            main_artist='Band',
+            organizer_name='Organizer',
+            contact_email='organizer@example.com',
+        )
+        self.regular_category = TicketCategory.objects.create(
+            concert=self.concert,
+            name='Regular',
+            price='20.00',
+            quantity=100,
+        )
+        self.vip_category = TicketCategory.objects.create(
+            concert=self.concert,
+            name='VIP',
+            price='50.00',
+            quantity=100,
+        )
+
+    def _create_booking(self, *, category, token_pin, purchase_order_id, pidx, amount_paisa, quantity=1, created_at):
+        payment = PaymentTransaction.objects.create(
+            attendee=self.attendee,
+            concert=self.concert,
+            ticket_category=category,
+            pidx=pidx,
+            purchase_order_id=purchase_order_id,
+            amount_paisa=amount_paisa,
+            quantity=quantity,
+            status='Completed',
+            tickets_issued=True,
+        )
+        PaymentTransaction.objects.filter(pk=payment.pk).update(created_at=created_at, updated_at=created_at)
+        payment.refresh_from_db()
+
+        tickets = []
+        for index in range(quantity):
+            ticket = Ticket.objects.create(
+                attendee=self.attendee,
+                concert=self.concert,
+                ticket_category=category,
+                payment_transaction=payment,
+                qr_token=f'{purchase_order_id}-{index}',
+                token_pin=token_pin if index == 0 else f'{int(token_pin) + index:04d}',
+            )
+            tickets.append(ticket)
+        Ticket.objects.filter(payment_transaction=payment).update(created_at=created_at)
+        return payment, list(Ticket.objects.filter(payment_transaction=payment).order_by('created_at', 'id'))
+
+    def test_verify_ticket_aggregates_related_group_and_confirms_all(self):
+        first_time = timezone.now() - timedelta(hours=3)
+        second_time = timezone.now() - timedelta(hours=2)
+        third_time = timezone.now() - timedelta(hours=1)
+
+        regular_bookings = [
+            self._create_booking(
+                category=self.regular_category,
+                token_pin='6091',
+                purchase_order_id='regular-1',
+                pidx='pidx-regular-1',
+                amount_paisa=2000,
+                created_at=first_time,
+            ),
+            self._create_booking(
+                category=self.regular_category,
+                token_pin='7002',
+                purchase_order_id='regular-2',
+                pidx='pidx-regular-2',
+                amount_paisa=2000,
+                created_at=second_time,
+            ),
+            self._create_booking(
+                category=self.regular_category,
+                token_pin='8113',
+                purchase_order_id='regular-3',
+                pidx='pidx-regular-3',
+                amount_paisa=2000,
+                created_at=third_time,
+            ),
+        ]
+        self._create_booking(
+            category=self.vip_category,
+            token_pin='9224',
+            purchase_order_id='vip-1',
+            pidx='pidx-vip-1',
+            amount_paisa=5000,
+            quantity=2,
+            created_at=timezone.now() - timedelta(minutes=30),
+        )
+
+        self.client.force_authenticate(user=self.organizer)
+
+        verify_response = self.client.post(
+            self.verify_url,
+            {'qr_token': '6091', 'confirm_entry': False},
+            format='json',
+        )
+
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(verify_response.data['success'])
+        self.assertTrue(verify_response.data['requires_confirmation'])
+        self.assertEqual(verify_response.data['data']['total_booking_quantity'], 3)
+        self.assertEqual(verify_response.data['data']['total_amount'], 'NPR 60')
+        self.assertEqual(verify_response.data['data']['ticket_type'], 'Regular')
+        self.assertEqual(verify_response.data['data']['token'], '6091')
+        self.assertEqual(verify_response.data['data']['booked_at'].count(' | '), 2)
+
+        confirm_response = self.client.post(
+            self.verify_url,
+            {'qr_token': '6091', 'confirm_entry': True},
+            format='json',
+        )
+
+        self.assertEqual(confirm_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(confirm_response.data['success'])
+        self.assertEqual(confirm_response.data['data']['total_booking_quantity'], 3)
+        self.assertEqual(confirm_response.data['data']['total_amount'], 'NPR 60')
+
+        for _, tickets in regular_bookings:
+            for ticket in tickets:
+                ticket.refresh_from_db()
+                self.assertTrue(ticket.is_used)
+                self.assertEqual(ticket.used_by, self.organizer)
+
+        vip_tickets = Ticket.objects.filter(ticket_category=self.vip_category)
+        self.assertTrue(vip_tickets.exists())
+        self.assertFalse(vip_tickets.filter(is_used=True).exists())

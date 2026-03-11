@@ -23,6 +23,64 @@ def _format_nepal_datetime(value):
     return localized.strftime('%Y-%m-%d %H:%M:%S')
 
 
+def _format_npr_amount(amount_paisa):
+    return f"NPR {Decimal(amount_paisa) / Decimal('100')}"
+
+
+def _get_related_ticket_group(ticket, organizer):
+    return list(
+        Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
+        .filter(
+            concert__organizer=organizer,
+            attendee=ticket.attendee,
+            concert=ticket.concert,
+            ticket_category=ticket.ticket_category,
+            is_used=ticket.is_used,
+        )
+        .order_by('payment_transaction__created_at', 'created_at', 'id')
+    )
+
+
+def _build_ticket_group_data(pin_token, tickets):
+    primary_ticket = tickets[0]
+    attendee_name = primary_ticket.attendee.get_full_name() or primary_ticket.attendee.username or primary_ticket.attendee.email
+
+    unique_payments = []
+    seen_payment_ids = set()
+    for ticket in tickets:
+        payment = ticket.payment_transaction
+        if not payment:
+            continue
+        payment_id = str(payment.id)
+        if payment_id in seen_payment_ids:
+            continue
+        seen_payment_ids.add(payment_id)
+        unique_payments.append(payment)
+
+    total_booking_quantity = len(tickets)
+    booked_at = ' | '.join(
+        filter(None, (_format_nepal_datetime(payment.created_at) for payment in unique_payments))
+    ) or _format_nepal_datetime(primary_ticket.created_at)
+    total_amount_paisa = sum(
+        Decimal(ticket.payment_transaction.amount_paisa) / Decimal(ticket.payment_transaction.quantity or 1)
+        for ticket in tickets
+        if ticket.payment_transaction
+    )
+
+    return {
+        'token': pin_token,
+        'attendee_name': attendee_name,
+        'attendee_email': primary_ticket.attendee.email,
+        'concert_title': primary_ticket.concert.title,
+        'concert_date_time': _format_nepal_datetime(primary_ticket.concert.date_time),
+        'concert_venue': primary_ticket.concert.venue,
+        'ticket_type': primary_ticket.ticket_category.name,
+        'booked_at': booked_at,
+        'total_booking_quantity': total_booking_quantity,
+        'total_amount': _format_npr_amount(total_amount_paisa),
+    }
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAttendee])
 def my_tickets(request):
@@ -81,42 +139,24 @@ def verify_ticket(request):
     if not re.fullmatch(r'\d{4}', pin_token):
         return Response({'detail': 'A valid 4-digit PIN is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    matched_tickets = list(
+    ticket = (
         Ticket.objects.select_related('concert', 'attendee', 'ticket_category', 'payment_transaction')
         .filter(concert__organizer=request.user)
         .filter(token_pin=pin_token)
         .order_by('created_at')
+        .first()
     )
-    if not matched_tickets:
+    if not ticket:
         return Response({'detail': 'Invalid PIN.'}, status=status.HTTP_404_NOT_FOUND)
-    if len(matched_tickets) > 1:
-        return Response(
-            {'detail': 'PIN matches multiple tickets. Please contact support.'},
-            status=status.HTTP_409_CONFLICT,
-        )
-    ticket = matched_tickets[0]
-
-    attendee_name = ticket.attendee.get_full_name() or ticket.attendee.username or ticket.attendee.email
-    payment = ticket.payment_transaction
-    total_booking_quantity = payment.quantity
-    ticket_data = {
-        'token': ticket.token_pin,
-        'attendee_name': attendee_name,
-        'attendee_email': ticket.attendee.email,
-        'concert_title': ticket.concert.title,
-        'concert_date_time': _format_nepal_datetime(ticket.concert.date_time),
-        'concert_venue': ticket.concert.venue,
-        'ticket_type': ticket.ticket_category.name,
-        'booked_at': _format_nepal_datetime(ticket.created_at),
-        'total_booking_quantity': total_booking_quantity,
-        'total_amount': f"NPR {Decimal(payment.amount_paisa) / Decimal('100')}",
-    }
+    related_tickets = _get_related_ticket_group(ticket, request.user)
+    ticket_data = _build_ticket_group_data(pin_token, related_tickets)
+    total_booking_quantity = ticket_data['total_booking_quantity']
 
     if ticket.is_used:
         return Response(
             {
                 'success': False,
-                'message': 'Ticket already used.',
+                'message': 'Ticket already used.' if total_booking_quantity == 1 else 'These tickets are already used.',
                 'data': ticket_data,
             },
             status=status.HTTP_200_OK,
@@ -126,22 +166,32 @@ def verify_ticket(request):
         return Response(
             {
                 'success': True,
-                'message': 'PIN is valid. Please confirm entry to mark this ticket as used.',
+                'message': (
+                    'PIN is valid. Please confirm entry to mark this ticket as used.'
+                    if total_booking_quantity == 1
+                    else 'PIN is valid. Please confirm entry to mark these tickets as used.'
+                ),
                 'data': ticket_data,
                 'requires_confirmation': True,
             },
             status=status.HTTP_200_OK,
         )
 
-    ticket.is_used = True
-    ticket.used_at = timezone.now()
-    ticket.used_by = request.user
-    ticket.save(update_fields=['is_used', 'used_at', 'used_by'])
+    confirmed_at = timezone.now()
+    Ticket.objects.filter(id__in=[item.id for item in related_tickets]).update(
+        is_used=True,
+        used_at=confirmed_at,
+        used_by_id=request.user.id,
+    )
 
     return Response(
         {
             'success': True,
-            'message': 'Ticket is valid. Entry granted.',
+            'message': (
+                'Ticket is valid. Entry granted.'
+                if total_booking_quantity == 1
+                else f'Entry granted for {total_booking_quantity} tickets.'
+            ),
             'data': ticket_data,
         },
         status=status.HTTP_200_OK,
