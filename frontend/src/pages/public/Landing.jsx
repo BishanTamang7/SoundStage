@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 
 const Landing = () => {
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F8F9FA] text-[#312E81]">
-      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(248,249,250,0.95)] px-[5%] backdrop-blur">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
+      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(245,243,255,0.9)] px-[5%] backdrop-blur">
         <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to="/">
           SoundStage
         </Link>
@@ -22,6 +22,9 @@ const Landing = () => {
       </nav>
 
       <section className="relative flex flex-1 items-center justify-between overflow-hidden px-[5%] pb-18 pt-28 max-[1024px]:flex-col max-[1024px]:text-center">
+        <div className="absolute -left-16 top-10 h-56 w-56 rounded-full bg-[#7C3AED]/20 blur-[80px]" />
+        <div className="absolute right-0 top-24 h-72 w-72 rounded-full bg-[#60A5FA]/20 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-[#A78BFA]/20 blur-[90px]" />
         <div className="absolute right-[-20%] top-[-50%] h-200 w-200 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.15)_0%,transparent_70%)]" />
 
         <div className="relative z-10 max-w-150">

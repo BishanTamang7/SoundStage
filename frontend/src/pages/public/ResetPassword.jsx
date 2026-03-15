@@ -50,7 +50,10 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] px-6 py-10 text-[#312E81]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] px-6 py-10 text-[#312E81]">
+      <div className="pointer-events-none absolute -left-16 top-10 h-56 w-56 rounded-full bg-[#7C3AED]/20 blur-[80px]" />
+      <div className="pointer-events-none absolute right-0 top-24 h-72 w-72 rounded-full bg-[#60A5FA]/20 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-[#A78BFA]/20 blur-[90px]" />
       <main className="relative z-10 w-full max-w-xl rounded-3xl border border-[rgba(49,46,129,0.18)] bg-white p-6 shadow-[0_20px_45px_rgba(49,46,129,0.08)] md:p-8">
         <div className="text-center">
           <h1 className="font-['Playfair_Display'] text-[2rem] font-black leading-tight">

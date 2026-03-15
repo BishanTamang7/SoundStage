@@ -28,7 +28,10 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F8F9FA] text-[#312E81]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
+      <div className="pointer-events-none absolute -left-16 top-10 h-56 w-56 rounded-full bg-[#7C3AED]/20 blur-[80px]" />
+      <div className="pointer-events-none absolute right-0 top-24 h-72 w-72 rounded-full bg-[#60A5FA]/20 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-[#A78BFA]/20 blur-[90px]" />
       <div className="pointer-events-none absolute left-[-18%] top-[-38%] h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18)_0%,transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-[-35%] right-[-18%] h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(79,70,229,0.16)_0%,transparent_70%)]" />
 
