@@ -70,6 +70,9 @@ def _send_otp_email(user, otp):
 def _send_password_reset_email(user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
+    timeout_seconds = getattr(settings, 'PASSWORD_RESET_TIMEOUT', 15 * 60)
+    timeout_minutes = max(1, (timeout_seconds + 59) // 60)
+    minute_label = 'minute' if timeout_minutes == 1 else 'minutes'
     reset_url = (
         f"{settings.FRONTEND_URL.rstrip('/')}/reset-password"
         f"?uid={uid}&token={token}&email={user.email}"
@@ -79,6 +82,7 @@ def _send_password_reset_email(user):
         f"Hi {user.username},\n\n"
         "We received a request to reset your SoundStage password.\n\n"
         f"Reset your password here: {reset_url}\n\n"
+        f"This link expires in {timeout_minutes} {minute_label}.\n\n"
         "If you did not request this, you can ignore this email.\n"
     )
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
