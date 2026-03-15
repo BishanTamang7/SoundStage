@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 const Landing = () => {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
-      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-[rgba(245,243,255,0.9)] px-[5%] backdrop-blur">
+      <nav className="fixed inset-x-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[rgba(49,46,129,0.15)] bg-white/95 px-[5%] backdrop-blur">
         <Link className="font-['Playfair_Display'] text-3xl font-black text-[#7C3AED]" to="/">
           SoundStage
         </Link>
