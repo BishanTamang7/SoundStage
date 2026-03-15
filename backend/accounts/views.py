@@ -36,7 +36,7 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 OTP_LENGTH = 6
-OTP_EXPIRY_MINUTES = 10
+OTP_EXPIRY_MINUTES = 15
 OTP_MAX_ATTEMPTS = 5
 OTP_LOCK_MINUTES = 15
 RESEND_MIN_INTERVAL_SECONDS = 60
