@@ -42,7 +42,7 @@ const AttendeeHome = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#312E81]">
+    <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
       <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white/95 px-[5%] backdrop-blur">
         <Link
           className="font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]"
@@ -127,7 +127,7 @@ const AttendeeHome = () => {
           </div>
         </section>
 
-        <section className="bg-[#F8F9FA] px-[5%] py-8 sm:py-10">
+        <section className="bg-transparent px-[5%] py-8 sm:py-10">
           <div className="mx-auto max-w-6xl">
             <div className="text-center">
               <h2 className="font-['Playfair_Display'] text-3xl font-black text-[#312E81] sm:text-4xl">

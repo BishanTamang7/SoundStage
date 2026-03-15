@@ -77,7 +77,7 @@ const KhaltiCallback = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] px-[5%] py-14 text-[#312E81]">
+      <div className="min-h-screen bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] px-[5%] py-14 text-[#312E81]">
         <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
           <h1 className="text-2xl font-black text-[#2C2E83]">Confirming Payment</h1>
           <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
@@ -91,7 +91,7 @@ const KhaltiCallback = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] px-[5%] py-14 text-[#312E81]">
+    <div className="min-h-screen bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] px-[5%] py-14 text-[#312E81]">
       <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
         <h1 className="text-2xl font-black text-[#2C2E83]">Khalti Payment Status</h1>
 
