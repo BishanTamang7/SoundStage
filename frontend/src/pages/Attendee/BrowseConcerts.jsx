@@ -266,8 +266,8 @@ const BrowseConcerts = () => {
         </div>
       </nav>
 
-      <main className="flex-1 pt-24">
-        <section className="px-[5%] py-12">
+      <main className="flex-1 pt-20">
+        <section className="px-[5%] pb-12 pt-3">
           <div className="mx-auto max-w-5xl">
             <div className="text-center">
               <h1 className="text-3xl font-black text-[#2C2E83] sm:text-4xl">
