@@ -9,6 +9,7 @@ from urllib import request as url_request
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.utils.timezone import localtime
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -135,6 +136,10 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
     concert = payment.concert
     category = payment.ticket_category
     total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+    concert_dt = (
+        localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
+        if concert.date_time else ''
+    )
     ticket_lines = '\n'.join(
         f'- Ticket {index + 1}: QR {ticket.qr_token}'
         for index, ticket in enumerate(tickets)
@@ -144,14 +149,11 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
         f"Hi {attendee.get_full_name() or attendee.username or 'Attendee'},\n\n"
         'Your booking is confirmed.\n\n'
         f"Concert: {concert.title}\n"
-        f"Date & Time: {concert.date_time}\n"
+        f"Date & Time: {concert_dt}\n"
         f"Venue: {concert.venue}\n"
         f"Ticket Type: {category.name}\n"
         f"Quantity: {payment.quantity}\n"
-        f"Total Paid: NPR {total_rupees}\n"
-        f"Order ID: {payment.purchase_order_id}\n\n"
-        'Issued Tickets:\n'
-        f'{ticket_lines}\n\n'
+        f"Total Paid: NPR {total_rupees}\n\n"
         'You can also view your tickets in the SoundStage attendee app.\n'
     )
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [attendee.email], fail_silently=False)
@@ -162,6 +164,11 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
     organizer = getattr(concert, 'organizer', None)
     if not organizer:
         return
+
+    concert_dt = (
+        localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
+        if concert.date_time else ''
+    )
 
     prefs, _ = NotificationPreference.objects.get_or_create(user=organizer)
     if not prefs.email_bookings:
@@ -188,7 +195,7 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
         f"Hi {organizer.get_full_name() or organizer.username or 'Organizer'},\n\n"
         'A new attendee booking was completed for your concert.\n\n'
         f"Concert: {concert.title}\n"
-        f"Date & Time: {concert.date_time}\n"
+        f"Date & Time: {concert_dt}\n"
         f"Venue: {concert.venue}\n"
         f"Attendee: {attendee_label}\n"
         f"Attendee Email: {attendee_email}\n"
@@ -196,7 +203,6 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
         f"Quantity: {payment.quantity}\n"
         f"Tickets Issued: {ticket_count}\n"
         f"Total Paid: NPR {total_rupees}\n"
-        f"Order ID: {payment.purchase_order_id}\n"
     )
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list, fail_silently=False)
 

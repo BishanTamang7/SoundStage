@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.utils.timezone import localtime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -35,12 +36,17 @@ def _send_new_concert_announcement(concert):
         return
 
     concert_url = f"{settings.FRONTEND_URL.rstrip('/')}/attendee/concerts/{concert.id}"
+    concert_dt = (
+        localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
+        if concert.date_time else ''
+    )
+
     subject = f'New concert on SoundStage: {concert.title}'
     message = (
         'A new concert has been added to SoundStage.\n\n'
         f'Title: {concert.title}\n'
         f'Artist: {concert.main_artist}\n'
-        f'Date & Time: {concert.date_time}\n'
+        f'Date & Time: {concert_dt}\n'
         f'Venue: {concert.venue}\n\n'
         f'View concert: {concert_url}\n'
     )
