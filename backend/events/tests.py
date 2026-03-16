@@ -61,15 +61,34 @@ class ConcertListApiTests(APITestCase):
             organizer_name='SoundStage',
             contact_email='organizer@example.com',
         )
+        Concert.objects.create(
+            organizer=self.organizer,
+            title='City Lights',
+            description='Featured guest show.',
+            date_time=timezone.now() + timedelta(days=7),
+            venue='Weekly Arena, Kathmandu',
+            main_artist='Weekly Artist',
+            organizer_name='SoundStage',
+            contact_email='organizer@example.com',
+        )
 
     def test_list_endpoint_includes_created_at(self):
         response = self.client.get(self.list_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['success'])
-        self.assertEqual(len(response.data['data']['concerts']), 1)
+        self.assertEqual(len(response.data['data']['concerts']), 2)
         self.assertIn('created_at', response.data['data']['concerts'][0])
         self.assertIsNotNone(response.data['data']['concerts'][0]['created_at'])
+
+    def test_list_search_matches_title_only(self):
+        response = self.client.get(self.list_url, {'search': 'Weekly'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        concerts = response.data['data']['concerts']
+        self.assertEqual(len(concerts), 1)
+        self.assertEqual(concerts[0]['title'], 'Weekly Lineup')
 
 
 class ConcertHistoryProtectionTests(APITestCase):

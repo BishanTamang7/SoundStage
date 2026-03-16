@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.utils.timezone import localtime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -112,6 +113,9 @@ class ConcertViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        search = request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(Q(title__icontains=search))
         serializer = self.get_serializer(queryset, many=True)
         return Response({'success': True, 'data': {'concerts': serializer.data}})
 
