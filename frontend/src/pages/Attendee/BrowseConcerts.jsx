@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import AttendeeFooter from '../../components/AttendeeFooter'
 import AttendeeHeader from '../../components/AttendeeHeader'
 import { api, resolveMediaUrl } from '../../services/api'
+import { getVenueParts } from '../../utils/concerts'
+import { formatDate, formatTime } from '../../utils/formatters'
 
 const CITY_OPTIONS = [
   'Kathmandu',
@@ -53,18 +55,6 @@ const BrowseConcerts = () => {
       isActive = false
     }
   }, [query])
-
-  const getVenueParts = (venue) => {
-    if (!venue) return { venueName: '', city: '' }
-    const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean)
-    if (parts.length > 1) {
-      return {
-        venueName: parts.slice(0, -1).join(', '),
-        city: parts[parts.length - 1],
-      }
-    }
-    return { venueName: venue.trim(), city: '' }
-  }
 
   const cityOptions = CITY_OPTIONS
 
@@ -120,27 +110,6 @@ const BrowseConcerts = () => {
       return true
     })
   }, [city, concerts, dateRange, genre, query])
-
-  const formatDate = (value) => {
-    if (!value) return 'TBD'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'TBD'
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date)
-  }
-
-  const formatTime = (value) => {
-    if (!value) return ''
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date)
-  }
 
   const handleResetFilters = () => {
     setSearchInput('')
@@ -296,7 +265,13 @@ const BrowseConcerts = () => {
                             <div className="flex items-center gap-2">
                               <span>📅</span>
                               <span>
-                                {formatDate(concert?.date_time)} · {formatTime(concert?.date_time)}
+                                {formatDate(concert?.date_time, {
+                                  fallback: 'TBD',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}{' '}
+                                · {formatTime(concert?.date_time)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2">

@@ -4,46 +4,12 @@ import AttendeeFooter from '../../components/AttendeeFooter'
 import AttendeeHeader from '../../components/AttendeeHeader'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
-
-const formatConcertDateTime = (value) => {
-  if (!value) return 'Date TBD'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Date TBD'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-const formatCurrency = (amount) => {
-  const parsed = Number(amount)
-  if (Number.isNaN(parsed)) return 'Rs 0'
-  return `Rs ${parsed.toLocaleString()}`
-}
+import { formatCurrency, formatDateTime, formatNepalDateTime } from '../../utils/formatters'
 
 const formatQrAmount = (amount) => {
   const parsed = Number(amount)
   if (Number.isNaN(parsed)) return '0'
   return Number.isInteger(parsed) ? String(parsed) : parsed.toFixed(2)
-}
-
-const formatNepalDateTime = (value) => {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Kathmandu',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  }).format(date)
 }
 
 const getTokenPin = (qrToken) => {
@@ -389,7 +355,9 @@ const MyTickets = () => {
                   {ticketTheme.badgeLabel}
                 </span>
                 <h3 className="mb-2 pr-28 text-2xl leading-tight font-black">{ticket.concert_title || 'Untitled Concert'}</h3>
-                <p className="text-sm font-semibold opacity-90">{formatConcertDateTime(ticket.concert_date_time)}</p>
+                <p className="text-sm font-semibold opacity-90">
+                  {formatDateTime(ticket.concert_date_time, { fallback: 'Date TBD', separator: ' ' })}
+                </p>
               </header>
 
               <div className="p-6">
@@ -412,7 +380,9 @@ const MyTickets = () => {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-sm font-semibold text-[#6B7280]">Total Paid</span>
-                    <span className="text-sm font-black text-[#312E81]">{formatCurrency(getDisplayTotalPaid(ticket))}</span>
+                    <span className="text-sm font-black text-[#312E81]">
+                      {formatCurrency(getDisplayTotalPaid(ticket), { round: false })}
+                    </span>
                   </div>
                 </div>
 

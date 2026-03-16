@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
+import { formatCurrency } from '../../utils/formatters'
 
 const parseNumber = (value) => {
   const num = Number(value)
@@ -30,8 +31,6 @@ const normalizeTicketCategories = (raw) => {
   }
   return []
 }
-
-const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
 
 const getTicketStatus = (remaining, dateValue) => {
   const date = dateValue ? new Date(dateValue) : null

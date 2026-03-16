@@ -1,115 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import AttendeeFooter from '../../components/AttendeeFooter'
 import AttendeeHeader from '../../components/AttendeeHeader'
+import NotificationToggleRow from '../../components/NotificationToggleRow'
+import useNotificationPreferences from '../../hooks/useNotificationPreferences'
 import { useAuth } from '../../hooks/useAuth'
-
-const defaultPrefs = {
-  email_bookings: true,
-  event_reminders: true,
-}
-
-const ToggleRow = ({ label, description, checked, onChange }) => (
-  <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4 transition hover:border-[#C4B5FD]">
-    <div>
-      <p className="text-sm font-bold text-[#312E81]">{label}</p>
-      <p className="mt-1 text-sm text-[#6B7280]">{description}</p>
-    </div>
-    <span
-      className={`relative mt-1 inline-flex h-7 w-12 items-center rounded-full transition ${
-        checked ? 'bg-[#7C3AED]' : 'bg-[#D1D5DB]'
-      }`}
-    >
-      <input
-        className="sr-only"
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-      />
-      <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-          checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </span>
-  </label>
-)
 
 const AttendeeSettings = () => {
   const { getNotificationPreferences, updateNotificationPreferences } = useAuth()
-  const [prefs, setPrefs] = useState(defaultPrefs)
-  const [prefsMessage, setPrefsMessage] = useState('')
-  const [prefsError, setPrefsError] = useState('')
-  const [loadingPrefs, setLoadingPrefs] = useState(true)
-  const [savingPrefKey, setSavingPrefKey] = useState('')
-
-  useEffect(() => {
-    let active = true
-
-    const loadPreferences = async () => {
-      try {
-        setLoadingPrefs(true)
-        setPrefsError('')
-        const response = await getNotificationPreferences()
-        if (!active) return
-        const data = response?.data || {}
-        setPrefs({
-          email_bookings:
-            typeof data.email_bookings === 'boolean' ? data.email_bookings : defaultPrefs.email_bookings,
-          event_reminders:
-            typeof data.event_reminders === 'boolean'
-              ? data.event_reminders
-              : defaultPrefs.event_reminders,
-        })
-      } catch (error) {
-        if (!active) return
-        setPrefsError(error?.message || 'Failed to load notification settings.')
-      } finally {
-        if (active) {
-          setLoadingPrefs(false)
-        }
-      }
-    }
-
-    loadPreferences()
-
-    return () => {
-      active = false
-    }
-  }, [getNotificationPreferences])
-
-  const togglePref = async (key) => {
-    if (loadingPrefs || savingPrefKey) return
-
-    const previous = prefs
-    const nextPrefs = { ...prefs, [key]: !prefs[key] }
-    setPrefs(nextPrefs)
-    setPrefsMessage('')
-    setPrefsError('')
-    setSavingPrefKey(key)
-
-    try {
-      const response = await updateNotificationPreferences({
-        email_bookings: nextPrefs.email_bookings,
-        event_reminders: nextPrefs.event_reminders,
-      })
-      const data = response?.data || {}
-      setPrefs({
-        email_bookings:
-          typeof data.email_bookings === 'boolean' ? data.email_bookings : nextPrefs.email_bookings,
-        event_reminders:
-          typeof data.event_reminders === 'boolean'
-            ? data.event_reminders
-            : nextPrefs.event_reminders,
-      })
-      setPrefsMessage(response?.message || 'Notification settings updated.')
-      window.setTimeout(() => setPrefsMessage(''), 1400)
-    } catch (error) {
-      setPrefs(previous)
-      setPrefsError(error?.message || 'Failed to update notification settings.')
-    } finally {
-      setSavingPrefKey('')
-    }
-  }
+  const { prefs, prefsMessage, prefsError, loadingPrefs, savingPrefKey, togglePreference } =
+    useNotificationPreferences(getNotificationPreferences, updateNotificationPreferences, {
+      successMessageDurationMs: 1400,
+    })
 
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
@@ -136,17 +37,21 @@ const AttendeeSettings = () => {
                 <p className="mt-4 text-sm font-semibold text-[#EF4444]">{prefsError}</p>
               ) : null}
               <div className="mt-5 space-y-4">
-                <ToggleRow
+                <NotificationToggleRow
                   label="Booking confirmations"
                   description="Receive email confirmations and purchase summaries for each successful booking."
                   checked={prefs.email_bookings}
-                  onChange={() => togglePref('email_bookings')}
+                  onChange={() => togglePreference('email_bookings')}
+                  disabled={Boolean(savingPrefKey)}
+                  className={savingPrefKey ? 'bg-white' : 'bg-white'}
                 />
-                <ToggleRow
+                <NotificationToggleRow
                   label="Event reminders"
                   description="Receive booked-concert reminders and new concert announcements by email."
                   checked={prefs.event_reminders}
-                  onChange={() => togglePref('event_reminders')}
+                  onChange={() => togglePreference('event_reminders')}
+                  disabled={Boolean(savingPrefKey)}
+                  className="bg-white"
                 />
               </div>
               {loadingPrefs ? (

@@ -3,28 +3,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
+import { formatCurrency, formatDateTime } from '../../utils/formatters'
 
 const parseNumber = (value) => {
   const num = Number(value)
   return Number.isFinite(num) ? num : 0
-}
-
-const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
-
-const formatDateTime = (value) => {
-  if (!value) return 'TBD'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'TBD'
-  const datePart = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-  const timePart = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
-  return `${datePart} • ${timePart}`
 }
 
 const getCutoffTime = (rangeKey) => {
@@ -153,7 +136,7 @@ const Bookings = () => {
       [
         row.customer,
         row.concertTitle,
-        formatDateTime(row.bookedAt),
+        formatDateTime(row.bookedAt, { separator: ' • ' }),
         row.ticketType,
         String(row.quantity),
         String(row.revenue),
@@ -269,7 +252,9 @@ const Bookings = () => {
                   </div>
                   <div className="text-sm font-black text-[#16A34A]">{row.quantity}</div>
                   <div className="text-sm font-black text-[#7C3AED]">{formatCurrency(row.revenue)}</div>
-                  <div className="text-sm font-semibold text-[#6B7280]">{formatDateTime(row.bookedAt)}</div>
+                  <div className="text-sm font-semibold text-[#6B7280]">
+                    {formatDateTime(row.bookedAt, { separator: ' • ' })}
+                  </div>
                 </div>
               ))}
             </div>

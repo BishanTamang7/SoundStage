@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getStoredProfilePhoto } from '../utils/profilePhoto'
+import { getInitialsFromHandle } from '../utils/account'
 
 const navItems = [
   { label: 'Dashboard', href: '/organizer' },
@@ -12,14 +13,6 @@ const navItems = [
   { label: 'Analytics', href: '/organizer/analytics' },
 ]
 
-const getInitials = (value) => {
-  if (!value) return 'UU'
-  const base = value.split('@')[0]
-  const parts = base.split(/[\s._-]+/).filter(Boolean)
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-}
-
 const OrganizerSidebar = () => {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -29,7 +22,7 @@ const OrganizerSidebar = () => {
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
-  const initials = useMemo(() => getInitials(user?.username || user?.email || ''), [user])
+  const initials = useMemo(() => getInitialsFromHandle(user?.username || user?.email || '', 'UU'), [user])
   const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {

@@ -3,27 +3,11 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
+import { formatCurrency, formatDateTime } from '../../utils/formatters'
 
 const parseNumber = (value) => {
   const num = Number(value)
   return Number.isFinite(num) ? num : 0
-}
-
-const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
-const formatDateTime = (value) => {
-  if (!value) return 'TBD'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'TBD'
-  const datePart = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-  const timePart = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
-  return `${datePart} • ${timePart}`
 }
 
 const OrganizerHome = () => {
@@ -153,7 +137,7 @@ const OrganizerHome = () => {
                   <div>
                     <div className="text-sm font-extrabold text-[#312E81]">{event.title || 'Untitled Event'}</div>
                     <div className="mt-1 text-xs font-semibold text-[#6B7280]">
-                      {`${formatDateTime(event.date_time)} • ${event.venue || 'Venue TBD'}`}
+                      {`${formatDateTime(event.date_time, { separator: ' • ' })} • ${event.venue || 'Venue TBD'}`}
                     </div>
                   </div>
                   <span
@@ -203,7 +187,7 @@ const OrganizerHome = () => {
                       <td className="py-4">
                         <div>{row.concert_title || 'Concert'}</div>
                         <div className="mt-1 text-xs font-semibold text-[#6B7280]">
-                          {formatDateTime(row.created_at)}
+                          {formatDateTime(row.created_at, { separator: ' • ' })}
                         </div>
                       </td>
                       <td className="py-4">{`${row.ticket_type || 'Ticket'} x${parseNumber(row.quantity || 0)}`}</td>

@@ -2,14 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getStoredProfilePhoto } from '../utils/profilePhoto'
-
-const getInitials = (name) => {
-  if (!name) return ''
-  const parts = name.trim().split(/\s+/)
-  const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
-  return (first + last).toUpperCase()
-}
+import { getInitialsFromWords } from '../utils/account'
 
 const AttendeeHeader = () => {
   const { user, logout, role, isAuthenticated } = useAuth()
@@ -19,7 +12,10 @@ const AttendeeHeader = () => {
   const menuRef = useRef(null)
 
   const initialsSource = user?.name || user?.username || user?.email || ''
-  const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
+  const initials = useMemo(
+    () => getInitialsFromWords(initialsSource, { fallback: 'SS', singleWordMode: 'first-only' }),
+    [initialsSource]
+  )
   const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {

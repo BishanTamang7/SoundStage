@@ -4,6 +4,7 @@ import AttendeeFooter from '../../components/AttendeeFooter'
 import AttendeeHeader from '../../components/AttendeeHeader'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
+import { formatDateTime } from '../../utils/formatters'
 
 const Checkout = () => {
   const { id } = useParams()
@@ -79,22 +80,6 @@ const Checkout = () => {
       setQuantity(selectedTicketRemaining)
     }
   }, [quantity, selectedTicket?.id, selectedTicketRemaining])
-
-  const formatDateTime = (value) => {
-    if (!value) return 'TBD'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'TBD'
-    const datePart = new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date)
-    const timePart = new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date)
-    return `${datePart} · ${timePart}`
-  }
 
   const coverImage = resolveMediaUrl(concert?.cover_image)
 

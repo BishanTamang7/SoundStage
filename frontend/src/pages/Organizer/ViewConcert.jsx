@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 import OrganizerSidebar from "../../components/OrganizerSidebar";
+import { getVenueParts } from "../../utils/concerts";
+import { formatDateTime } from "../../utils/formatters";
 
 const ViewConcert = () => {
   const { id } = useParams();
@@ -10,34 +12,6 @@ const ViewConcert = () => {
   const [concert, setConcert] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const formatDateTime = (value) => {
-    if (!value) return "TBD";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "TBD";
-    const datePart = new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-    const timePart = new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-    return `${datePart} • ${timePart}`;
-  };
-
-  const getVenueParts = (venue) => {
-    if (!venue) return { venueName: "", city: "" };
-    const parts = venue.split(/[,|•|-]+/).map((item) => item.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      return {
-        venueName: parts.slice(0, -1).join(", "),
-        city: parts[parts.length - 1],
-      };
-    }
-    return { venueName: venue.trim(), city: "" };
-  };
 
   useEffect(() => {
     let isActive = true;
@@ -134,7 +108,10 @@ const ViewConcert = () => {
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-semibold text-[#6B7280]">Date &amp; Time</span>
                   <span className="text-base font-bold text-[#312E81]">
-                    {formatDateTime(concert.date_time)}
+                    {formatDateTime(concert.date_time, {
+                      dateOptions: { month: "long", day: "numeric", year: "numeric" },
+                      separator: " • ",
+                    })}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">

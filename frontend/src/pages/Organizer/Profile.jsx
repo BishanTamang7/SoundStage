@@ -1,268 +1,51 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React from 'react'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
-import { useAuth } from '../../hooks/useAuth'
-import { getStoredProfilePhoto } from '../../utils/profilePhoto'
-
-const getInitials = (value) => {
-  if (!value) return 'OR'
-  const parts = value.trim().split(/\s+/).filter(Boolean)
-  const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : parts[0]?.[1] ?? ''
-  return `${first}${last}`.toUpperCase() || 'OR'
-}
-
-const toTitleCase = (value) => {
-  if (!value) return ''
-  return value
-    .toString()
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-const formatDate = (value) => {
-  if (!value) return 'N/A'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'N/A'
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-}
-
-const PasswordField = ({ id, label, name, value, visible, onChange, onToggle }) => (
-  <div className="flex flex-col gap-2">
-    <label className="text-sm font-bold text-[#312E81]" htmlFor={id}>
-      {label}
-    </label>
-    <div className="relative">
-      <input
-        id={id}
-        name={name}
-        type={visible ? 'text' : 'password'}
-        value={value}
-        onChange={onChange}
-        className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 pr-16 text-sm text-[#312E81] outline-none transition focus:border-[#7C3AED] focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)]"
-      />
-      <button
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#4F46E5]"
-        type="button"
-        onClick={onToggle}
-      >
-        {visible ? 'Hide' : 'Show'}
-      </button>
-    </div>
-  </div>
-)
+import PasswordField from '../../components/PasswordField'
+import useAccountProfile from '../../hooks/useAccountProfile'
 
 const OrganizerProfile = () => {
-  const { user, role, updateProfile, changePassword, deleteAccount, logout } = useAuth()
-  const navigate = useNavigate()
-  const photoInputRef = useRef(null)
-
-  const [profileForm, setProfileForm] = useState({ username: '', email: '' })
-  const [savingProfile, setSavingProfile] = useState(false)
-  const [profileMessage, setProfileMessage] = useState('')
-  const [profileError, setProfileError] = useState('')
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  const {
+    photoInputRef,
+    profileName,
+    profileEmail,
+    initials,
+    memberSince,
+    accountType,
+    accountStatus,
+    hasProfileChanges,
+    profileForm,
+    savingProfile,
+    profileMessage,
+    profileError,
+    passwordForm,
+    showPassword,
+    savingPassword,
+    passwordMessage,
+    passwordError,
+    profilePhoto,
+    savingPhoto,
+    photoMessage,
+    photoError,
+    deletingAccount,
+    deleteError,
+    showDeleteDialog,
+    handleProfileInputChange,
+    handleCancelProfileChanges,
+    handleSaveProfileChanges,
+    handlePasswordInputChange,
+    togglePasswordVisibility,
+    handleUpdatePassword,
+    handlePickPhoto,
+    handlePhotoChange,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleDeleteAccount,
+  } = useAccountProfile({
+    defaultProfileName: 'Organizer',
+    defaultRole: 'organizer',
+    initialsFallback: 'OR',
+    deleteErrorMessage: 'Failed to delete account.',
   })
-  const [showPassword, setShowPassword] = useState({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  })
-  const [savingPassword, setSavingPassword] = useState(false)
-  const [passwordMessage, setPasswordMessage] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-
-  const [profilePhoto, setProfilePhoto] = useState('')
-  const [savingPhoto, setSavingPhoto] = useState(false)
-  const [photoMessage, setPhotoMessage] = useState('')
-  const [photoError, setPhotoError] = useState('')
-
-  const [deletingAccount, setDeletingAccount] = useState(false)
-  const [deleteError, setDeleteError] = useState('')
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-
-  const profileName = user?.username || user?.email || 'Organizer'
-  const initials = useMemo(() => getInitials(profileName), [profileName])
-  const memberSince = useMemo(() => formatDate(user?.date_joined || user?.dateJoined), [user])
-  const accountType = useMemo(
-    () => toTitleCase(user?.role || user?.user_type || user?.userType || role || 'organizer'),
-    [role, user]
-  )
-  const accountStatus = user?.is_active === false ? 'Inactive' : 'Active'
-  const hasProfileChanges =
-    profileForm.username !== (user?.username || '') || profileForm.email !== (user?.email || '')
-
-  useEffect(() => {
-    setProfileForm({
-      username: user?.username || '',
-      email: user?.email || '',
-    })
-  }, [user])
-
-  useEffect(() => {
-    setProfilePhoto(getStoredProfilePhoto(user))
-  }, [user])
-
-  const handleProfileInputChange = (event) => {
-    const { name, value } = event.target
-    setProfileMessage('')
-    setProfileError('')
-    setProfileForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleCancelProfileChanges = () => {
-    setProfileMessage('')
-    setProfileError('')
-    setProfileForm({
-      username: user?.username || '',
-      email: user?.email || '',
-    })
-  }
-
-  const handleSaveProfileChanges = async () => {
-    setProfileMessage('')
-    setProfileError('')
-
-    if (!hasProfileChanges) {
-      setProfileMessage('No changes to save.')
-      return
-    }
-
-    try {
-      setSavingProfile(true)
-      const response = await updateProfile({
-        username: profileForm.username.trim(),
-        email: profileForm.email.trim(),
-      })
-      if (response?.data?.requires_email_verification) {
-        const verificationEmail = response?.data?.verification_email || profileForm.email.trim()
-        await logout()
-        navigate(`/verify-email?email=${encodeURIComponent(verificationEmail)}`, { replace: true })
-        return
-      }
-      setProfileMessage(response?.message || 'Profile updated successfully.')
-    } catch (error) {
-      setProfileError(error?.message || 'Failed to update profile.')
-    } finally {
-      setSavingProfile(false)
-    }
-  }
-
-  const handlePasswordInputChange = (event) => {
-    const { name, value } = event.target
-    setPasswordMessage('')
-    setPasswordError('')
-    setPasswordForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }))
-  }
-
-  const handleUpdatePassword = async () => {
-    setPasswordMessage('')
-    setPasswordError('')
-
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setPasswordError('All password fields are required.')
-      return
-    }
-
-    try {
-      setSavingPassword(true)
-      await changePassword({
-        current_password: passwordForm.currentPassword,
-        new_password: passwordForm.newPassword,
-        confirm_password: passwordForm.confirmPassword,
-      })
-      setPasswordMessage('Password updated successfully.')
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      })
-    } catch (error) {
-      setPasswordError(error?.message || 'Failed to update password.')
-    } finally {
-      setSavingPassword(false)
-    }
-  }
-
-  const handlePickPhoto = () => {
-    setPhotoError('')
-    setPhotoMessage('')
-    photoInputRef.current?.click()
-  }
-
-  const handlePhotoChange = (event) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('Please select a valid image file.')
-      return
-    }
-
-    const maxSizeInBytes = 5 * 1024 * 1024
-    if (file.size > maxSizeInBytes) {
-      setPhotoError('Image size must be 5MB or smaller.')
-      return
-    }
-
-    const uploadPhoto = async () => {
-      setSavingPhoto(true)
-      setPhotoError('')
-      setPhotoMessage('')
-
-      try {
-        const payload = new FormData()
-        payload.append('profile_photo', file)
-        await updateProfile(payload)
-        setPhotoMessage('Profile photo updated successfully.')
-      } catch (error) {
-        setPhotoError(error?.message || 'Failed to upload photo.')
-      } finally {
-        setSavingPhoto(false)
-      }
-    }
-
-    uploadPhoto()
-  }
-
-  const openDeleteDialog = () => {
-    setDeleteError('')
-    setShowDeleteDialog(true)
-  }
-
-  const closeDeleteDialog = () => {
-    if (deletingAccount) return
-    setShowDeleteDialog(false)
-  }
-
-  const handleDeleteAccount = async () => {
-    setDeleteError('')
-
-    try {
-      setDeletingAccount(true)
-      await deleteAccount()
-      navigate('/', { replace: true })
-    } catch (error) {
-      setDeleteError(error?.message || 'Failed to delete account.')
-    } finally {
-      setDeletingAccount(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
@@ -302,7 +85,7 @@ const OrganizerProfile = () => {
                 />
 
                 <h1 className="mt-5 text-3xl font-black text-[#312E81]">{profileName}</h1>
-                <p className="mt-2 text-sm font-semibold text-[#6B7280]">{user?.email || 'N/A'}</p>
+                <p className="mt-2 text-sm font-semibold text-[#6B7280]">{profileEmail}</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
                   <span className="rounded-full border border-[#DDD6FE] bg-[#F5F3FF] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#7C3AED]">
                     {accountType}

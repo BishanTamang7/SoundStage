@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
+import { formatCurrency, formatDate } from '../../utils/formatters'
 
 const parseNumber = (value) => {
   const num = Number(value)
@@ -24,19 +25,6 @@ const normalizeTicketCategories = (raw) => {
     if (Array.isArray(raw.items)) return raw.items
   }
   return []
-}
-
-const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
-
-const formatDate = (value) => {
-  if (!value) return 'TBD'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'TBD'
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
 }
 
 const getStatus = (value) => {
@@ -118,7 +106,7 @@ const Analytics = () => {
           title: concert?.title || 'Untitled Concert',
           venue: concert?.venue || 'Venue TBD',
           dateTime: concert?.date_time,
-          dateLabel: formatDate(concert?.date_time),
+          dateLabel: formatDate(concert?.date_time, { fallback: 'TBD', month: 'short', day: 'numeric', year: 'numeric' }),
           status: getStatus(concert?.date_time),
           sold,
           remaining,
