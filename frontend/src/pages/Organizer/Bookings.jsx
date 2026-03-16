@@ -5,6 +5,8 @@ import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
 import { formatCurrency, formatDateTime } from '../../utils/formatters'
 
+const BOOKINGS_PER_PAGE = 6
+
 const parseNumber = (value) => {
   const num = Number(value)
   return Number.isFinite(num) ? num : 0
@@ -26,6 +28,7 @@ const Bookings = () => {
   const [search, setSearch] = useState('')
   const [concertFilter, setConcertFilter] = useState('all')
   const [dateRange, setDateRange] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     let isActive = true
@@ -121,6 +124,10 @@ const Bookings = () => {
     )
   }, [organizerConcertTitles])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, concertFilter, dateRange])
+
   const stats = useMemo(() => {
     const ticketsBooked = filteredRows.reduce((sum, row) => sum + row.quantity, 0)
 
@@ -128,6 +135,24 @@ const Bookings = () => {
       ticketsBooked,
     }
   }, [filteredRows])
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / BOOKINGS_PER_PAGE))
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages))
+  }, [totalPages])
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * BOOKINGS_PER_PAGE
+    return filteredRows.slice(startIndex, startIndex + BOOKINGS_PER_PAGE)
+  }, [filteredRows, currentPage])
+
+  const paginationItems = useMemo(() => {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }, [totalPages])
+
+  const pageStart = filteredRows.length === 0 ? 0 : (currentPage - 1) * BOOKINGS_PER_PAGE + 1
+  const pageEnd = Math.min(currentPage * BOOKINGS_PER_PAGE, filteredRows.length)
 
   const exportCsv = () => {
     if (filteredRows.length === 0) return
@@ -236,7 +261,7 @@ const Bookings = () => {
               <div>Booked At</div>
             </div>
             <div className="divide-y divide-[#E5E7EB]">
-              {filteredRows.map((row) => (
+              {paginatedRows.map((row) => (
                 <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.3fr_1.5fr_0.8fr_0.6fr_0.8fr_1fr] md:items-center md:gap-4">
                   <div>
                     <div className="text-sm font-black text-[#312E81]">{row.customer}</div>
@@ -258,6 +283,45 @@ const Bookings = () => {
                 </div>
               ))}
             </div>
+            {filteredRows.length > BOOKINGS_PER_PAGE ? (
+              <div className="flex flex-col gap-3 border-t border-[#E5E7EB] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm font-semibold text-[#6B7280]">
+                  Showing {pageStart}-{pageEnd} of {filteredRows.length} bookings
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm font-bold text-[#312E81] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  {paginationItems.map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      className={`min-w-10 rounded-lg border px-3 py-2 text-sm font-bold transition ${
+                        pageNumber === currentPage
+                          ? 'border-[#7C3AED] bg-[#7C3AED] text-white'
+                          : 'border-[#D1D5DB] text-[#312E81] hover:bg-[#F9FAFB]'
+                      }`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[#D1D5DB] px-3 py-2 text-sm font-bold text-[#312E81] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </main>
