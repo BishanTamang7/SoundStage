@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../services/api'
 import OrganizerSidebar from '../../components/OrganizerSidebar'
@@ -7,6 +7,23 @@ import OrganizerSidebar from '../../components/OrganizerSidebar'
 const parseNumber = (value) => {
   const num = Number(value)
   return Number.isFinite(num) ? num : 0
+}
+
+const normalizeTicketCategories = (raw) => {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  if (raw && typeof raw === 'object') {
+    if (Array.isArray(raw.results)) return raw.results
+    if (Array.isArray(raw.items)) return raw.items
+  }
+  return []
 }
 
 const formatCurrency = (value) => `Rs ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`
@@ -20,6 +37,13 @@ const formatDate = (value) => {
     day: 'numeric',
     year: 'numeric',
   }).format(date)
+}
+
+const getStatus = (value) => {
+  if (!value) return 'Unscheduled'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unscheduled'
+  return date.getTime() < Date.now() ? 'Completed' : 'Upcoming'
 }
 
 const Analytics = () => {
@@ -63,95 +87,143 @@ const Analytics = () => {
     }
   }, [tokens?.access])
 
-  const stats = useMemo(() => {
-    const totalConcerts = concerts.length
-
-    const totals = concerts.reduce(
-      (acc, concert) => {
-        const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
-        categories.forEach((category) => {
+  const analytics = useMemo(() => {
+    const eventRows = concerts
+      .map((concert) => {
+        const categories = normalizeTicketCategories(concert?.ticket_categories).map((category) => {
           const sold = parseNumber(category?.sold ?? category?.sold_quantity ?? category?.tickets_sold)
           const remaining = parseNumber(category?.remaining ?? category?.quantity)
           const capacity = parseNumber(category?.capacity ?? sold + remaining)
           const revenue = parseNumber(category?.revenue ?? sold * parseNumber(category?.price))
 
-          acc.ticketsSold += sold
-          acc.totalCapacity += capacity
-          acc.revenue += revenue
+          return {
+            name: category?.name || 'Ticket',
+            sold,
+            remaining,
+            capacity,
+            revenue,
+          }
         })
-        return acc
-      },
-      { ticketsSold: 0, totalCapacity: 0, revenue: 0 }
-    )
 
-    const sellThrough = totals.totalCapacity > 0 ? (totals.ticketsSold / totals.totalCapacity) * 100 : 0
-
-    return {
-      totalConcerts,
-      ticketsSold: totals.ticketsSold,
-      revenue: totals.revenue,
-      sellThrough,
-    }
-  }, [concerts])
-
-  const topEvents = useMemo(() => {
-    return concerts
-      .map((concert) => {
-        const categories = Array.isArray(concert?.ticket_categories) ? concert.ticket_categories : []
-        const sold = categories.reduce(
-          (sum, category) => sum + parseNumber(category?.sold ?? category?.sold_quantity ?? category?.tickets_sold),
-          0
-        )
-        const revenue = categories.reduce(
-          (sum, category) =>
-            sum + parseNumber(category?.revenue ?? parseNumber(category?.price) * parseNumber(category?.sold ?? 0)),
-          0
-        )
+        const sold = categories.reduce((sum, category) => sum + category.sold, 0)
+        const remaining = categories.reduce((sum, category) => sum + category.remaining, 0)
+        const capacity = categories.reduce((sum, category) => sum + category.capacity, 0)
+        const revenue = categories.reduce((sum, category) => sum + category.revenue, 0)
+        const sellThrough = capacity > 0 ? (sold / capacity) * 100 : 0
+        const date = concert?.date_time ? new Date(concert.date_time) : null
+        const timestamp = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : Number.POSITIVE_INFINITY
 
         return {
           id: concert?.id,
           title: concert?.title || 'Untitled Concert',
-          date: concert?.date_time,
+          venue: concert?.venue || 'Venue TBD',
+          dateTime: concert?.date_time,
+          dateLabel: formatDate(concert?.date_time),
+          status: getStatus(concert?.date_time),
           sold,
+          remaining,
+          capacity,
           revenue,
+          sellThrough,
+          timestamp,
+          categories,
         }
       })
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5)
+      .sort((a, b) => a.timestamp - b.timestamp)
+
+    const totalConcerts = eventRows.length
+    const totalRevenue = eventRows.reduce((sum, event) => sum + event.revenue, 0)
+    const totalSold = eventRows.reduce((sum, event) => sum + event.sold, 0)
+    const totalCapacity = eventRows.reduce((sum, event) => sum + event.capacity, 0)
+    const sellThrough = totalCapacity > 0 ? (totalSold / totalCapacity) * 100 : 0
+
+    const topEvents = [...eventRows].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+    const upcomingEvents = eventRows.filter((event) => event.status === 'Upcoming').slice(0, 5)
+
+    const categoryTotals = eventRows.reduce((acc, event) => {
+      event.categories.forEach((category) => {
+        const key = String(category.name || 'Ticket').toLowerCase()
+        if (!acc[key]) {
+          acc[key] = { name: category.name || 'Ticket', sold: 0, remaining: 0, revenue: 0 }
+        }
+        acc[key].sold += category.sold
+        acc[key].remaining += category.remaining
+        acc[key].revenue += category.revenue
+      })
+      return acc
+    }, {})
+
+    const categoryRows = Object.values(categoryTotals).sort((a, b) => b.revenue - a.revenue)
+    const topEvent = topEvents[0] || null
+    const nextEvent = upcomingEvents[0] || null
+
+    return {
+      stats: {
+        totalConcerts,
+        totalRevenue,
+        totalSold,
+        totalCapacity,
+        sellThrough,
+      },
+      topEvents,
+      upcomingEvents,
+      categoryRows,
+      topEvent,
+      nextEvent,
+    }
   }, [concerts])
 
-  const maxRevenue = topEvents.reduce((max, event) => Math.max(max, event.revenue), 0)
-  const maxTicketsSold = topEvents.reduce((max, event) => Math.max(max, event.sold), 0)
-  const topEvent = topEvents[0] || null
-
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#312E81]">
       <OrganizerSidebar />
 
       <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
         <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <h1 className="text-3xl font-black text-[#312E81]">Analytics</h1>
-          <p className="mt-1 text-sm font-semibold text-[#6B7280]">Simple overview of sales performance.</p>
+          <div className="flex flex-col gap-4 min-[900px]:flex-row min-[900px]:items-center min-[900px]:justify-between">
+            <div>
+              <h1 className="text-3xl font-black text-[#312E81]">Analytics</h1>
+              <p className="mt-1 text-sm font-semibold text-[#6B7280]">
+                Simple performance overview for your concerts.
+              </p>
+            </div>
 
-          <div className="mt-5 grid gap-3 min-[720px]:grid-cols-4">
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Concerts</div>
-              <div className="mt-2 text-2xl font-black text-[#312E81]">{stats.totalConcerts}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
-              <div className="mt-2 text-2xl font-black text-[#16A34A]">{stats.ticketsSold.toLocaleString('en-US')}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
-              <div className="mt-2 text-2xl font-black text-[#7C3AED]">{formatCurrency(stats.revenue)}</div>
-            </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
-              <div className="mt-2 text-2xl font-black text-[#D97706]">{stats.sellThrough.toFixed(1)}%</div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6D28D9]"
+                to="/organizer/bookings"
+              >
+                View Bookings
+              </Link>
+              <Link
+                className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm font-bold text-[#312E81] transition hover:bg-[#F8FAFC]"
+                to="/organizer/tickets"
+              >
+                View Tickets
+              </Link>
             </div>
           </div>
         </header>
+
+        <section className="mb-6 grid gap-4 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-4">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Concerts</div>
+            <div className="mt-2 text-3xl font-black text-[#312E81]">{analytics.stats.totalConcerts}</div>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
+            <div className="mt-2 text-3xl font-black text-[#7C3AED]">{formatCurrency(analytics.stats.totalRevenue)}</div>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
+            <div className="mt-2 text-3xl font-black text-[#16A34A]">
+              {analytics.stats.totalSold.toLocaleString('en-US')}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
+            <div className="mt-2 text-3xl font-black text-[#D97706]">{analytics.stats.sellThrough.toFixed(1)}%</div>
+          </div>
+        </section>
 
         {loading ? (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center text-sm font-semibold text-[#6B7280]">
@@ -162,81 +234,143 @@ const Analytics = () => {
             {error}
           </div>
         ) : (
-          <>
-            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-5">
-              <h2 className="mb-4 text-lg font-black text-[#312E81]">Revenue by Concert</h2>
-              {topEvents.length === 0 ? (
-                <div className="text-sm font-semibold text-[#6B7280]">No graph data available yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {topEvents.map((event) => {
-                    const widthPct = maxRevenue > 0 ? Math.max(8, (event.revenue / maxRevenue) * 100) : 8
-                    return (
-                      <div
-                        key={`graph-${event.id || event.title}`}
-                        className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4"
-                      >
-                        <div className="mb-2 truncate text-sm font-black text-[#312E81]">{event.title}</div>
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                          <div className="h-2.5 rounded-full bg-[#E5E7EB]">
-                            <div className="h-2.5 rounded-full bg-[#7C3AED]" style={{ width: `${widthPct}%` }} />
+          <div className="grid gap-6 min-[1100px]:grid-cols-[1.3fr_0.7fr]">
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black text-[#312E81]">Top Concerts</h2>
+                  <span className="text-sm font-semibold text-[#6B7280]">By revenue</span>
+                </div>
+
+                {analytics.topEvents.length === 0 ? (
+                  <div className="text-sm font-semibold text-[#6B7280]">No analytics data available yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-[#E5E7EB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
+                          <th className="py-3">Concert</th>
+                          <th className="py-3">Date</th>
+                          <th className="py-3">Sold</th>
+                          <th className="py-3">Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm font-semibold text-[#312E81]">
+                        {analytics.topEvents.map((event) => (
+                          <tr key={event.id || event.title} className="border-b border-[#E5E7EB] last:border-b-0">
+                            <td className="py-4">
+                              <div className="font-black text-[#312E81]">{event.title}</div>
+                              <div className="mt-1 text-xs text-[#6B7280]">{event.venue}</div>
+                            </td>
+                            <td className="py-4">{event.dateLabel}</td>
+                            <td className="py-4">{event.sold}</td>
+                            <td className="py-4 font-black text-[#7C3AED]">{formatCurrency(event.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black text-[#312E81]">Upcoming Concerts</h2>
+                  <Link className="text-sm font-bold text-[#7C3AED]" to="/organizer/concerts">
+                    View All
+                  </Link>
+                </div>
+
+                {analytics.upcomingEvents.length === 0 ? (
+                  <div className="text-sm font-semibold text-[#6B7280]">No upcoming concerts.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {analytics.upcomingEvents.map((event) => (
+                      <div key={event.id || event.title} className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-black text-[#312E81]">{event.title}</div>
+                            <div className="mt-1 text-sm font-semibold text-[#6B7280]">
+                              {event.dateLabel} • {event.venue}
+                            </div>
                           </div>
-                          <div className="text-sm font-extrabold text-[#7C3AED]">{formatCurrency(event.revenue)}</div>
+                          <span className="rounded-md border border-[rgba(22,163,74,0.18)] bg-[#F0FDF4] px-3 py-1 text-xs font-extrabold text-[#166534]">
+                            {event.status}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-[#E5E7EB]">
+                          <div
+                            className="h-2 rounded-full bg-[#14B8A6]"
+                            style={{ width: `${Math.max(6, Math.min(event.sellThrough, 100))}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 text-xs font-semibold text-[#6B7280]">
+                          {event.sold} sold of {event.capacity} tickets
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
 
-            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-5">
-              <h2 className="mb-4 text-lg font-black text-[#312E81]">Tickets Sold by Concert</h2>
-              {topEvents.length === 0 ? (
-                <div className="text-sm font-semibold text-[#6B7280]">No ticket volume data available yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {topEvents.map((event) => {
-                    const widthPct = maxTicketsSold > 0 ? Math.max(8, (event.sold / maxTicketsSold) * 100) : 8
-                    return (
-                      <div
-                        key={`sold-${event.id || event.title}`}
-                        className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4"
-                      >
-                        <div className="mb-2 truncate text-sm font-black text-[#312E81]">{event.title}</div>
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                          <div className="h-2.5 rounded-full bg-[#E5E7EB]">
-                            <div className="h-2.5 rounded-full bg-[#16A34A]" style={{ width: `${widthPct}%` }} />
-                          </div>
-                          <div className="text-sm font-extrabold text-[#16A34A]">{event.sold.toLocaleString('en-US')}</div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-              <h2 className="mb-4 text-lg font-black text-[#312E81]">Insights</h2>
-              <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3">
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert</div>
-                  <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent?.title || 'N/A'}</div>
-                </div>
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Revenue</div>
-                  <div className="mt-2 text-sm font-extrabold text-[#7C3AED]">
-                    {topEvent ? formatCurrency(topEvent.revenue) : 'Rs 0'}
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="text-xl font-black text-[#312E81]">Highlights</h2>
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert</div>
+                    <div className="mt-2 text-base font-black text-[#312E81]">
+                      {analytics.topEvent?.title || 'N/A'}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
+                      {analytics.topEvent ? formatCurrency(analytics.topEvent.revenue) : 'No revenue yet'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Next Concert</div>
+                    <div className="mt-2 text-base font-black text-[#312E81]">
+                      {analytics.nextEvent?.title || 'N/A'}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
+                      {analytics.nextEvent ? analytics.nextEvent.dateLabel : 'No upcoming concert'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Capacity</div>
+                    <div className="mt-2 text-base font-black text-[#312E81]">
+                      {analytics.stats.totalCapacity.toLocaleString('en-US')} tickets
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
+                      Across all concerts
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert Date</div>
-                  <div className="mt-2 text-sm font-extrabold text-[#312E81]">{topEvent ? formatDate(topEvent.date) : 'N/A'}</div>
-                </div>
-              </div>
-            </section>
-          </>
+              </section>
+
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                <h2 className="text-xl font-black text-[#312E81]">Ticket Categories</h2>
+
+                {analytics.categoryRows.length === 0 ? (
+                  <div className="mt-4 text-sm font-semibold text-[#6B7280]">No ticket data available yet.</div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {analytics.categoryRows.map((category) => (
+                      <div key={category.name} className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="font-black text-[#312E81]">{category.name}</div>
+                          <div className="text-sm font-black text-[#7C3AED]">{formatCurrency(category.revenue)}</div>
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-[#6B7280]">
+                          Sold: {category.sold} • Remaining: {category.remaining}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
         )}
       </main>
     </div>
