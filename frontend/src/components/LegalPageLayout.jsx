@@ -48,16 +48,18 @@ const LegalPageLayout = ({
       )}
 
       <main className="flex-1 pt-20">
-        <section className="px-[5%] py-6">
-          <div className="mx-auto max-w-5xl space-y-6">
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#7C3AED]">{eyebrow}</p>
-              <h1 className="mt-3 text-3xl font-black text-[#312E81] sm:text-4xl">{title}</h1>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-[#6B7280]">{intro}</p>
-              {updatedAt ? <p className="mt-4 text-sm font-semibold text-[#6366F1]">{updatedAt}</p> : null}
+        <section className="px-[5%] py-5">
+          <div className="mx-auto max-w-4xl space-y-5">
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#7C3AED]">{eyebrow}</p>
+                {updatedAt ? <p className="text-sm font-semibold text-[#6366F1] sm:text-right">{updatedAt}</p> : null}
+              </div>
+              <h1 className="mt-2.5 text-3xl font-black text-[#312E81] sm:text-4xl">{title}</h1>
+              <p className="mt-3 max-w-2xl text-base leading-6 text-[#6B7280]">{intro}</p>
 
               {tags.length > 0 ? (
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <span
                       key={tag}
@@ -88,21 +90,21 @@ const LegalPageLayout = ({
               ) : null}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               {sections.map((item) => (
-                <section key={item.title} className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-                  <h2 className="text-lg font-black text-[#312E81]">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[#6B7280]">{item.body}</p>
+                <section key={item.title} className="rounded-2xl border border-[#E5E7EB] bg-white p-3">
+                  <h2 className="text-base font-black text-[#312E81] sm:text-lg">{item.title}</h2>
+                  <p className="mt-1 text-sm leading-5 text-[#6B7280]">{item.body}</p>
                 </section>
               ))}
             </div>
 
             {(contactTitle || contactBody || contactChips.length > 0) ? (
-              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
                 {contactTitle ? <h2 className="text-xl font-black text-[#312E81]">{contactTitle}</h2> : null}
-                {contactBody ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6B7280]">{contactBody}</p> : null}
+                {contactBody ? <p className="mt-1.5 max-w-2xl text-sm leading-5 text-[#6B7280]">{contactBody}</p> : null}
                 {contactChips.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {contactChips.map((chip) => (
                       <span
                         key={chip}
