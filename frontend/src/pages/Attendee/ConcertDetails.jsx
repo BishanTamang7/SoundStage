@@ -64,8 +64,8 @@ const ConcertDetails = () => {
     <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
       <AttendeeHeader />
 
-      <main className="flex-1 pt-24">
-        <section className="px-[5%] py-10">
+      <main className="flex-1 pt-20">
+        <section className="px-[5%] pb-4 pt-6">
           <div className="mx-auto max-w-5xl">
             <Link
               to="/attendee/concerts"
