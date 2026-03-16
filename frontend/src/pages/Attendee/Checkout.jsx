@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import AttendeeFooter from '../../components/AttendeeFooter'
+import AttendeeHeader from '../../components/AttendeeHeader'
 import { useAuth } from '../../hooks/useAuth'
 import { api, resolveMediaUrl } from '../../services/api'
-import { getStoredProfilePhoto } from '../../utils/profilePhoto'
 
 const Checkout = () => {
   const { id } = useParams()
-  const navigate = useNavigate()
-  const { tokens, user, logout, role, isAuthenticated } = useAuth()
-  const [open, setOpen] = useState(false)
+  const { tokens } = useAuth()
   const [concert, setConcert] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -16,16 +15,6 @@ const Checkout = () => {
   const [quantity, setQuantity] = useState(1)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
-
-  const initialsSource = user?.name || user?.username || user?.email || ''
-  const initials = useMemo(() => {
-    if (!initialsSource) return 'SS'
-    const parts = initialsSource.trim().split(/\s+/)
-    const first = parts[0]?.[0] ?? ''
-    const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
-    return (first + last).toUpperCase() || 'SS'
-  }, [initialsSource])
-  const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {
     let isActive = true
@@ -66,11 +55,6 @@ const Checkout = () => {
       isActive = false
     }
   }, [id, tokens?.access])
-
-  const handleLogout = async () => {
-    navigate('/', { replace: true })
-    await logout()
-  }
 
   const ticketCategories = useMemo(() => {
     if (Array.isArray(concert?.ticket_categories)) return concert.ticket_categories
@@ -157,71 +141,7 @@ const Checkout = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
-      <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white px-[5%] backdrop-blur">
-        <Link
-          className="font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]"
-          to={isAuthenticated && role === 'attendee' ? '/attendee' : '/'}
-        >
-          SoundStage
-        </Link>
-        <div className="hidden items-center gap-10 md:flex">
-          <Link className="text-base font-semibold text-[#7C3AED]" to="/attendee/concerts">
-            Browse Concerts
-          </Link>
-          <Link className="text-base font-medium text-[#312E81]" to="/attendee/tickets">
-            My Tickets
-          </Link>
-          <div className="relative">
-            <button
-              className="flex items-center"
-              type="button"
-              onClick={() => setOpen((prev) => !prev)}
-              aria-haspopup="menu"
-              aria-expanded={open}
-            >
-              {profilePhoto ? (
-                <img
-                  src={profilePhoto}
-                  alt={`${user?.username || 'Attendee'} profile`}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
-                  {initials}
-                </span>
-              )}
-            </button>
-            <div
-              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
-                open ? 'block' : 'hidden'
-              }`}
-              role="menu"
-            >
-              <Link
-                className="flex items-center gap-3 rounded-t-lg px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]"
-                to="/attendee/profile"
-              >
-                <span className="text-lg">👤</span>
-                <span>My Profile</span>
-              </Link>
-              <Link className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" to="/attendee/settings">
-                <span className="text-lg">⚙️</span>
-                <span>Settings</span>
-              </Link>
-              <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
-              <button
-                className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                type="button"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <span className="text-lg">🚪</span>
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AttendeeHeader />
 
       <main className="flex-1 pt-24">
         <section className="px-[5%] py-10">
@@ -410,22 +330,7 @@ const Checkout = () => {
         </section>
       </main>
 
-      <footer className="bg-[#312E81] px-[5%] py-6 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-6 text-base">
-          <div className="flex gap-8">
-            <Link className="text-white/75" to="/attendee/about">
-              About
-            </Link>
-            <Link className="text-white/75" to="/privacy">
-              Privacy
-            </Link>
-            <Link className="text-white/75" to="/terms">
-              Terms
-            </Link>
-          </div>
-          <div>© 2026 SoundStage. All rights reserved.</div>
-        </div>
-      </footer>
+      <AttendeeFooter />
     </div>
   )
 }

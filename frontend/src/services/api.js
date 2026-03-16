@@ -255,9 +255,9 @@ export const api = {
       handleError(error)
     }
   },
-  listConcerts: async () => {
+  listConcerts: async (params = {}) => {
     try {
-      const { data } = await apiClient.get('/events/concerts/')
+      const { data } = await apiClient.get('/events/concerts/', { params })
       return data
     } catch (error) {
       handleError(error)

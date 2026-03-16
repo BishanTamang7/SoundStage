@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getStoredProfilePhoto } from '../utils/profilePhoto'
 
@@ -13,6 +13,7 @@ const getInitials = (name) => {
 
 const AttendeeHeader = () => {
   const { user, logout, role, isAuthenticated } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
@@ -33,6 +34,10 @@ const AttendeeHeader = () => {
     return () => window.removeEventListener('click', handleClick)
   }, [])
 
+  useEffect(() => {
+    setOpen(false)
+  }, [location.pathname])
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -40,6 +45,21 @@ const AttendeeHeader = () => {
       navigate('/', { replace: true })
     }
   }
+
+  const isBrowsePage =
+    location.pathname === '/attendee/concerts' ||
+    location.pathname.startsWith('/attendee/concerts/') ||
+    location.pathname.startsWith('/attendee/checkout/')
+  const isTicketsPage = location.pathname.startsWith('/attendee/tickets')
+  const isProfilePage = location.pathname === '/attendee/profile'
+  const isSettingsPage = location.pathname === '/attendee/settings'
+
+  const topNavClass = (isActive) =>
+    isActive ? 'text-base font-semibold text-[#7C3AED]' : 'text-base font-medium text-[#312E81]'
+  const menuItemClass = (isActive) =>
+    isActive
+      ? 'flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#5B21B6] bg-[#F5F3FF]'
+      : 'flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]'
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white px-[5%] backdrop-blur">
@@ -50,10 +70,10 @@ const AttendeeHeader = () => {
         SoundStage
       </Link>
       <div className="hidden items-center gap-10 md:flex">
-        <Link className="text-base font-medium text-[#312E81]" to="/attendee/concerts">
+        <Link className={topNavClass(isBrowsePage)} to="/attendee/concerts">
           Browse Concerts
         </Link>
-        <Link className="text-base font-medium text-[#312E81]" to="/attendee/tickets">
+        <Link className={topNavClass(isTicketsPage)} to="/attendee/tickets">
           My Tickets
         </Link>
         <div className="relative" ref={menuRef}>
@@ -83,16 +103,21 @@ const AttendeeHeader = () => {
             role="menu"
           >
             <Link
-              className="flex items-center gap-3 rounded-t-lg px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]"
+              className={`${menuItemClass(isProfilePage)} rounded-t-lg`}
               to="/attendee/profile"
+              onClick={() => setOpen(false)}
             >
               <span className="text-lg">👤</span>
               <span>My Profile</span>
             </Link>
-            <a className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" href="#">
+            <Link
+              className={menuItemClass(isSettingsPage)}
+              to="/attendee/settings"
+              onClick={() => setOpen(false)}
+            >
               <span className="text-lg">⚙️</span>
               <span>Settings</span>
-            </a>
+            </Link>
             <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
             <button
               className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"

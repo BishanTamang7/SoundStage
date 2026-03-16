@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import AttendeeFooter from '../../components/AttendeeFooter'
+import AttendeeHeader from '../../components/AttendeeHeader'
 import { api } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -77,11 +79,15 @@ const KhaltiCallback = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] px-[5%] py-14 text-[#312E81]">
-        <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
-          <h1 className="text-2xl font-black text-[#2C2E83]">Confirming Payment</h1>
-          <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
-        </div>
+      <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
+        <AttendeeHeader />
+        <main className="flex-1 px-[5%] pb-12 pt-28">
+          <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
+            <h1 className="text-2xl font-black text-[#2C2E83]">Confirming Payment</h1>
+            <p className="mt-4 text-sm font-semibold text-[#6B7280]">Confirming payment and issuing tickets...</p>
+          </div>
+        </main>
+        <AttendeeFooter />
       </div>
     )
   }
@@ -91,34 +97,38 @@ const KhaltiCallback = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] px-[5%] py-14 text-[#312E81]">
-      <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
-        <h1 className="text-2xl font-black text-[#2C2E83]">Khalti Payment Status</h1>
+    <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
+      <AttendeeHeader />
+      <main className="flex-1 px-[5%] pb-12 pt-28">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
+          <h1 className="text-2xl font-black text-[#2C2E83]">Khalti Payment Status</h1>
 
-        {error ? (
-          <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{error}</p>
-        ) : (
-          <div className="mt-5 space-y-3 text-sm font-semibold text-[#374151]">
-            <div className="flex items-center justify-between">
-              <span>Status</span>
-              <span className="text-[#B45309]">{statusText}</span>
+          {error ? (
+            <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{error}</p>
+          ) : (
+            <div className="mt-5 space-y-3 text-sm font-semibold text-[#374151]">
+              <div className="flex items-center justify-between">
+                <span>Status</span>
+                <span className="text-[#B45309]">{statusText}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>PIDX</span>
+                <span className="font-mono text-xs">{pidx}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span>PIDX</span>
-              <span className="font-mono text-xs">{pidx}</span>
-            </div>
+          )}
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              to="/attendee/concerts"
+              className="rounded-lg border border-[#D1D5DB] px-5 py-2.5 text-sm font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
+            >
+              Back to Concerts
+            </Link>
           </div>
-        )}
-
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            to="/attendee/concerts"
-            className="rounded-lg border border-[#D1D5DB] px-5 py-2.5 text-sm font-bold text-[#374151] transition hover:bg-[#F9FAFB]"
-          >
-            Back to Concerts
-          </Link>
         </div>
-      </div>
+      </main>
+      <AttendeeFooter />
     </div>
   )
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import AttendeeFooter from '../../components/AttendeeFooter'
+import AttendeeHeader from '../../components/AttendeeHeader'
 import { api, resolveMediaUrl } from '../../services/api'
-import { getStoredProfilePhoto } from '../../utils/profilePhoto'
 
 const CITY_OPTIONS = [
   'Kathmandu',
@@ -19,19 +19,7 @@ const GENRE_OPTIONS = [
   { value: 'folk-dohori', label: 'Folk / Dohori' },
 ]
 
-const getInitials = (name) => {
-  if (!name) return ''
-  const parts = name.trim().split(/\s+/)
-  const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
-  return (first + last).toUpperCase()
-}
-
 const BrowseConcerts = () => {
-  const { user, logout, role, isAuthenticated } = useAuth()
-  const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef(null)
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -41,22 +29,6 @@ const BrowseConcerts = () => {
   const [genre, setGenre] = useState('')
   const [dateRange, setDateRange] = useState('all')
 
-  const initialsSource = user?.name || user?.username || user?.email || ''
-  const initials = useMemo(() => getInitials(initialsSource) || 'SS', [initialsSource])
-  const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
-
-  useEffect(() => {
-    const handleClick = (event) => {
-      if (!menuRef.current) return
-      if (!menuRef.current.contains(event.target)) {
-        setOpen(false)
-      }
-    }
-
-    window.addEventListener('click', handleClick)
-    return () => window.removeEventListener('click', handleClick)
-  }, [])
-
   useEffect(() => {
     let isActive = true
 
@@ -64,7 +36,8 @@ const BrowseConcerts = () => {
       try {
         setLoading(true)
         setError('')
-        const data = await api.listConcerts()
+        const search = query.trim()
+        const data = await api.listConcerts(search ? { search } : {})
         const list = data?.data?.concerts || data?.concerts || []
         if (isActive) setConcerts(Array.isArray(list) ? list : [])
       } catch (err) {
@@ -79,12 +52,7 @@ const BrowseConcerts = () => {
     return () => {
       isActive = false
     }
-  }, [])
-
-  const handleLogout = async () => {
-    navigate('/', { replace: true })
-    await logout()
-  }
+  }, [query])
 
   const getVenueParts = (venue) => {
     if (!venue) return { venueName: '', city: '' }
@@ -108,10 +76,8 @@ const BrowseConcerts = () => {
 
     return concerts.filter((concert) => {
       const title = concert?.title || ''
-      const artist = concert?.main_artist || ''
       const venue = concert?.venue || ''
-      const haystack = `${title} ${artist} ${venue}`.toLowerCase()
-      const matchesQuery = normalizedQuery ? haystack.includes(normalizedQuery) : true
+      const matchesQuery = normalizedQuery ? title.toLowerCase().includes(normalizedQuery) : true
       const matchesCity = normalizedCity
         ? getVenueParts(venue).city.toLowerCase() === normalizedCity
         : true
@@ -200,71 +166,7 @@ const BrowseConcerts = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
-      <nav className="fixed left-0 right-0 top-0 z-50 flex h-20 items-center justify-between border-b border-[#312E81]/15 bg-white px-[5%] backdrop-blur">
-        <Link
-          className="font-['Playfair_Display'] text-2xl font-black text-[#7C3AED]"
-          to={isAuthenticated && role === 'attendee' ? '/attendee' : '/'}
-        >
-          SoundStage
-        </Link>
-        <div className="hidden items-center gap-10 md:flex">
-          <Link className="text-base font-semibold text-[#7C3AED]" to="/attendee/concerts">
-            Browse Concerts
-          </Link>
-          <Link className="text-base font-medium text-[#312E81]" to="/attendee/tickets">
-            My Tickets
-          </Link>
-          <div className="relative" ref={menuRef}>
-            <button
-              className="flex items-center"
-              type="button"
-              onClick={() => setOpen((prev) => !prev)}
-              aria-haspopup="menu"
-              aria-expanded={open}
-            >
-              {profilePhoto ? (
-                <img
-                  src={profilePhoto}
-                  alt={`${user?.username || 'Attendee'} profile`}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
-                  {initials}
-                </span>
-              )}
-            </button>
-            <div
-              className={`absolute right-0 top-[calc(100%+0.5rem)] min-w-50 rounded-lg border border-[#E5E7EB] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] ${
-                open ? 'block' : 'hidden'
-              }`}
-              role="menu"
-            >
-              <Link
-                className="flex items-center gap-3 rounded-t-lg px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]"
-                to="/attendee/profile"
-              >
-                <span className="text-lg">👤</span>
-                <span>My Profile</span>
-              </Link>
-              <Link className="flex items-center gap-3 px-4 py-3 text-sm text-[#312E81] hover:bg-[#F3F4F6]" to="/attendee/settings">
-                <span className="text-lg">⚙️</span>
-                <span>Settings</span>
-              </Link>
-              <div className="mx-4 my-1 h-px bg-[#E5E7EB]" />
-              <button
-                className="flex w-full items-center gap-3 rounded-b-lg px-4 py-3 text-left text-sm text-[#EF4444] hover:bg-[#F3F4F6]"
-                type="button"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <span className="text-lg">🚪</span>
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AttendeeHeader />
 
       <main className="flex-1 pt-20">
         <section className="px-[5%] pb-12 pt-3">
@@ -283,7 +185,7 @@ const BrowseConcerts = () => {
                 <div className="flex w-full flex-col gap-4 md:flex-row md:items-center">
                   <input
                     className="w-full flex-1 rounded-lg border border-[#E5E7EB] bg-white px-5 py-4 text-sm font-semibold text-[#1F2937] shadow-[0_10px_30px_rgba(15,23,42,0.08)] outline-none placeholder:text-[#9CA3AF] focus:border-[#7C3AED]"
-                    placeholder="Search by concert name, artist, or venue..."
+                    placeholder="Search by concert name..."
                     value={searchInput}
                     onChange={(event) => setSearchInput(event.target.value)}
                     onKeyDown={(event) => {
@@ -442,22 +344,7 @@ const BrowseConcerts = () => {
         </section>
       </main>
 
-      <footer className="bg-[#312E81] px-[5%] py-6 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-6 text-base">
-          <div className="flex gap-8">
-            <Link className="text-white/75" to="/attendee/about">
-              About
-            </Link>
-            <Link className="text-white/75" to="/privacy">
-              Privacy
-            </Link>
-            <Link className="text-white/75" to="/terms">
-              Terms
-            </Link>
-          </div>
-          <div>© 2026 SoundStage. All rights reserved.</div>
-        </div>
-      </footer>
+      <AttendeeFooter />
     </div>
   )
 }
