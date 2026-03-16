@@ -7,6 +7,18 @@ from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
+def _normalize_email(value):
+    return value.lower().strip()
+
+
+def _validate_password_value(value):
+    try:
+        validate_password(value)
+    except DjangoValidationError as error:
+        raise serializers.ValidationError(list(error.messages))
+    return value
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for user registration with validation"""
     
@@ -46,7 +58,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def validate_email(self, value):
         """Check if email already exists"""
-        email = value.lower().strip()
+        email = _normalize_email(value)
         if User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("Email already exists.")
         return email
@@ -62,11 +74,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def validate_password(self, value):
         """Validate password using Django validators"""
-        try:
-            validate_password(value)
-        except DjangoValidationError as e:
-            raise serializers.ValidationError(list(e.messages))
-        return value
+        return _validate_password_value(value)
     
     def validate(self, attrs):
         """Check if passwords match"""
@@ -169,7 +177,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         return username
 
     def validate_email(self, value):
-        email = value.lower().strip()
+        email = _normalize_email(value)
         user = self.instance
         if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
             raise serializers.ValidationError("Email already exists.")
@@ -198,11 +206,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
     def validate_new_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as error:
-            raise serializers.ValidationError(list(error.messages))
-        return value
+        return _validate_password_value(value)
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
@@ -221,7 +225,7 @@ class VerifyEmailOTPSerializer(serializers.Serializer):
     otp = serializers.CharField(required=True, trim_whitespace=True, max_length=6, min_length=6)
 
     def validate_email(self, value):
-        return value.lower().strip()
+        return _normalize_email(value)
 
     def validate_otp(self, value):
         otp = value.strip()
@@ -236,7 +240,7 @@ class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
-        return value.lower().strip()
+        return _normalize_email(value)
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -245,7 +249,7 @@ class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
-        return value.lower().strip()
+        return _normalize_email(value)
 
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):
@@ -257,11 +261,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(required=True, write_only=True)
 
     def validate_new_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as error:
-            raise serializers.ValidationError(list(error.messages))
-        return value
+        return _validate_password_value(value)
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:

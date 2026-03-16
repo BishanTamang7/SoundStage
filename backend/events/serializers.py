@@ -57,6 +57,60 @@ def _validate_and_normalize_ticket_categories(ticket_categories_data):
     return normalized
 
 
+def _clone_input_payload(data):
+    if isinstance(data, MultiValueDict) or hasattr(data, 'getlist'):
+        return data.copy()
+    if isinstance(data, dict):
+        return dict(data)
+    return data.copy() if hasattr(data, 'copy') else data
+
+
+def _decode_ticket_categories_payload(raw_categories, *, invalid_message=None):
+    if isinstance(raw_categories, str):
+        try:
+            return json.loads(raw_categories)
+        except json.JSONDecodeError:
+            if invalid_message:
+                raise serializers.ValidationError({'ticket_categories': invalid_message})
+            return raw_categories
+    return raw_categories
+
+
+def _normalize_concert_input_payload(data, *, blank_optional_fields=()):
+    mutable_data = _clone_input_payload(data)
+    if not hasattr(mutable_data, 'get'):
+        return mutable_data
+
+    raw_categories = mutable_data.get('ticket_categories')
+    decoded_categories = _decode_ticket_categories_payload(raw_categories)
+    if decoded_categories is not raw_categories:
+        mutable_data['ticket_categories'] = decoded_categories
+
+    for key in blank_optional_fields:
+        value = mutable_data.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            if hasattr(mutable_data, 'pop'):
+                mutable_data.pop(key, None)
+
+    return mutable_data
+
+
+def _get_request_ticket_categories(serializer, *, invalid_message=None):
+    raw_categories = None
+    if hasattr(serializer, 'initial_data'):
+        raw_categories = serializer.initial_data.get('ticket_categories')
+
+    if raw_categories is None:
+        request = serializer.context.get('request')
+        if request is not None:
+            raw_categories = request.data.get('ticket_categories')
+
+    if raw_categories is None:
+        return None
+
+    return _decode_ticket_categories_payload(raw_categories, invalid_message=invalid_message)
+
+
 class TicketCategorySerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(required=False)
     sold = serializers.SerializerMethodField()
@@ -89,10 +143,26 @@ class TicketCategorySerializer(serializers.ModelSerializer):
         return Decimal(revenue_paisa or 0) / Decimal('100')
 
 
-class ConcertCreateSerializer(serializers.ModelSerializer):
+class BaseConcertWriteSerializer(serializers.ModelSerializer):
     ticket_categories = TicketCategorySerializer(many=True, required=False)
     cover_image = serializers.ImageField(required=False, allow_null=True)
     genre_display = serializers.CharField(source='get_genre_display', read_only=True)
+
+    blank_optional_fields = ()
+
+    def to_internal_value(self, data):
+        mutable_data = _normalize_concert_input_payload(
+            data,
+            blank_optional_fields=self.blank_optional_fields,
+        )
+        return super().to_internal_value(mutable_data)
+
+    def validate_venue(self, value):
+        return _validate_concert_venue_city(value)
+
+
+class ConcertCreateSerializer(BaseConcertWriteSerializer):
+    blank_optional_fields = ('organizer_name', 'contact_email')
 
     class Meta:
         model = Concert
@@ -107,51 +177,10 @@ class ConcertCreateSerializer(serializers.ModelSerializer):
             'contact_email': {'required': False},
         }
 
-    def to_internal_value(self, data):
-        if isinstance(data, MultiValueDict) or hasattr(data, 'getlist'):
-            mutable_data = data.copy()
-        elif isinstance(data, dict):
-            mutable_data = dict(data)
-        else:
-            mutable_data = data.copy() if hasattr(data, 'copy') else data
-
-        if hasattr(mutable_data, 'get'):
-            raw_categories = mutable_data.get('ticket_categories')
-            if isinstance(raw_categories, str):
-                try:
-                    mutable_data['ticket_categories'] = json.loads(raw_categories)
-                except json.JSONDecodeError:
-                    pass
-
-            for key in ['organizer_name', 'contact_email']:
-                value = mutable_data.get(key)
-                if value is None or (isinstance(value, str) and not value.strip()):
-                    if hasattr(mutable_data, 'pop'):
-                        mutable_data.pop(key, None)
-
-        return super().to_internal_value(mutable_data)
-
-    def validate_venue(self, value):
-        return _validate_concert_venue_city(value)
-
     def create(self, validated_data):
         ticket_categories_data = validated_data.pop('ticket_categories', None)
         if ticket_categories_data is None:
-            raw_categories = None
-            if hasattr(self, 'initial_data'):
-                raw_categories = self.initial_data.get('ticket_categories')
-            if raw_categories is None:
-                request = self.context.get('request')
-                if request is not None:
-                    raw_categories = request.data.get('ticket_categories')
-
-            if isinstance(raw_categories, str):
-                try:
-                    ticket_categories_data = json.loads(raw_categories)
-                except json.JSONDecodeError:
-                    ticket_categories_data = None
-            elif raw_categories is not None:
-                ticket_categories_data = raw_categories
+            ticket_categories_data = _get_request_ticket_categories(self)
 
         if not ticket_categories_data:
             raise serializers.ValidationError({'ticket_categories': 'This field is required.'})
@@ -192,11 +221,7 @@ class ConcertListSerializer(serializers.ModelSerializer):
         ]
 
 
-class ConcertDetailSerializer(serializers.ModelSerializer):
-    ticket_categories = TicketCategorySerializer(many=True, required=False)
-    cover_image = serializers.ImageField(required=False, allow_null=True)
-    genre_display = serializers.CharField(source='get_genre_display', read_only=True)
-
+class ConcertDetailSerializer(BaseConcertWriteSerializer):
     class Meta:
         model = Concert
         fields = [
@@ -206,45 +231,16 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-    def to_internal_value(self, data):
-        if isinstance(data, MultiValueDict) or hasattr(data, 'getlist'):
-            mutable_data = data.copy()
-        elif isinstance(data, dict):
-            mutable_data = dict(data)
-        else:
-            mutable_data = data.copy() if hasattr(data, 'copy') else data
-
-        if hasattr(mutable_data, 'get'):
-            raw_categories = mutable_data.get('ticket_categories')
-            if isinstance(raw_categories, str):
-                try:
-                    mutable_data['ticket_categories'] = json.loads(raw_categories)
-                except json.JSONDecodeError:
-                    pass
-
-        return super().to_internal_value(mutable_data)
-
-    def validate_venue(self, value):
-        return _validate_concert_venue_city(value)
-
     def update(self, instance, validated_data):
         validated_ticket_categories = validated_data.pop('ticket_categories', None)
-        raw_categories = None
-        if hasattr(self, 'initial_data'):
-            raw_categories = self.initial_data.get('ticket_categories')
-        if raw_categories is None:
-            request = self.context.get('request')
-            if request is not None:
-                raw_categories = request.data.get('ticket_categories')
-
         ticket_categories_data = validated_ticket_categories
-        if isinstance(raw_categories, str):
-            try:
-                ticket_categories_data = json.loads(raw_categories)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError({'ticket_categories': 'Invalid ticket_categories payload.'})
-        elif raw_categories is not None:
+        raw_categories = _get_request_ticket_categories(
+            self,
+            invalid_message='Invalid ticket_categories payload.',
+        )
+        if raw_categories is not None:
             ticket_categories_data = raw_categories
+
         if ticket_categories_data is not None:
             ticket_categories_data = _validate_and_normalize_ticket_categories(ticket_categories_data)
 

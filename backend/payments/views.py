@@ -99,6 +99,28 @@ def _khalti_request(path: str, payload: dict):
         }
 
 
+def _get_concert_datetime_label(concert: Concert) -> str:
+    return localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p') if concert.date_time else ''
+
+
+def _require_request_pidx(request):
+    pidx = str(request.data.get('pidx') or '').strip()
+    if not pidx:
+        return None, Response({'detail': 'pidx is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    return pidx, None
+
+
+def _lookup_khalti_payment(pidx):
+    khalti_response = _khalti_request('/epayment/lookup/', {'pidx': pidx})
+    if not khalti_response['ok']:
+        return None, Response(khalti_response['data'], status=khalti_response['status'])
+    return khalti_response['data'], None
+
+
+def _get_attendee_payment(attendee, pidx):
+    return PaymentTransaction.objects.filter(pidx=pidx, attendee=attendee).first()
+
+
 def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
     status_value = lookup_data.get('status') or payment.status
     transaction_id = lookup_data.get('transaction_id') or payment.transaction_id
@@ -283,10 +305,7 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
     concert = payment.concert
     ticket_category_name = payment.ticket_category_name_display or getattr(payment.ticket_category, 'name', '')
     total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
-    concert_dt = (
-        localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
-        if concert.date_time else ''
-    )
+    concert_dt = _get_concert_datetime_label(concert)
     ticket_lines = '\n'.join(
         f'- Ticket {index + 1}: QR {ticket.qr_token}'
         for index, ticket in enumerate(tickets)
@@ -312,10 +331,7 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
     if not organizer:
         return
 
-    concert_dt = (
-        localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
-        if concert.date_time else ''
-    )
+    concert_dt = _get_concert_datetime_label(concert)
 
     prefs, _ = NotificationPreference.objects.get_or_create(user=organizer)
     if not prefs.email_bookings:
@@ -475,37 +491,36 @@ def khalti_initiate(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAttendee])
 def khalti_lookup(request):
-    pidx = request.data.get('pidx')
-    if not pidx:
-        return Response({'detail': 'pidx is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    pidx, error_response = _require_request_pidx(request)
+    if error_response:
+        return error_response
 
-    khalti_response = _khalti_request('/epayment/lookup/', {'pidx': pidx})
-    if not khalti_response['ok']:
-        return Response(khalti_response['data'], status=khalti_response['status'])
+    lookup_data, error_response = _lookup_khalti_payment(pidx)
+    if error_response:
+        return error_response
 
-    payment = PaymentTransaction.objects.filter(pidx=pidx, attendee=request.user).first()
+    payment = _get_attendee_payment(request.user, pidx)
     if payment:
-        _sync_payment_from_lookup(payment, khalti_response['data'])
+        _sync_payment_from_lookup(payment, lookup_data)
 
-    return Response({'success': True, 'data': khalti_response['data']}, status=status.HTTP_200_OK)
+    return Response({'success': True, 'data': lookup_data}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAttendee])
 def khalti_confirm(request):
-    pidx = request.data.get('pidx')
-    if not pidx:
-        return Response({'detail': 'pidx is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    pidx, error_response = _require_request_pidx(request)
+    if error_response:
+        return error_response
 
-    payment = PaymentTransaction.objects.filter(pidx=pidx, attendee=request.user).first()
+    payment = _get_attendee_payment(request.user, pidx)
     if not payment:
         return Response({'detail': 'Payment transaction not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    khalti_response = _khalti_request('/epayment/lookup/', {'pidx': pidx})
-    if not khalti_response['ok']:
-        return Response(khalti_response['data'], status=khalti_response['status'])
+    lookup_data, error_response = _lookup_khalti_payment(pidx)
+    if error_response:
+        return error_response
 
-    lookup_data = khalti_response['data']
     payment = _sync_payment_from_lookup(payment, lookup_data)
 
     if not _is_completed_status(lookup_data.get('status')):
