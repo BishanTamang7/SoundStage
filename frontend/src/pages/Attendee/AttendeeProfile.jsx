@@ -141,11 +141,17 @@ const AttendeeProfile = () => {
 
     try {
       setSavingProfile(true)
-      await updateProfile({
+      const response = await updateProfile({
         username: profileForm.username.trim(),
         email: profileForm.email.trim(),
       })
-      setProfileMessage('Profile updated successfully.')
+      if (response?.data?.requires_email_verification) {
+        const verificationEmail = response?.data?.verification_email || profileForm.email.trim()
+        await logout()
+        navigate(`/verify-email?email=${encodeURIComponent(verificationEmail)}`, { replace: true })
+        return
+      }
+      setProfileMessage(response?.message || 'Profile updated successfully.')
     } catch (error) {
       setProfileError(error?.message || 'Failed to update profile.')
     } finally {
@@ -404,7 +410,7 @@ const AttendeeProfile = () => {
                 <p className="text-xs uppercase tracking-[0.3em] text-[#F87171]">Danger Zone</p>
                 <h3 className="mt-3 text-xl font-black text-[#B91C1C]">Delete your account</h3>
                 <p className="mt-3 text-sm leading-6 text-[#6B7280]">
-                  Deleting your account permanently removes your profile, bookings, and saved attendee data.
+                  Deactivating your account removes sign-in access while preserving ticket and booking history.
                 </p>
                 {deleteError ? <p className="mt-4 text-sm font-semibold text-[#EF4444]">{deleteError}</p> : null}
                 <button
@@ -413,7 +419,7 @@ const AttendeeProfile = () => {
                   onClick={openDeleteDialog}
                   disabled={deletingAccount}
                 >
-                  {deletingAccount ? 'Deleting...' : 'Delete Account'}
+                  {deletingAccount ? 'Deactivating...' : 'Deactivate Account'}
                 </button>
               </section>
             </aside>
@@ -668,10 +674,10 @@ const AttendeeProfile = () => {
             aria-describedby="delete-account-dialog-description"
           >
             <h3 id="delete-account-dialog-title" className="text-lg font-black text-[#B91C1C]">
-              Delete account?
+              Deactivate account?
             </h3>
             <p id="delete-account-dialog-description" className="mt-3 text-sm leading-6 text-[#6B7280]">
-              This action cannot be undone. Your tickets, bookings, and profile data will be permanently removed.
+              This removes sign-in access to your account. Your tickets and booking history will remain preserved.
             </p>
             {deleteError ? (
               <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p>
@@ -691,7 +697,7 @@ const AttendeeProfile = () => {
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+                {deletingAccount ? 'Deactivating...' : 'Yes, Deactivate Account'}
               </button>
             </div>
           </div>

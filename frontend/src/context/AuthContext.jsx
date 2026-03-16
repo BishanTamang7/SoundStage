@@ -156,10 +156,12 @@ export const AuthProvider = ({ children }) => {
       if (!access) {
         throw new Error('Authentication required')
       }
-      const data = await api.updateProfile(access, payload)
-      const resolvedProfile = resolveProfile(data)
-      setUser(resolvedProfile)
-      return resolvedProfile
+      const response = await api.updateProfile(access, payload)
+      const resolvedProfile = resolveProfile(response)
+      if (resolvedProfile) {
+        setUser(resolvedProfile)
+      }
+      return response
     },
     [tokens?.access]
   )
@@ -212,6 +214,8 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         await api.logout(token, refresh)
       }
+    } catch {
+      // Local sign-out should still complete even if server-side token revocation fails.
     } finally {
       setUser(null)
       setTokens(null)

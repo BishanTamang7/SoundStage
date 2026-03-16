@@ -43,6 +43,7 @@ def _get_related_ticket_group(ticket, organizer):
 
 def _build_ticket_group_data(pin_token, tickets):
     primary_ticket = tickets[0]
+    primary_payment = primary_ticket.payment_transaction
     attendee_name = primary_ticket.attendee.get_full_name() or primary_ticket.attendee.username or primary_ticket.attendee.email
     total_ticket_counts_by_payment = {
         str(row['payment_transaction_id']): row['total']
@@ -94,7 +95,11 @@ def _build_ticket_group_data(pin_token, tickets):
         'concert_title': primary_ticket.concert.title,
         'concert_date_time': _format_nepal_datetime(primary_ticket.concert.date_time),
         'concert_venue': primary_ticket.concert.venue,
-        'ticket_type': primary_ticket.ticket_category.name,
+        'ticket_type': (
+            primary_payment.ticket_category_name_display
+            if primary_payment
+            else primary_ticket.ticket_category.name
+        ),
         'booked_at': booked_at,
         'total_booking_quantity': total_booking_quantity,
         'total_amount': _format_npr_amount(total_amount_paisa),
@@ -141,13 +146,12 @@ def delete_my_ticket(request, ticket_id):
     if not ticket:
         return Response({'detail': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    ticket.delete()
     return Response(
         {
-            'success': True,
-            'message': 'Ticket deleted successfully.',
+            'success': False,
+            'message': 'Issued tickets are preserved for booking history and cannot be deleted.',
         },
-        status=status.HTTP_200_OK,
+        status=status.HTTP_409_CONFLICT,
     )
 
 

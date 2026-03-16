@@ -58,7 +58,7 @@ const PasswordField = ({ id, label, name, value, visible, onChange, onToggle }) 
 )
 
 const OrganizerProfile = () => {
-  const { user, role, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { user, role, updateProfile, changePassword, deleteAccount, logout } = useAuth()
   const navigate = useNavigate()
   const photoInputRef = useRef(null)
 
@@ -139,11 +139,17 @@ const OrganizerProfile = () => {
 
     try {
       setSavingProfile(true)
-      await updateProfile({
+      const response = await updateProfile({
         username: profileForm.username.trim(),
         email: profileForm.email.trim(),
       })
-      setProfileMessage('Profile updated successfully.')
+      if (response?.data?.requires_email_verification) {
+        const verificationEmail = response?.data?.verification_email || profileForm.email.trim()
+        await logout()
+        navigate(`/verify-email?email=${encodeURIComponent(verificationEmail)}`, { replace: true })
+        return
+      }
+      setProfileMessage(response?.message || 'Profile updated successfully.')
     } catch (error) {
       setProfileError(error?.message || 'Failed to update profile.')
     } finally {
@@ -332,7 +338,7 @@ const OrganizerProfile = () => {
               <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F87171]">Danger Zone</p>
               <h2 className="mt-3 text-xl font-black text-[#991B1B]">Delete organizer account</h2>
               <p className="mt-3 text-sm leading-6 text-[#6B7280]">
-                This permanently removes your organizer profile, dashboard access, and saved account data.
+                This removes organizer sign-in access while preserving concerts, bookings, and ticket history.
               </p>
               {deleteError ? <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{deleteError}</p> : null}
               <button
@@ -341,7 +347,7 @@ const OrganizerProfile = () => {
                 onClick={openDeleteDialog}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deleting Account...' : 'Delete Account'}
+                {deletingAccount ? 'Deactivating Account...' : 'Deactivate Account'}
               </button>
             </section>
           </aside>
@@ -522,10 +528,10 @@ const OrganizerProfile = () => {
             aria-describedby="delete-organizer-profile-dialog-description"
           >
             <h3 id="delete-organizer-profile-dialog-title" className="text-lg font-black text-[#B91C1C]">
-              Delete organizer account?
+              Deactivate organizer account?
             </h3>
             <p id="delete-organizer-profile-dialog-description" className="mt-3 text-sm leading-6 text-[#6B7280]">
-              This action cannot be undone. Your organizer profile, dashboard access, and account data will be permanently removed.
+              This removes organizer sign-in access. Concerts, bookings, and ticket history will remain preserved.
             </p>
             {deleteError ? <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p> : null}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -543,7 +549,7 @@ const OrganizerProfile = () => {
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
+                {deletingAccount ? 'Deactivating...' : 'Yes, Deactivate Account'}
               </button>
             </div>
           </div>

@@ -21,7 +21,7 @@ const KhaltiCallback = () => {
     let isActive = true
 
     const verifyPayment = async () => {
-      if (isCanceledRedirect) {
+      if (isCanceledRedirect && !pidx) {
         navigate('/attendee/concerts', { replace: true })
         return
       }

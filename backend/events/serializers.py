@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
 
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Sum
 from django.utils.datastructures import MultiValueDict
 from rest_framework import serializers
 
@@ -81,8 +81,12 @@ class TicketCategorySerializer(serializers.ModelSerializer):
         return int(obj.quantity) + self._get_sold_count(obj)
 
     def get_revenue(self, obj):
-        sold = self._get_sold_count(obj)
-        return Decimal(obj.price) * sold
+        revenue_paisa = getattr(obj, 'revenue_paisa', None)
+        if revenue_paisa is None:
+            revenue_paisa = obj.payment_transactions.filter(status='Completed').aggregate(
+                total=Sum('amount_paisa')
+            ).get('total', 0)
+        return Decimal(revenue_paisa or 0) / Decimal('100')
 
 
 class ConcertCreateSerializer(serializers.ModelSerializer):
@@ -175,7 +179,17 @@ class ConcertListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Concert
-        fields = ['id', 'title', 'genre', 'genre_display', 'date_time', 'venue', 'main_artist', 'cover_image']
+        fields = [
+            'id',
+            'title',
+            'genre',
+            'genre_display',
+            'date_time',
+            'venue',
+            'main_artist',
+            'cover_image',
+            'created_at',
+        ]
 
 
 class ConcertDetailSerializer(serializers.ModelSerializer):
@@ -248,6 +262,27 @@ class ConcertDetailSerializer(serializers.ModelSerializer):
 
                 if category_id and category_id in existing_categories:
                     category = existing_categories[category_id]
+                    has_sales_history = (
+                        category.tickets.exists()
+                        or category.payment_transactions.filter(status='Completed').exists()
+                        or category.payment_transactions.filter(stock_reserved=True).exists()
+                    )
+                    if has_sales_history:
+                        normalized_price = Decimal(payload['price'])
+                        normalized_quantity = int(payload['quantity'])
+                        attempted_change = (
+                            category.name != payload['name']
+                            or category.price != normalized_price
+                            or category.quantity != normalized_quantity
+                        )
+                        if attempted_change:
+                            raise serializers.ValidationError(
+                                {
+                                    'ticket_categories': (
+                                        f'{category.name} ticket settings cannot be changed after bookings exist.'
+                                    )
+                                }
+                            )
                     category.name = payload['name']
                     category.price = payload['price']
                     category.quantity = payload['quantity']

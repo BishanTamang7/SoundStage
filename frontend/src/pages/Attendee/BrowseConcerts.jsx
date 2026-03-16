@@ -9,7 +9,7 @@ const CITY_OPTIONS = [
   'Pokhara',
   'Dharan',
   'Butwal',
-  'Biatnagar',
+  'Biratnagar',
 ]
 
 const GENRE_OPTIONS = [

@@ -3,12 +3,14 @@ import logging
 import secrets
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import timedelta
 from urllib import error as url_error
 from urllib import request as url_request
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.utils import timezone
 from django.utils.timezone import localtime
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -24,6 +26,10 @@ from tickets.serializers import TicketSerializer
 
 logger = logging.getLogger(__name__)
 
+RESERVATION_TIMEOUT_MINUTES = 15
+PLACEHOLDER_PIDX_PREFIX = 'INIT-'
+TERMINAL_FAILED_STATUS_KEYWORDS = ('cancel', 'abandon', 'fail', 'expire', 'void')
+
 
 def _generate_token_pin(used_pins=None) -> str:
     used = used_pins if used_pins is not None else set()
@@ -36,6 +42,19 @@ def _generate_token_pin(used_pins=None) -> str:
         used.add(candidate)
         return candidate
     raise ValueError('Could not allocate unique token pin.')
+
+
+def _normalize_payment_status(value) -> str:
+    return str(value or '').strip().lower()
+
+
+def _is_completed_status(value) -> bool:
+    return _normalize_payment_status(value) == 'completed'
+
+
+def _is_terminal_unsuccessful_status(value) -> bool:
+    normalized = _normalize_payment_status(value)
+    return any(keyword in normalized for keyword in TERMINAL_FAILED_STATUS_KEYWORDS)
 
 
 def _khalti_request(path: str, payload: dict):
@@ -81,10 +100,120 @@ def _khalti_request(path: str, payload: dict):
 
 
 def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
-    payment.status = lookup_data.get('status') or payment.status
-    payment.transaction_id = lookup_data.get('transaction_id') or payment.transaction_id
+    status_value = lookup_data.get('status') or payment.status
+    transaction_id = lookup_data.get('transaction_id') or payment.transaction_id
+    reservation_expired = bool(
+        payment.stock_reserved
+        and payment.reservation_expires_at
+        and payment.reservation_expires_at <= timezone.now()
+    )
+
+    if payment.stock_reserved and (
+        _is_terminal_unsuccessful_status(status_value)
+        or (reservation_expired and not _is_completed_status(status_value))
+    ):
+        return _release_stock_reservation(
+            payment,
+            status_value=status_value,
+            transaction_id=transaction_id,
+            raw_response=lookup_data,
+        )
+
+    payment.status = status_value
+    payment.transaction_id = transaction_id
     payment.raw_response = lookup_data
     payment.save(update_fields=['status', 'transaction_id', 'raw_response', 'updated_at'])
+    return payment
+
+
+def _create_reserved_payment(*, attendee, concert, ticket_category, purchase_order_id, amount_paisa, quantity):
+    reservation_expires_at = timezone.now() + timedelta(minutes=RESERVATION_TIMEOUT_MINUTES)
+    placeholder_pidx = f'{PLACEHOLDER_PIDX_PREFIX}{uuid.uuid4().hex}'
+
+    with transaction.atomic():
+        category = TicketCategory.objects.select_for_update().get(id=ticket_category.id)
+        if category.quantity < quantity:
+            raise ValueError('Requested quantity exceeds available tickets.')
+
+        category.quantity -= quantity
+        category.save(update_fields=['quantity'])
+
+        return PaymentTransaction.objects.create(
+            attendee=attendee,
+            concert=concert,
+            ticket_category=category,
+            pidx=placeholder_pidx,
+            purchase_order_id=purchase_order_id,
+            amount_paisa=amount_paisa,
+            quantity=quantity,
+            status='Initiated',
+            stock_reserved=True,
+            reservation_expires_at=reservation_expires_at,
+            ticket_category_name_snapshot=category.name,
+            ticket_unit_price_snapshot=category.price,
+        )
+
+
+def _release_stock_reservation(payment, *, status_value=None, transaction_id=None, raw_response=None):
+    with transaction.atomic():
+        locked_payment = PaymentTransaction.objects.select_for_update().get(id=payment.id)
+        category = TicketCategory.objects.select_for_update().get(id=locked_payment.ticket_category_id)
+        update_fields = []
+
+        if locked_payment.stock_reserved and not locked_payment.tickets_issued:
+            category.quantity += locked_payment.quantity
+            category.save(update_fields=['quantity'])
+            locked_payment.stock_reserved = False
+            locked_payment.reservation_expires_at = None
+            update_fields.extend(['stock_reserved', 'reservation_expires_at'])
+
+        if status_value and locked_payment.status != status_value:
+            locked_payment.status = status_value
+            update_fields.append('status')
+        if transaction_id and locked_payment.transaction_id != transaction_id:
+            locked_payment.transaction_id = transaction_id
+            update_fields.append('transaction_id')
+        if raw_response is not None:
+            locked_payment.raw_response = raw_response
+            update_fields.append('raw_response')
+
+        if update_fields:
+            locked_payment.save(update_fields=[*update_fields, 'updated_at'])
+
+        return locked_payment
+
+
+def _finalize_expired_reservations(ticket_category: TicketCategory):
+    expired_reservations = list(
+        PaymentTransaction.objects.filter(
+            ticket_category=ticket_category,
+            stock_reserved=True,
+            tickets_issued=False,
+            reservation_expires_at__lte=timezone.now(),
+        ).order_by('created_at')
+    )
+
+    for payment in expired_reservations:
+        if payment.pidx.startswith(PLACEHOLDER_PIDX_PREFIX):
+            _release_stock_reservation(payment, status_value='Initiation Failed')
+            continue
+
+        khalti_response = _khalti_request('/epayment/lookup/', {'pidx': payment.pidx})
+        if not khalti_response['ok']:
+            continue
+
+        payment = _sync_payment_from_lookup(payment, khalti_response['data'])
+        if _is_completed_status(payment.status):
+            issued_tickets, newly_issued = _issue_tickets(payment)
+            if newly_issued and issued_tickets:
+                try:
+                    _send_booking_confirmation_email(payment, issued_tickets)
+                except Exception:
+                    logger.exception('Failed to send booking confirmation email for payment %s', payment.id)
+                try:
+                    _send_organizer_booking_notification_email(payment, issued_tickets)
+                except Exception:
+                    logger.exception('Failed to send organizer booking notification email for payment %s', payment.id)
 
 
 def _issue_tickets(payment: PaymentTransaction):
@@ -96,15 +225,30 @@ def _issue_tickets(payment: PaymentTransaction):
         if locked_payment.tickets_issued:
             return list(locked_payment.tickets.order_by('created_at', 'id')), False
 
-        if locked_payment.status != 'Completed':
+        if not _is_completed_status(locked_payment.status):
             return [], False
 
         category = TicketCategory.objects.select_for_update().get(id=locked_payment.ticket_category_id)
-        if category.quantity < locked_payment.quantity:
-            raise ValueError('Ticket stock is no longer available.')
+        snapshot_updates = {}
+        if not locked_payment.ticket_category_name_snapshot:
+            snapshot_updates['ticket_category_name_snapshot'] = category.name
+        if locked_payment.ticket_unit_price_snapshot is None:
+            snapshot_updates['ticket_unit_price_snapshot'] = category.price
+        if snapshot_updates:
+            PaymentTransaction.objects.filter(pk=locked_payment.pk).update(**snapshot_updates)
+            for field, value in snapshot_updates.items():
+                setattr(locked_payment, field, value)
 
-        category.quantity -= locked_payment.quantity
-        category.save(update_fields=['quantity'])
+        if locked_payment.stock_reserved:
+            locked_payment.stock_reserved = False
+            locked_payment.reservation_expires_at = None
+            snapshot_updates['stock_reserved'] = False
+            snapshot_updates['reservation_expires_at'] = None
+        else:
+            if category.quantity < locked_payment.quantity:
+                raise ValueError('Ticket stock is no longer available.')
+            category.quantity -= locked_payment.quantity
+            category.save(update_fields=['quantity'])
 
         tickets = []
         for _ in range(locked_payment.quantity):
@@ -120,7 +264,10 @@ def _issue_tickets(payment: PaymentTransaction):
             tickets.append(ticket)
 
         locked_payment.tickets_issued = True
-        locked_payment.save(update_fields=['tickets_issued', 'updated_at'])
+        update_fields = ['tickets_issued', 'updated_at']
+        if 'stock_reserved' in snapshot_updates:
+            update_fields.extend(['stock_reserved', 'reservation_expires_at'])
+        locked_payment.save(update_fields=update_fields)
         return tickets, True
 
 
@@ -134,7 +281,7 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
         return
 
     concert = payment.concert
-    category = payment.ticket_category
+    ticket_category_name = payment.ticket_category_name_display or getattr(payment.ticket_category, 'name', '')
     total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
     concert_dt = (
         localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p')
@@ -151,7 +298,7 @@ def _send_booking_confirmation_email(payment: PaymentTransaction, tickets):
         f"Concert: {concert.title}\n"
         f"Date & Time: {concert_dt}\n"
         f"Venue: {concert.venue}\n"
-        f"Ticket Type: {category.name}\n"
+        f"Ticket Type: {ticket_category_name}\n"
         f"Quantity: {payment.quantity}\n"
         f"Total Paid: NPR {total_rupees}\n\n"
         'You can also view your tickets in the SoundStage attendee app.\n'
@@ -183,7 +330,7 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
         return
 
     attendee = payment.attendee
-    category = payment.ticket_category
+    ticket_category_name = payment.ticket_category_name_display or getattr(payment.ticket_category, 'name', '')
     total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
     ticket_count = len(tickets or [])
     attendee_name = attendee.get_full_name() if attendee else ''
@@ -199,7 +346,7 @@ def _send_organizer_booking_notification_email(payment: PaymentTransaction, tick
         f"Venue: {concert.venue}\n"
         f"Attendee: {attendee_label}\n"
         f"Attendee Email: {attendee_email}\n"
-        f"Ticket Type: {category.name}\n"
+        f"Ticket Type: {ticket_category_name}\n"
         f"Quantity: {payment.quantity}\n"
         f"Tickets Issued: {ticket_count}\n"
         f"Total Paid: NPR {total_rupees}\n"
@@ -233,6 +380,12 @@ def khalti_initiate(request):
     except Concert.DoesNotExist:
         return Response({'detail': 'Concert not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    if concert.date_time <= timezone.now():
+        return Response(
+            {'detail': 'Tickets can no longer be purchased for past concerts.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     try:
         ticket_category = TicketCategory.objects.get(id=ticket_category_id, concert=concert)
     except TicketCategory.DoesNotExist:
@@ -241,11 +394,7 @@ def khalti_initiate(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if ticket_category.quantity < quantity:
-        return Response(
-            {'detail': 'Requested quantity exceeds available tickets.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    _finalize_expired_reservations(ticket_category)
 
     total_rupees = Decimal(ticket_category.price) * Decimal(quantity)
     total_paisa = int((total_rupees * Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
@@ -257,6 +406,17 @@ def khalti_initiate(request):
 
     purchase_order_id = f'SS-{uuid.uuid4().hex[:16]}'
     purchase_order_name = f'{concert.title} - {ticket_category.name} x{quantity}'
+    try:
+        payment = _create_reserved_payment(
+            attendee=request.user,
+            concert=concert,
+            ticket_category=ticket_category,
+            purchase_order_id=purchase_order_id,
+            amount_paisa=total_paisa,
+            quantity=quantity,
+        )
+    except ValueError as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
 
     payload = {
         'return_url': f'{settings.FRONTEND_URL}/attendee/payment/khalti/callback',
@@ -272,23 +432,30 @@ def khalti_initiate(request):
 
     khalti_response = _khalti_request('/epayment/initiate/', payload)
     if not khalti_response['ok']:
+        _release_stock_reservation(
+            payment,
+            status_value='Initiation Failed',
+            raw_response=khalti_response['data'],
+        )
         return Response(khalti_response['data'], status=khalti_response['status'])
 
     pidx = khalti_response['data'].get('pidx')
-    if pidx:
-        PaymentTransaction.objects.update_or_create(
-            pidx=pidx,
-            defaults={
-                'attendee': request.user,
-                'concert': concert,
-                'ticket_category': ticket_category,
-                'purchase_order_id': purchase_order_id,
-                'amount_paisa': total_paisa,
-                'quantity': quantity,
-                'status': 'Initiated',
-                'raw_response': khalti_response['data'],
-            },
+    if not pidx:
+        _release_stock_reservation(
+            payment,
+            status_value='Initiation Failed',
+            raw_response=khalti_response['data'],
         )
+        return Response(
+            {'detail': 'Khalti did not return a valid payment reference.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    payment.pidx = pidx
+    payment.status = khalti_response['data'].get('status') or payment.status
+    payment.transaction_id = khalti_response['data'].get('transaction_id') or payment.transaction_id
+    payment.raw_response = khalti_response['data']
+    payment.save(update_fields=['pidx', 'status', 'transaction_id', 'raw_response', 'updated_at'])
 
     return Response(
         {
@@ -339,9 +506,9 @@ def khalti_confirm(request):
         return Response(khalti_response['data'], status=khalti_response['status'])
 
     lookup_data = khalti_response['data']
-    _sync_payment_from_lookup(payment, lookup_data)
+    payment = _sync_payment_from_lookup(payment, lookup_data)
 
-    if lookup_data.get('status') != 'Completed':
+    if not _is_completed_status(lookup_data.get('status')):
         return Response(
             {'success': True, 'data': {'status': lookup_data.get('status'), 'tickets': []}},
             status=status.HTTP_200_OK,

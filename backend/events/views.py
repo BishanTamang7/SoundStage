@@ -1,8 +1,10 @@
 import logging
+import threading
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils.timezone import localtime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -55,6 +57,18 @@ def _send_new_concert_announcement(concert):
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
 
 
+def _send_new_concert_announcement_async(concert_id):
+    def _worker():
+        try:
+            concert = Concert.objects.filter(id=concert_id).first()
+            if concert:
+                _send_new_concert_announcement(concert)
+        except Exception:
+            logger.exception('Failed to send new concert announcement for concert %s', concert_id)
+
+    transaction.on_commit(lambda: threading.Thread(target=_worker, daemon=True).start())
+
+
 class ConcertViewSet(viewsets.ModelViewSet):
     queryset = Concert.objects.all()
 
@@ -82,10 +96,7 @@ class ConcertViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         concert = serializer.save(organizer=request.user)
-        try:
-            _send_new_concert_announcement(concert)
-        except Exception:
-            logger.exception('Failed to send new concert announcement for concert %s', concert.id)
+        _send_new_concert_announcement_async(concert.id)
         return Response(
             {
                 'success': True,
@@ -145,6 +156,15 @@ class ConcertViewSet(viewsets.ModelViewSet):
                     'message': 'You do not have permission to delete this concert',
                 },
                 status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if instance.payment_transactions.exists():
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Concerts with booking history cannot be deleted.',
+                },
+                status=status.HTTP_409_CONFLICT,
             )
 
         instance.delete()

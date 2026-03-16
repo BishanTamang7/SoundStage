@@ -3,7 +3,7 @@ ALLOWED_CONCERT_CITIES = (
     'pokhara',
     'dharan',
     'butwal',
-    'biatnagar',
+    'biratnagar',
 )
 
 CONCERT_GENRE_CHOICES = (

@@ -80,7 +80,8 @@ class VerifyTicketTests(APITestCase):
             )
             tickets.append(ticket)
         Ticket.objects.filter(payment_transaction=payment).update(created_at=created_at)
-        return payment, list(Ticket.objects.filter(payment_transaction=payment).order_by('created_at', 'id'))
+        refreshed_tickets = [Ticket.objects.get(pk=ticket.pk) for ticket in tickets]
+        return payment, refreshed_tickets
 
     def test_verify_ticket_aggregates_related_group_and_confirms_all(self):
         first_time = timezone.now() - timedelta(hours=3)
@@ -233,3 +234,82 @@ class VerifyTicketTests(APITestCase):
         for ticket in Ticket.objects.filter(payment_transaction=payment):
             ticket.refresh_from_db()
             self.assertTrue(ticket.is_used)
+
+
+class TicketHistoryPreservationTests(APITestCase):
+    delete_url_template = '/api/tickets/{ticket_id}/'
+
+    def setUp(self):
+        self.attendee = User.objects.create_user(
+            email='attendee-history@example.com',
+            username='attendeehistory',
+            password='StrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.organizer = User.objects.create_user(
+            email='organizer-history@example.com',
+            username='organizerhistory',
+            password='StrongPass123!',
+            role=User.ORGANIZER,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.concert = Concert.objects.create(
+            organizer=self.organizer,
+            title='History Fest',
+            description='Ticket history should be preserved.',
+            date_time=timezone.now() - timedelta(days=2),
+            venue='Kathmandu',
+            main_artist='Band',
+            organizer_name='Organizer',
+            contact_email='organizer-history@example.com',
+        )
+        self.category = TicketCategory.objects.create(
+            concert=self.concert,
+            name='Regular',
+            price='20.00',
+            quantity=100,
+        )
+        self.payment = PaymentTransaction.objects.create(
+            attendee=self.attendee,
+            concert=self.concert,
+            ticket_category=self.category,
+            pidx='history-preserve-pidx',
+            purchase_order_id='history-preserve-order',
+            amount_paisa=2000,
+            quantity=1,
+            status='Completed',
+            tickets_issued=True,
+        )
+        self.ticket = Ticket.objects.create(
+            attendee=self.attendee,
+            concert=self.concert,
+            ticket_category=self.category,
+            payment_transaction=self.payment,
+            qr_token='history-ticket-qr',
+            token_pin='4021',
+        )
+
+    def test_delete_ticket_endpoint_preserves_ticket_history(self):
+        self.client.force_authenticate(user=self.attendee)
+
+        response = self.client.delete(
+            self.delete_url_template.format(ticket_id=self.ticket.id),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(response.data['success'])
+        self.assertIn('cannot be deleted', response.data['message'].lower())
+        self.assertTrue(Ticket.objects.filter(pk=self.ticket.pk).exists())
+
+    def test_delete_ticket_endpoint_keeps_ticket_visible_in_history(self):
+        self.client.force_authenticate(user=self.attendee)
+
+        self.client.delete(self.delete_url_template.format(ticket_id=self.ticket.id))
+        tickets_response = self.client.get('/api/tickets/my/')
+
+        self.assertEqual(tickets_response.status_code, status.HTTP_200_OK)
+        returned_ids = {str(ticket['id']) for ticket in tickets_response.data['data']['tickets']}
+        self.assertIn(str(self.ticket.id), returned_ids)

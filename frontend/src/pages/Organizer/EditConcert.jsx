@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 import OrganizerSidebar from "../../components/OrganizerSidebar";
 
-const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biatnagar", "Other"];
+const CITY_OPTIONS = ["Kathmandu", "Pokhara", "Dharan", "Butwal", "Biratnagar", "Other"];
 const GENRE_OPTIONS = [
   { value: "rock", label: "Rock" },
   { value: "hip-hop-rap", label: "Hip-Hop / Rap" },

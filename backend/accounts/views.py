@@ -17,6 +17,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import EmailVerificationOTP, User
@@ -104,9 +105,9 @@ def _otp_resend_counts(user):
     return sent_recently, sent_in_hour
 
 
-def _issue_and_send_otp(user):
+def _issue_and_send_otp(user, *, enforce_rate_limit=True):
     sent_recently, sent_in_hour = _otp_resend_counts(user)
-    if sent_recently or sent_in_hour >= RESEND_MAX_PER_HOUR:
+    if enforce_rate_limit and (sent_recently or sent_in_hour >= RESEND_MAX_PER_HOUR):
         return False
 
     now = timezone.now()
@@ -128,6 +129,11 @@ def _issue_and_send_otp(user):
     )
     _send_otp_email(user, otp)
     return True
+
+
+def _revoke_user_refresh_tokens(user):
+    for outstanding_token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=outstanding_token)
 
 
 class UserRegistrationAPIView(APIView):
@@ -184,7 +190,11 @@ class VerifyEmailOTPAPIView(APIView):
 
         with transaction.atomic():
             user = User.objects.select_for_update().filter(email__iexact=email).first()
-            if not user or user.email_verified:
+            if (
+                not user
+                or user.email_verified
+                or user.status != User.STATUS_PENDING_VERIFICATION
+            ):
                 return Response(
                     {'success': False, 'message': 'Invalid OTP.'},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -227,7 +237,8 @@ class VerifyEmailOTPAPIView(APIView):
 
             user.email_verified = True
             user.status = User.STATUS_ACTIVE
-            user.save(update_fields=['email_verified', 'status', 'updated_at'])
+            user.is_active = True
+            user.save(update_fields=['email_verified', 'status', 'is_active', 'updated_at'])
 
             otp_record.used_at = now
             otp_record.save(update_fields=['used_at'])
@@ -258,7 +269,11 @@ class ResendEmailOTPAPIView(APIView):
 
         email = serializer.validated_data['email']
         user = User.objects.filter(email__iexact=email).first()
-        if not user or user.email_verified:
+        if (
+            not user
+            or user.email_verified
+            or user.status != User.STATUS_PENDING_VERIFICATION
+        ):
             return Response(
                 {'success': True, 'message': GENERIC_RESEND_MESSAGE},
                 status=status.HTTP_200_OK,
@@ -333,8 +348,10 @@ class ResetPasswordConfirmAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.set_password(new_password)
-        user.save(update_fields=['password'])
+        with transaction.atomic():
+            user.set_password(new_password)
+            user.save(update_fields=['password'])
+            _revoke_user_refresh_tokens(user)
 
         return Response(
             {'success': True, 'message': 'Password reset successfully. You can log in now.'},
@@ -421,8 +438,44 @@ class UserProfileAPIView(APIView):
     def patch(self, request):
         serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            response_serializer = self.serializer_class(request.user, context={'request': request})
+            previous_email = request.user.email
+            user = serializer.save()
+            email_changed = (
+                'email' in serializer.validated_data
+                and serializer.validated_data['email'] != previous_email
+            )
+
+            if email_changed:
+                user.email_verified = False
+                user.status = User.STATUS_PENDING_VERIFICATION
+                user.is_active = False
+                user.save(update_fields=['email_verified', 'status', 'is_active', 'updated_at'])
+                _revoke_user_refresh_tokens(user)
+
+                message = 'Email updated. Please verify your new email before signing in again.'
+                try:
+                    _issue_and_send_otp(user, enforce_rate_limit=False)
+                except Exception:
+                    logger.exception('Failed to send verification OTP after email change for user %s', user.id)
+                    message = (
+                        'Email updated. Please request a new OTP to verify your new email before signing in again.'
+                    )
+
+                response_serializer = self.serializer_class(user, context={'request': request})
+                return Response(
+                    {
+                        'success': True,
+                        'message': message,
+                        'data': {
+                            'user': response_serializer.data,
+                            'requires_email_verification': True,
+                            'verification_email': user.email,
+                        },
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            response_serializer = self.serializer_class(user, context={'request': request})
             return Response(
                 {
                     'success': True,
@@ -439,14 +492,30 @@ class UserProfileAPIView(APIView):
 
     def delete(self, request):
         try:
-            request.user.delete()
+            now = timezone.now()
+            user = request.user
+
+            with transaction.atomic():
+                EmailVerificationOTP.objects.filter(user=user, used_at__isnull=True).update(used_at=now)
+                user.set_unusable_password()
+                user.is_active = False
+                user.email_verified = False
+                user.status = User.STATUS_SUSPENDED
+                user.save(
+                    update_fields=['password', 'is_active', 'email_verified', 'status', 'updated_at']
+                )
+                _revoke_user_refresh_tokens(user)
+
             return Response(
-                {'success': True, 'message': 'Account deleted successfully'},
+                {
+                    'success': True,
+                    'message': 'Account deactivated successfully. Historical bookings and tickets were preserved.',
+                },
                 status=status.HTTP_200_OK,
             )
         except Exception:
             return Response(
-                {'success': False, 'message': 'Failed to delete account'},
+                {'success': False, 'message': 'Failed to deactivate account'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -460,8 +529,10 @@ class ChangePasswordAPIView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         if serializer.is_valid():
-            request.user.set_password(serializer.validated_data['new_password'])
-            request.user.save(update_fields=['password'])
+            with transaction.atomic():
+                request.user.set_password(serializer.validated_data['new_password'])
+                request.user.save(update_fields=['password'])
+                _revoke_user_refresh_tokens(request.user)
             return Response(
                 {'success': True, 'message': 'Password updated successfully'},
                 status=status.HTTP_200_OK,

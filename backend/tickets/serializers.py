@@ -12,8 +12,13 @@ class TicketSerializer(serializers.ModelSerializer):
     concert_title = serializers.CharField(source='concert.title', read_only=True)
     concert_date_time = serializers.DateTimeField(source='concert.date_time', read_only=True)
     concert_venue = serializers.CharField(source='concert.venue', read_only=True)
-    ticket_type = serializers.CharField(source='ticket_category.name', read_only=True)
-    ticket_price = serializers.DecimalField(source='ticket_category.price', max_digits=10, decimal_places=2, read_only=True)
+    ticket_type = serializers.CharField(source='payment_transaction.ticket_category_name_display', read_only=True)
+    ticket_price = serializers.DecimalField(
+        source='payment_transaction.ticket_unit_price_display',
+        max_digits=10,
+        decimal_places=2,
+        read_only=True,
+    )
     booking_id = serializers.UUIDField(source='payment_transaction.id', read_only=True)
     booking_quantity = serializers.IntegerField(source='payment_transaction.quantity', read_only=True)
     booking_total_paisa = serializers.IntegerField(source='payment_transaction.amount_paisa', read_only=True)
@@ -58,7 +63,7 @@ class OrganizerBookingSerializer(serializers.ModelSerializer):
     attendee_name = serializers.SerializerMethodField()
     attendee_email = serializers.EmailField(source='attendee.email', read_only=True)
     concert_title = serializers.CharField(source='concert.title', read_only=True)
-    ticket_type = serializers.CharField(source='ticket_category.name', read_only=True)
+    ticket_type = serializers.CharField(source='ticket_category_name_display', read_only=True)
     amount_rupees = serializers.SerializerMethodField()
 
     class Meta:

@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -28,6 +29,15 @@ class PaymentTransaction(models.Model):
     amount_paisa = models.PositiveIntegerField()
     quantity = models.PositiveIntegerField()
     status = models.CharField(max_length=50, default='Initiated')
+    stock_reserved = models.BooleanField(default=False)
+    reservation_expires_at = models.DateTimeField(blank=True, null=True)
+    ticket_category_name_snapshot = models.CharField(max_length=100, blank=True)
+    ticket_unit_price_snapshot = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
     transaction_id = models.CharField(max_length=255, blank=True, null=True)
     raw_response = models.JSONField(default=dict, blank=True)
     tickets_issued = models.BooleanField(default=False)
@@ -40,3 +50,19 @@ class PaymentTransaction(models.Model):
 
     def __str__(self):
         return f'{self.purchase_order_id} ({self.status})'
+
+    @property
+    def ticket_category_name_display(self):
+        if self.ticket_category_name_snapshot:
+            return self.ticket_category_name_snapshot
+        if self.ticket_category_id and getattr(self, 'ticket_category', None):
+            return self.ticket_category.name
+        return ''
+
+    @property
+    def ticket_unit_price_display(self):
+        if self.ticket_unit_price_snapshot is not None:
+            return self.ticket_unit_price_snapshot
+        if self.ticket_category_id and getattr(self, 'ticket_category', None):
+            return self.ticket_category.price
+        return Decimal('0')

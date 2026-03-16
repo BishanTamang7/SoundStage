@@ -1,12 +1,21 @@
 import re
 from datetime import timedelta
 
+from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.encoding import force_bytes
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from events.models import Concert
+from payments.models import PaymentTransaction
+from tickets.models import Ticket, TicketCategory
 
 from .models import EmailVerificationOTP, User
 
@@ -145,3 +154,216 @@ class EmailVerificationOTPFlowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(EmailVerificationOTP.objects.filter(user__email='cooldown@example.com').count(), 1)
         self.assertEqual(len(mail.outbox), 1)
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class AccountLifecycleTests(APITestCase):
+    def test_profile_email_change_requires_reverification(self):
+        user = User.objects.create_user(
+            email='verified@example.com',
+            username='verifieduser',
+            password='StrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            reverse('accounts:profile'),
+            {'email': 'new-address@example.com'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertTrue(response.data['data']['requires_email_verification'])
+        self.assertEqual(response.data['data']['verification_email'], 'new-address@example.com')
+
+        user.refresh_from_db()
+        self.assertEqual(user.email, 'new-address@example.com')
+        self.assertFalse(user.email_verified)
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.status, User.STATUS_PENDING_VERIFICATION)
+        self.assertEqual(EmailVerificationOTP.objects.filter(user=user, used_at__isnull=True).count(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+
+        login_response = self.client.post(
+            reverse('accounts:login'),
+            {'email': 'new-address@example.com', 'password': 'StrongPass123!'},
+            format='json',
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('verify your email', str(login_response.data).lower())
+
+        otp = re.search(r'(\d{6})', mail.outbox[-1].body).group(1)
+        verify_response = self.client.post(
+            reverse('accounts:verify_email_otp'),
+            {'email': 'new-address@example.com', 'otp': otp},
+            format='json',
+        )
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+
+        user.refresh_from_db()
+        self.assertTrue(user.email_verified)
+        self.assertTrue(user.is_active)
+        self.assertEqual(user.status, User.STATUS_ACTIVE)
+
+    def test_delete_account_deactivates_user_and_preserves_related_records(self):
+        organizer = User.objects.create_user(
+            email='organizer@example.com',
+            username='organizer',
+            password='StrongPass123!',
+            role=User.ORGANIZER,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        attendee = User.objects.create_user(
+            email='attendee@example.com',
+            username='attendee',
+            password='StrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        concert = Concert.objects.create(
+            organizer=organizer,
+            title='Preserved Show',
+            description='Concert data should remain.',
+            date_time=timezone.now() + timedelta(days=10),
+            venue='Arena, Kathmandu',
+            main_artist='Band',
+            organizer_name='Organizer',
+            contact_email='organizer@example.com',
+        )
+        category = TicketCategory.objects.create(
+            concert=concert,
+            name='VIP',
+            price='50.00',
+            quantity=100,
+        )
+        payment = PaymentTransaction.objects.create(
+            attendee=attendee,
+            concert=concert,
+            ticket_category=category,
+            pidx='delete-check-pidx',
+            purchase_order_id='delete-check-order',
+            amount_paisa=5000,
+            quantity=1,
+            status='Completed',
+            tickets_issued=True,
+        )
+        ticket = Ticket.objects.create(
+            attendee=attendee,
+            concert=concert,
+            ticket_category=category,
+            payment_transaction=payment,
+            qr_token='delete-check-qr',
+            token_pin='4832',
+        )
+
+        self.client.force_authenticate(user=organizer)
+        response = self.client.delete(reverse('accounts:profile'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+
+        organizer.refresh_from_db()
+        self.assertFalse(organizer.is_active)
+        self.assertFalse(organizer.email_verified)
+        self.assertEqual(organizer.status, User.STATUS_SUSPENDED)
+        self.assertFalse(organizer.has_usable_password())
+        self.assertTrue(User.objects.filter(pk=organizer.pk).exists())
+        self.assertTrue(Concert.objects.filter(pk=concert.pk).exists())
+        self.assertTrue(TicketCategory.objects.filter(pk=category.pk).exists())
+        self.assertTrue(PaymentTransaction.objects.filter(pk=payment.pk).exists())
+        self.assertTrue(Ticket.objects.filter(pk=ticket.pk).exists())
+
+        login_response = self.client.post(
+            reverse('accounts:login'),
+            {'email': 'organizer@example.com', 'password': 'StrongPass123!'},
+            format='json',
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('invalid email or password', str(login_response.data).lower())
+
+    def test_login_for_suspended_user_returns_disabled_message(self):
+        user = User.objects.create_user(
+            email='suspended@example.com',
+            username='suspendeduser',
+            password='StrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_SUSPENDED,
+            is_active=False,
+        )
+
+        response = self.client.post(
+            reverse('accounts:login'),
+            {'email': user.email, 'password': 'StrongPass123!'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('disabled', str(response.data).lower())
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class PasswordTokenRevocationTests(APITestCase):
+    def test_reset_password_blacklists_existing_refresh_tokens(self):
+        user = User.objects.create_user(
+            email='reset@example.com',
+            username='resetuser',
+            password='OldStrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        refresh = RefreshToken.for_user(user)
+
+        response = self.client.post(
+            reverse('accounts:reset_password_confirm'),
+            {
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+                'new_password': 'NewStrongPass123!',
+                'confirm_password': 'NewStrongPass123!',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('NewStrongPass123!'))
+        self.assertTrue(
+            BlacklistedToken.objects.filter(token__user=user, token__token=str(refresh)).exists()
+        )
+
+    def test_change_password_blacklists_existing_refresh_tokens(self):
+        user = User.objects.create_user(
+            email='change@example.com',
+            username='changeuser',
+            password='OldStrongPass123!',
+            role=User.ATTENDEE,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        refresh = RefreshToken.for_user(user)
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(
+            reverse('accounts:change_password'),
+            {
+                'current_password': 'OldStrongPass123!',
+                'new_password': 'NewStrongPass123!',
+                'confirm_password': 'NewStrongPass123!',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('NewStrongPass123!'))
+        self.assertTrue(
+            BlacklistedToken.objects.filter(token__user=user, token__token=str(refresh)).exists()
+        )

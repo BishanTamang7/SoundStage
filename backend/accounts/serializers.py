@@ -111,8 +111,14 @@ class UserLoginSerializer(serializers.Serializer):
         user = authenticate(username=email, password=password)
         
         if not user:
-            raise serializers.ValidationError('Invalid email or password.')
+            existing_user = User.objects.filter(email__iexact=email).first()
+            if existing_user and existing_user.check_password(password):
+                user = existing_user
+            else:
+                raise serializers.ValidationError('Invalid email or password.')
         
+        if user.status == User.STATUS_PENDING_VERIFICATION:
+            raise serializers.ValidationError('Please verify your email before logging in.')
         if not user.is_active:
             raise serializers.ValidationError('User account is disabled.')
         if not user.email_verified:
