@@ -18,6 +18,20 @@ const KhaltiCallback = () => {
   const normalizedRedirectStatus = redirectStatus.trim().toLowerCase()
   const isCanceledRedirect =
     normalizedRedirectStatus.includes('cancel') || normalizedRedirectStatus.includes('abandon')
+  const normalizedConfirmStatus = String(confirmData?.status || '')
+    .trim()
+    .toLowerCase()
+  const isCanceledFinal =
+    isCanceledRedirect ||
+    normalizedConfirmStatus.includes('cancel') ||
+    normalizedConfirmStatus.includes('abandon')
+
+  // If the user cancelled, jump straight back to concerts without showing the status card
+  useEffect(() => {
+    if (isCanceledFinal) {
+      navigate('/attendee/concerts', { replace: true })
+    }
+  }, [isCanceledFinal, navigate])
 
   useEffect(() => {
     let isActive = true
@@ -60,22 +74,18 @@ const KhaltiCallback = () => {
   }, [isCanceledRedirect, navigate, pidx, tokens?.access])
 
   useEffect(() => {
-    const normalizedLookupStatus = String(confirmData?.status || '')
-      .trim()
-      .toLowerCase()
-    if (normalizedLookupStatus.includes('cancel') || normalizedLookupStatus.includes('abandon')) {
-      navigate('/attendee/concerts', { replace: true })
-    }
-  }, [confirmData?.status, navigate])
-
-  useEffect(() => {
     if (loading || error) return
-    if (String(confirmData?.status || '').trim() === 'Completed') {
+    const normalizedStatus = String(confirmData?.status || '').trim().toLowerCase()
+    if (normalizedStatus === 'completed' || normalizedStatus === 'complete') {
       navigate('/attendee/tickets', { replace: true })
     }
   }, [confirmData?.status, error, loading, navigate])
 
   const statusText = confirmData?.status || redirectStatus || 'Unknown'
+
+  if (isCanceledFinal) {
+    return null
+  }
 
   if (loading) {
     return (

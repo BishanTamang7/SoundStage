@@ -16,6 +16,7 @@ const Checkout = () => {
   const [quantity, setQuantity] = useState(1)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('khalti')
 
   useEffect(() => {
     let isActive = true
@@ -107,18 +108,49 @@ const Checkout = () => {
     try {
       setPaymentLoading(true)
       setPaymentError('')
-      const response = await api.khaltiInitiate(tokens?.access, {
-        concert_id: id,
-        ticket_category_id: selectedTicket.id,
-        quantity,
-      })
-      const paymentUrl = response?.data?.payment_url
-      if (!paymentUrl) {
-        throw new Error('Khalti payment URL was not returned.')
+      if (paymentMethod === 'esewa') {
+        const response = await api.esewaInitiate(tokens?.access, {
+          concert_id: id,
+          ticket_category_id: selectedTicket.id,
+          quantity,
+        })
+        const formUrl = response?.data?.form_url
+        const params = response?.data?.params
+        if (!formUrl || !params) {
+          throw new Error('eSewa payment instructions were not returned.')
+        }
+
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = formUrl
+        Object.entries(params).forEach(([key, value]) => {
+          const input = document.createElement('input')
+          input.type = 'hidden'
+          input.name = key
+          input.value = value ?? ''
+          form.appendChild(input)
+        })
+        document.body.appendChild(form)
+        form.submit()
+      } else {
+        const response = await api.khaltiInitiate(tokens?.access, {
+          concert_id: id,
+          ticket_category_id: selectedTicket.id,
+          quantity,
+        })
+        const paymentUrl = response?.data?.payment_url
+        if (!paymentUrl) {
+          throw new Error('Khalti payment URL was not returned.')
+        }
+        window.location.href = paymentUrl
       }
-      window.location.href = paymentUrl
     } catch (err) {
-      setPaymentError(err?.message || 'Failed to initiate Khalti payment.')
+      setPaymentError(
+        err?.message ||
+          (paymentMethod === 'esewa'
+            ? 'Failed to initiate eSewa payment.'
+            : 'Failed to initiate Khalti payment.')
+      )
     } finally {
       setPaymentLoading(false)
     }
@@ -291,8 +323,59 @@ const Checkout = () => {
                       <span>Total</span>
                       <span>Rs {totalPrice || 0}</span>
                     </div>
+                    <div className="mt-6">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-[#9CA3AF]">
+                        Payment Method
+                      </h3>
+                      <div className="mt-3 grid gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentMethod('khalti')
+                            setPaymentError('')
+                          }}
+                          className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            paymentMethod === 'khalti'
+                              ? 'border-[#7C3AED] bg-[#F3F0FF] text-[#2C2E83]'
+                              : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#CBD5F5]'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#7C3AED] text-white">
+                              K
+                            </span>
+                            Khalti
+                          </span>
+                          <span className="text-xs uppercase tracking-wide text-[#9CA3AF]">Digital Wallet</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentMethod('esewa')
+                            setPaymentError('')
+                          }}
+                          className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            paymentMethod === 'esewa'
+                              ? 'border-[#10B981] bg-[#ECFDF3] text-[#065F46]'
+                              : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#D1FAE5]'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#10B981] text-white">
+                              eS
+                            </span>
+                            eSewa
+                          </span>
+                          <span className="text-xs uppercase tracking-wide text-[#6EE7B7]">Digital Wallet</span>
+                        </button>
+                      </div>
+                    </div>
                     <button
-                      className="mt-6 w-full rounded-lg bg-[#7C3AED] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_20px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
+                      className={`mt-6 w-full rounded-lg px-4 py-3 text-sm font-bold text-white shadow-[0_10px_20px_rgba(124,58,237,0.3)] transition ${
+                        paymentMethod === 'esewa'
+                          ? 'bg-[#10B981] shadow-[0_10px_20px_rgba(16,185,129,0.25)] hover:bg-[#059669]'
+                          : 'bg-[#7C3AED] hover:bg-[#5B21B6]'
+                      }`}
                       type="button"
                       onClick={handleProceedToPayment}
                       disabled={
@@ -302,7 +385,9 @@ const Checkout = () => {
                         quantity > selectedTicketRemaining
                       }
                     >
-                      {paymentLoading ? 'Redirecting to Khalti...' : 'Pay with Khalti'}
+                      {paymentLoading
+                        ? `Redirecting to ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}...`
+                        : `Pay with ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}`}
                     </button>
                     {paymentError ? (
                       <p className="mt-3 text-xs font-semibold text-[#B91C1C]">{paymentError}</p>

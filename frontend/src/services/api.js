@@ -335,6 +335,36 @@ export const api = {
       handleError(error)
     }
   },
+  esewaInitiate: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/payments/esewa/initiate/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  esewaLookup: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/payments/esewa/lookup/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
+  esewaConfirm: async (token, payload) => {
+    try {
+      const { data } = await apiClient.post('/payments/esewa/confirm/', payload, {
+        headers: withAuth(token),
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   myTickets: async (token) => {
     try {
       const { data } = await apiClient.get('/tickets/my/', {
