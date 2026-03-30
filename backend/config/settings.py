@@ -213,6 +213,17 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 KHALTI_SECRET_KEY = env('KHALTI_SECRET_KEY', default='')
 KHALTI_BASE_URL = env('KHALTI_BASE_URL', default='https://dev.khalti.com/api/v2')
 
+# eSewa (ePay v2)
+ESEWA_SECRET_KEY = env('ESEWA_SECRET_KEY', default='')
+ESEWA_PRODUCT_CODE = env('ESEWA_PRODUCT_CODE', default='EPAYTEST')
+ESEWA_PAYMENT_URL = env(
+    'ESEWA_PAYMENT_URL',
+    default=env('ESEWA_FROM_URL', default='https://rc-epay.esewa.com.np/api/epay/main/v2/form'),
+)
+ESEWA_STATUS_URL = env('ESEWA_STATUS_URL', default='https://rc.esewa.com.np/api/epay/transaction/status/')
+ESEWA_SUCCESS_URL = env('ESEWA_SUCCESS_URL', default=f'{FRONTEND_URL}/attendee/payment/esewa/callback')
+ESEWA_FAILURE_URL = env('ESEWA_FAILURE_URL', default=f'{FRONTEND_URL}/attendee/payment/esewa/callback')
+
 # Email backend configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com' 

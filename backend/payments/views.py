@@ -1,10 +1,14 @@
+import base64
+import binascii
+import hmac
 import json
 import logging
 import secrets
 import uuid
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from datetime import timedelta
 from urllib import error as url_error
+from urllib import parse as url_parse
 from urllib import request as url_request
 
 from django.conf import settings
@@ -28,7 +32,20 @@ logger = logging.getLogger(__name__)
 
 RESERVATION_TIMEOUT_MINUTES = 15
 PLACEHOLDER_PIDX_PREFIX = 'INIT-'
-TERMINAL_FAILED_STATUS_KEYWORDS = ('cancel', 'abandon', 'fail', 'expire', 'void')
+TERMINAL_FAILED_STATUS_KEYWORDS = (
+    'cancel',
+    'cancelled',
+    'canceled',
+    'abandon',
+    'fail',
+    'failed',
+    'expire',
+    'void',
+    'not_found',
+    'ambiguous',
+    'refund',
+)
+ESEWA_SIGNED_FIELDS_DEFAULT = 'total_amount,transaction_uuid,product_code'
 
 
 def _generate_token_pin(used_pins=None) -> str:
@@ -49,7 +66,8 @@ def _normalize_payment_status(value) -> str:
 
 
 def _is_completed_status(value) -> bool:
-    return _normalize_payment_status(value) == 'completed'
+    normalized = _normalize_payment_status(value)
+    return normalized in {'completed', 'complete', 'success'}
 
 
 def _is_terminal_unsuccessful_status(value) -> bool:
@@ -99,6 +117,54 @@ def _khalti_request(path: str, payload: dict):
         }
 
 
+def _esewa_generate_signature(payload: dict, signed_field_names: str, secret_key: str) -> str:
+    fields = [field.strip() for field in (signed_field_names or '').split(',') if field.strip()]
+    message = ','.join(f'{name}={payload.get(name, "")}' for name in fields)
+    digest = hmac.new(secret_key.encode('utf-8'), message.encode('utf-8'), digestmod='sha256').digest()
+    return base64.b64encode(digest).decode('utf-8')
+
+
+def _esewa_status_request(transaction_uuid: str, total_amount: Decimal):
+    product_code = settings.ESEWA_PRODUCT_CODE
+    status_url = (settings.ESEWA_STATUS_URL or '').rstrip('/')
+
+    if not (product_code and status_url):
+        return {
+            'ok': False,
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'data': {'detail': 'eSewa credentials are not configured on server.'},
+        }
+
+    query = url_parse.urlencode(
+        {
+            'product_code': product_code,
+            'transaction_uuid': transaction_uuid,
+            'total_amount': float(total_amount),
+        }
+    )
+    url = f'{status_url}?{query}'
+    req = url_request.Request(url=url, method='GET')
+
+    try:
+        with url_request.urlopen(req, timeout=20) as response:
+            body = response.read().decode('utf-8')
+            parsed = json.loads(body) if body else {}
+            return {'ok': True, 'status': response.status, 'data': parsed}
+    except url_error.HTTPError as exc:
+        body = exc.read().decode('utf-8') if exc.fp else ''
+        try:
+            parsed = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            parsed = {'detail': body or 'eSewa status check failed.'}
+        return {'ok': False, 'status': exc.code, 'data': parsed}
+    except (url_error.URLError, TimeoutError):
+        return {
+            'ok': False,
+            'status': status.HTTP_502_BAD_GATEWAY,
+            'data': {'detail': 'Could not reach eSewa service.'},
+        }
+
+
 def _get_concert_datetime_label(concert: Concert) -> str:
     return localtime(concert.date_time).strftime('%Y-%m-%d %I:%M %p') if concert.date_time else ''
 
@@ -110,6 +176,13 @@ def _require_request_pidx(request):
     return pidx, None
 
 
+def _require_request_transaction_uuid(request):
+    transaction_uuid = str(request.data.get('transaction_uuid') or '').strip()
+    if not transaction_uuid:
+        return None, Response({'detail': 'transaction_uuid is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    return transaction_uuid, None
+
+
 def _lookup_khalti_payment(pidx):
     khalti_response = _khalti_request('/epayment/lookup/', {'pidx': pidx})
     if not khalti_response['ok']:
@@ -117,8 +190,55 @@ def _lookup_khalti_payment(pidx):
     return khalti_response['data'], None
 
 
-def _get_attendee_payment(attendee, pidx):
-    return PaymentTransaction.objects.filter(pidx=pidx, attendee=attendee).first()
+def _build_esewa_form_payload(*, total_amount, transaction_uuid, success_url, failure_url):
+    secret_key = settings.ESEWA_SECRET_KEY
+    product_code = settings.ESEWA_PRODUCT_CODE
+    payment_url = (settings.ESEWA_PAYMENT_URL or '').rstrip('/')
+
+    if not (secret_key and product_code and payment_url):
+        return None, {
+            'detail': 'eSewa credentials are not configured on server.',
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+        }
+
+    payload = {
+        'amount': str(total_amount),
+        'tax_amount': '0',
+        'total_amount': str(total_amount),
+        'transaction_uuid': transaction_uuid,
+        'product_code': product_code,
+        'product_service_charge': '0',
+        'product_delivery_charge': '0',
+        'success_url': success_url,
+        'failure_url': failure_url,
+        'signed_field_names': ESEWA_SIGNED_FIELDS_DEFAULT,
+    }
+    payload['signature'] = _esewa_generate_signature(payload, payload['signed_field_names'], secret_key)
+    return {'form_url': payment_url, 'params': payload}, None
+
+
+def _verify_esewa_signature(payload: dict) -> bool:
+    secret_key = settings.ESEWA_SECRET_KEY
+    signed_fields = str(payload.get('signed_field_names') or '').strip()
+    signature = str(payload.get('signature') or '').strip()
+    if not (secret_key and signed_fields and signature):
+        return False
+    expected_signature = _esewa_generate_signature(payload, signed_fields, secret_key)
+    return hmac.compare_digest(expected_signature, signature)
+
+
+def _lookup_esewa_payment(transaction_uuid, total_amount):
+    status_response = _esewa_status_request(transaction_uuid, total_amount)
+    if not status_response['ok']:
+        return None, Response(status_response['data'], status=status_response['status'])
+    return status_response['data'], None
+
+
+def _get_attendee_payment(attendee, pidx, provider=None):
+    qs = PaymentTransaction.objects.filter(pidx=pidx, attendee=attendee)
+    if provider:
+        qs = qs.filter(provider=provider)
+    return qs.first()
 
 
 def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
@@ -148,7 +268,16 @@ def _sync_payment_from_lookup(payment: PaymentTransaction, lookup_data: dict):
     return payment
 
 
-def _create_reserved_payment(*, attendee, concert, ticket_category, purchase_order_id, amount_paisa, quantity):
+def _create_reserved_payment(
+    *,
+    attendee,
+    concert,
+    ticket_category,
+    purchase_order_id,
+    amount_paisa,
+    quantity,
+    provider=PaymentTransaction.PROVIDER_KHALTI,
+):
     reservation_expires_at = timezone.now() + timedelta(minutes=RESERVATION_TIMEOUT_MINUTES)
     placeholder_pidx = f'{PLACEHOLDER_PIDX_PREFIX}{uuid.uuid4().hex}'
 
@@ -164,6 +293,7 @@ def _create_reserved_payment(*, attendee, concert, ticket_category, purchase_ord
             attendee=attendee,
             concert=concert,
             ticket_category=category,
+            provider=provider,
             pidx=placeholder_pidx,
             purchase_order_id=purchase_order_id,
             amount_paisa=amount_paisa,
@@ -220,11 +350,22 @@ def _finalize_expired_reservations(ticket_category: TicketCategory):
             _release_stock_reservation(payment, status_value='Initiation Failed')
             continue
 
-        khalti_response = _khalti_request('/epayment/lookup/', {'pidx': payment.pidx})
-        if not khalti_response['ok']:
-            continue
+        if payment.provider == PaymentTransaction.PROVIDER_ESEWA:
+            total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+            esewa_response = _esewa_status_request(payment.pidx, total_rupees)
+            if not esewa_response['ok']:
+                continue
+            lookup_payload = {
+                **esewa_response['data'],
+                'transaction_id': esewa_response['data'].get('ref_id'),
+            }
+            payment = _sync_payment_from_lookup(payment, lookup_payload)
+        else:
+            khalti_response = _khalti_request('/epayment/lookup/', {'pidx': payment.pidx})
+            if not khalti_response['ok']:
+                continue
+            payment = _sync_payment_from_lookup(payment, khalti_response['data'])
 
-        payment = _sync_payment_from_lookup(payment, khalti_response['data'])
         if _is_completed_status(payment.status):
             issued_tickets, newly_issued = _issue_tickets(payment)
             if newly_issued and issued_tickets:
@@ -501,7 +642,15 @@ def khalti_lookup(request):
 
     payment = _get_attendee_payment(request.user, pidx)
     if payment:
-        _sync_payment_from_lookup(payment, lookup_data)
+        payment = _sync_payment_from_lookup(payment, lookup_data)
+
+        if _is_terminal_unsuccessful_status(lookup_data.get('status')):
+            _release_stock_reservation(
+                payment,
+                status_value=lookup_data.get('status'),
+                transaction_id=lookup_data.get('transaction_id'),
+                raw_response=lookup_data,
+            )
 
     return Response({'success': True, 'data': lookup_data}, status=status.HTTP_200_OK)
 
@@ -522,6 +671,26 @@ def khalti_confirm(request):
         return error_response
 
     payment = _sync_payment_from_lookup(payment, lookup_data)
+
+    # If Khalti reports a terminal unsuccessful state, immediately release the
+    # reserved stock so seats become available again.
+    if _is_terminal_unsuccessful_status(lookup_data.get('status')):
+        payment = _release_stock_reservation(
+            payment,
+            status_value=lookup_data.get('status'),
+            transaction_id=lookup_data.get('transaction_id'),
+            raw_response=lookup_data,
+        )
+        return Response(
+            {
+                'success': True,
+                'data': {
+                    'status': lookup_data.get('status'),
+                    'tickets': [],
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
 
     if not _is_completed_status(lookup_data.get('status')):
         return Response(
@@ -551,6 +720,254 @@ def khalti_confirm(request):
             'data': {
                 'status': lookup_data.get('status'),
                 'tickets': serializer.data,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def esewa_initiate(request):
+    concert_id = request.data.get('concert_id')
+    ticket_category_id = request.data.get('ticket_category_id')
+    quantity = request.data.get('quantity', 1)
+
+    if not concert_id or not ticket_category_id:
+        return Response(
+            {'detail': 'concert_id and ticket_category_id are required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        return Response({'detail': 'quantity must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if quantity < 1:
+        return Response({'detail': 'quantity must be at least 1.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        concert = Concert.objects.get(id=concert_id)
+    except Concert.DoesNotExist:
+        return Response({'detail': 'Concert not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if concert.date_time <= timezone.now():
+        return Response(
+            {'detail': 'Tickets can no longer be purchased for past concerts.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        ticket_category = TicketCategory.objects.get(id=ticket_category_id, concert=concert)
+    except TicketCategory.DoesNotExist:
+        return Response(
+            {'detail': 'Ticket category not found for this concert.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    _finalize_expired_reservations(ticket_category)
+
+    total_rupees = (Decimal(ticket_category.price) * Decimal(quantity)).quantize(
+        Decimal('0.01'), rounding=ROUND_HALF_UP
+    )
+    total_paisa = int((total_rupees * Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    if total_paisa < 1000:
+        return Response(
+            {'detail': 'Minimum payable amount is Rs 10 (1000 paisa).'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    transaction_uuid = f'SS-E{uuid.uuid4().hex[:18]}'
+    purchase_order_id = f'SS-{uuid.uuid4().hex[:16]}'
+    try:
+        payment = _create_reserved_payment(
+            attendee=request.user,
+            concert=concert,
+            ticket_category=ticket_category,
+            purchase_order_id=purchase_order_id,
+            amount_paisa=total_paisa,
+            quantity=quantity,
+            provider=PaymentTransaction.PROVIDER_ESEWA,
+        )
+    except ValueError as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+
+    success_base = getattr(settings, 'ESEWA_SUCCESS_URL', None) or f'{settings.FRONTEND_URL}/attendee/payment/esewa/callback'
+    failure_base = getattr(settings, 'ESEWA_FAILURE_URL', None) or f'{settings.FRONTEND_URL}/attendee/payment/esewa/callback'
+    success_url = f'{success_base}?transaction_uuid={transaction_uuid}&status=success'
+    failure_url = f'{failure_base}?transaction_uuid={transaction_uuid}&status=failure'
+
+    form_payload, error_payload = _build_esewa_form_payload(
+        total_amount=total_rupees,
+        transaction_uuid=transaction_uuid,
+        success_url=success_url,
+        failure_url=failure_url,
+    )
+    if error_payload:
+        _release_stock_reservation(payment, status_value='Initiation Failed', raw_response=error_payload)
+        return Response({'detail': error_payload.get('detail')}, status=error_payload.get('status', 500))
+
+    payment.pidx = transaction_uuid
+    payment.status = 'Initiated'
+    payment.raw_response = form_payload
+    payment.save(update_fields=['pidx', 'status', 'raw_response', 'updated_at'])
+
+    return Response(
+        {
+            'success': True,
+            'data': {
+                **form_payload,
+                'transaction_uuid': transaction_uuid,
+                'amount': str(total_rupees),
+                'concert_id': str(concert.id),
+                'ticket_category_id': str(ticket_category.id),
+                'quantity': quantity,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def esewa_lookup(request):
+    transaction_uuid, error_response = _require_request_transaction_uuid(request)
+    if error_response:
+        return error_response
+
+    payment = _get_attendee_payment(
+        request.user,
+        transaction_uuid,
+        provider=PaymentTransaction.PROVIDER_ESEWA,
+    )
+    if not payment:
+        return Response({'detail': 'Payment transaction not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+    lookup_data, error_response = _lookup_esewa_payment(transaction_uuid, total_rupees)
+    if error_response:
+        return error_response
+
+    lookup_payload = {**lookup_data, 'transaction_id': lookup_data.get('ref_id')}
+    payment = _sync_payment_from_lookup(payment, lookup_payload)
+
+    tickets_data = []
+    if _is_completed_status(payment.status):
+        try:
+            issued_tickets, newly_issued = _issue_tickets(payment)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+
+        if newly_issued and issued_tickets:
+            try:
+                _send_booking_confirmation_email(payment, issued_tickets)
+            except Exception:
+                logger.exception('Failed to send booking confirmation email for payment %s', payment.id)
+            try:
+                _send_organizer_booking_notification_email(payment, issued_tickets)
+            except Exception:
+                logger.exception('Failed to send organizer booking notification email for payment %s', payment.id)
+
+        serializer = TicketSerializer(issued_tickets, many=True)
+        tickets_data = serializer.data
+
+    return Response(
+        {
+            'success': True,
+            'data': {
+                'status': lookup_data.get('status'),
+                'tickets': tickets_data,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAttendee])
+def esewa_confirm(request):
+    encoded_data = str(request.data.get('data') or '').strip()
+    transaction_uuid_param = str(request.data.get('transaction_uuid') or '').strip()
+
+    if not encoded_data and not transaction_uuid_param:
+        return Response(
+            {'detail': 'data (base64) or transaction_uuid is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    payload = None
+    if encoded_data:
+        try:
+            decoded_bytes = base64.b64decode(encoded_data)
+            payload = json.loads(decoded_bytes.decode('utf-8'))
+        except (ValueError, json.JSONDecodeError, binascii.Error):
+            return Response({'detail': 'Invalid payment payload received from eSewa.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    transaction_uuid = transaction_uuid_param or (payload.get('transaction_uuid') if payload else '')
+    if not transaction_uuid:
+        return Response({'detail': 'transaction_uuid is missing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    payment = _get_attendee_payment(
+        request.user,
+        transaction_uuid,
+        provider=PaymentTransaction.PROVIDER_ESEWA,
+    )
+    if not payment:
+        return Response({'detail': 'Payment transaction not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # If payload not provided, fall back to status check
+    if not payload:
+        total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+        lookup_data, error_response = _lookup_esewa_payment(transaction_uuid, total_rupees)
+        if error_response:
+            return error_response
+        payload = lookup_data
+        payload['transaction_id'] = lookup_data.get('ref_id')
+    else:
+        payload['transaction_id'] = payload.get('transaction_code') or payload.get('ref_id')
+
+    if encoded_data and not _verify_esewa_signature(payload):
+        return Response({'detail': 'Invalid eSewa signature.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Amount validation
+    total_rupees = Decimal(payment.amount_paisa) / Decimal('100')
+    try:
+        payload_amount = Decimal(str(payload.get('total_amount')))
+    except (TypeError, InvalidOperation):
+        payload_amount = None
+    if payload_amount is not None and payload_amount != total_rupees:
+        return Response({'detail': 'Payment amount mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    payment = _sync_payment_from_lookup(payment, payload)
+
+    tickets_data = []
+    if _is_completed_status(payment.status):
+        try:
+            issued_tickets, newly_issued = _issue_tickets(payment)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+
+        if newly_issued and issued_tickets:
+            try:
+                _send_booking_confirmation_email(payment, issued_tickets)
+            except Exception:
+                logger.exception('Failed to send booking confirmation email for payment %s', payment.id)
+            try:
+                _send_organizer_booking_notification_email(payment, issued_tickets)
+            except Exception:
+                logger.exception('Failed to send organizer booking notification email for payment %s', payment.id)
+
+        serializer = TicketSerializer(issued_tickets, many=True)
+        tickets_data = serializer.data
+
+    return Response(
+        {
+            'success': True,
+            'data': {
+                'status': payload.get('status'),
+                'transaction_uuid': transaction_uuid,
+                'tickets': tickets_data,
             },
         },
         status=status.HTTP_200_OK,

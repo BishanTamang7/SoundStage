@@ -6,7 +6,14 @@ from django.db import models
 
 
 class PaymentTransaction(models.Model):
-    """Stores Khalti transaction lifecycle and ticket issuance state."""
+    """Stores payment transaction lifecycle and ticket issuance state."""
+
+    PROVIDER_KHALTI = 'KHALTI'
+    PROVIDER_ESEWA = 'ESEWA'
+    PROVIDER_CHOICES = [
+        (PROVIDER_KHALTI, 'Khalti'),
+        (PROVIDER_ESEWA, 'eSewa'),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     attendee = models.ForeignKey(
@@ -23,6 +30,11 @@ class PaymentTransaction(models.Model):
         'tickets.TicketCategory',
         on_delete=models.CASCADE,
         related_name='payment_transactions',
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default=PROVIDER_KHALTI,
     )
     pidx = models.CharField(max_length=255, unique=True)
     purchase_order_id = models.CharField(max_length=255, unique=True)
