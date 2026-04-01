@@ -16,7 +16,7 @@ const Checkout = () => {
   const [quantity, setQuantity] = useState(1)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('khalti')
+  const [paymentMethod, setPaymentMethod] = useState('')
 
   useEffect(() => {
     let isActive = true
@@ -39,10 +39,8 @@ const Checkout = () => {
             : Array.isArray(payload?.tickets)
               ? payload.tickets
               : []
-          const availableTicket = categories.find(
-            (ticket) => Number(ticket?.remaining ?? ticket?.quantity ?? 0) > 0
-          )
-          setSelectedTicket(availableTicket || categories[0] || null)
+          // Do not preselect a ticket; require explicit user choice.
+          setSelectedTicket(null)
         }
       } catch (err) {
         if (isActive) setError(err?.message || 'Failed to load concert.')
@@ -108,6 +106,11 @@ const Checkout = () => {
   const handleProceedToPayment = async () => {
     if (!selectedTicket?.id) {
       setPaymentError('Please select a ticket type.')
+      return
+    }
+
+    if (!paymentMethod) {
+      setPaymentError('Please select a payment method.')
       return
     }
 
@@ -358,7 +361,7 @@ const Checkout = () => {
                           className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                             paymentMethod === 'khalti'
                               ? 'border-[#7C3AED] bg-[#F3F0FF] text-[#2C2E83]'
-                              : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#CBD5F5]'
+                            : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#CBD5F5]'
                           }`}
                         >
                           <span className="flex items-center gap-2">
@@ -378,7 +381,7 @@ const Checkout = () => {
                           className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                             paymentMethod === 'esewa'
                               ? 'border-[#10B981] bg-[#ECFDF3] text-[#065F46]'
-                              : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#D1FAE5]'
+                            : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#D1FAE5]'
                           }`}
                         >
                           <span className="flex items-center gap-2">
@@ -402,13 +405,18 @@ const Checkout = () => {
                       disabled={
                         paymentLoading ||
                         !selectedTicket ||
+                        !paymentMethod ||
                         selectedTicketRemaining < 1 ||
                         quantity > selectedTicketRemaining
                       }
                     >
                       {paymentLoading
-                        ? `Redirecting to ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}...`
-                        : `Pay with ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}`}
+                        ? paymentMethod
+                          ? `Redirecting to ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}...`
+                          : 'Processing...'
+                        : paymentMethod
+                          ? `Pay with ${paymentMethod === 'esewa' ? 'eSewa' : 'Khalti'}`
+                          : 'Select payment method'}
                     </button>
                     {paymentError ? (
                       <p className="mt-3 text-xs font-semibold text-[#B91C1C]">{paymentError}</p>
