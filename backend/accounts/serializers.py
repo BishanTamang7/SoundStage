@@ -120,10 +120,11 @@ class UserLoginSerializer(serializers.Serializer):
         
         if not user:
             existing_user = User.objects.filter(email__iexact=email).first()
-            if existing_user and existing_user.check_password(password):
-                user = existing_user
-            else:
-                raise serializers.ValidationError('Invalid email or password.')
+            if not existing_user:
+                raise serializers.ValidationError('No account found with this email. Please register first.')
+            if not existing_user.check_password(password):
+                raise serializers.ValidationError('Incorrect password.')
+            user = existing_user
         
         if user.status == User.STATUS_PENDING_VERIFICATION:
             raise serializers.ValidationError('Please verify your email before logging in.')

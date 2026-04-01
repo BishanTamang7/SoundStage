@@ -492,30 +492,26 @@ class UserProfileAPIView(APIView):
 
     def delete(self, request):
         try:
-            now = timezone.now()
             user = request.user
 
             with transaction.atomic():
+                now = timezone.now()
                 EmailVerificationOTP.objects.filter(user=user, used_at__isnull=True).update(used_at=now)
-                user.set_unusable_password()
-                user.is_active = False
-                user.email_verified = False
-                user.status = User.STATUS_SUSPENDED
-                user.save(
-                    update_fields=['password', 'is_active', 'email_verified', 'status', 'updated_at']
-                )
                 _revoke_user_refresh_tokens(user)
+                # Always hard delete the account. Downstream FKs use SET_NULL/CASCADE per model definition.
+                user.delete()
+                message = 'Account deleted successfully.'
 
             return Response(
                 {
                     'success': True,
-                    'message': 'Account deactivated successfully. Historical bookings and tickets were preserved.',
+                    'message': message,
                 },
                 status=status.HTTP_200_OK,
             )
         except Exception:
             return Response(
-                {'success': False, 'message': 'Failed to deactivate account'},
+                {'success': False, 'message': 'Failed to delete account'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

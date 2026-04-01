@@ -47,7 +47,6 @@ class User(AbstractBaseUser):
     STATUS_CHOICES = [
         (STATUS_PENDING_VERIFICATION, 'Pending Verification'),
         (STATUS_ACTIVE, 'Active'),
-        (STATUS_SUSPENDED, 'Suspended'),
     ]
 
     # User fields

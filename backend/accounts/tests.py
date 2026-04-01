@@ -209,7 +209,7 @@ class AccountLifecycleTests(APITestCase):
         self.assertTrue(user.is_active)
         self.assertEqual(user.status, User.STATUS_ACTIVE)
 
-    def test_delete_account_deactivates_user_and_preserves_related_records(self):
+    def test_delete_attendee_account_removes_user_and_preserves_ticket_records(self):
         organizer = User.objects.create_user(
             email='organizer@example.com',
             username='organizer',
@@ -262,26 +262,26 @@ class AccountLifecycleTests(APITestCase):
             token_pin='4832',
         )
 
-        self.client.force_authenticate(user=organizer)
+        self.client.force_authenticate(user=attendee)
         response = self.client.delete(reverse('accounts:profile'))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['success'])
 
-        organizer.refresh_from_db()
-        self.assertFalse(organizer.is_active)
-        self.assertFalse(organizer.email_verified)
-        self.assertEqual(organizer.status, User.STATUS_SUSPENDED)
-        self.assertFalse(organizer.has_usable_password())
-        self.assertTrue(User.objects.filter(pk=organizer.pk).exists())
+        self.assertFalse(User.objects.filter(pk=attendee.pk).exists())
         self.assertTrue(Concert.objects.filter(pk=concert.pk).exists())
         self.assertTrue(TicketCategory.objects.filter(pk=category.pk).exists())
         self.assertTrue(PaymentTransaction.objects.filter(pk=payment.pk).exists())
         self.assertTrue(Ticket.objects.filter(pk=ticket.pk).exists())
 
+        ticket.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertIsNone(ticket.attendee)
+        self.assertIsNone(payment.attendee)
+
         login_response = self.client.post(
             reverse('accounts:login'),
-            {'email': 'organizer@example.com', 'password': 'StrongPass123!'},
+            {'email': 'attendee@example.com', 'password': 'StrongPass123!'},
             format='json',
         )
         self.assertEqual(login_response.status_code, status.HTTP_401_UNAUTHORIZED)
