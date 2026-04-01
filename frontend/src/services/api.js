@@ -15,6 +15,13 @@ const formatErrorMessage = (data) => {
     if (typeof data.errors === 'string') return data.errors
     if (Array.isArray(data.errors)) return data.errors.join(', ')
     if (typeof data.errors === 'object') {
+      if (data.errors.non_field_errors) {
+        const list = Array.isArray(data.errors.non_field_errors)
+          ? data.errors.non_field_errors
+          : [data.errors.non_field_errors]
+        const cleaned = list.map((item) => String(item)).filter(Boolean)
+        if (cleaned.length > 0) return cleaned.join(', ')
+      }
       if (data.errors.username) {
         const usernameErrors = Array.isArray(data.errors.username)
           ? data.errors.username

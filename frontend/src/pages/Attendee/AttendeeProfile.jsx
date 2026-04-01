@@ -45,7 +45,7 @@ const AttendeeProfile = () => {
     defaultProfileName: 'Attendee',
     defaultRole: 'attendee',
     initialsFallback: 'AT',
-    deleteErrorMessage: 'Failed to deactivate account.',
+    deleteErrorMessage: 'Failed to delete account.',
   })
 
   return (
@@ -108,9 +108,10 @@ const AttendeeProfile = () => {
           </section>
 
           <section className="rounded-2xl border border-[#FECACA] bg-white p-6">
-            <h2 className="text-lg font-black text-[#B91C1C]">Deactivate Account</h2>
+            <h2 className="text-lg font-black text-[#B91C1C]">Delete Account</h2>
             <p className="mt-2 text-sm text-[#6B7280]">
-              This removes sign-in access while keeping your ticket and booking history preserved.
+              Permanently delete your account. This action cannot be undone. Tickets and booking history will still be
+              visible to organizers.
             </p>
             {deleteError ? <p className="mt-3 text-sm font-semibold text-[#DC2626]">{deleteError}</p> : null}
             <button
@@ -119,7 +120,7 @@ const AttendeeProfile = () => {
               onClick={openDeleteDialog}
               disabled={deletingAccount}
             >
-              {deletingAccount ? 'Deactivating...' : 'Deactivate Account'}
+              {deletingAccount ? 'Deleting...' : 'Delete Account'}
             </button>
           </section>
         </aside>
@@ -257,10 +258,11 @@ const AttendeeProfile = () => {
             aria-describedby="delete-account-dialog-description"
           >
             <h3 id="delete-account-dialog-title" className="text-lg font-black text-[#B91C1C]">
-              Deactivate account?
+              Delete account permanently?
             </h3>
             <p id="delete-account-dialog-description" className="mt-3 text-sm leading-6 text-[#6B7280]">
-              This removes sign-in access to your account. Your tickets and booking history will remain preserved.
+              This will permanently remove your account. Tickets and booking history will remain available to organizers.
+              You cannot undo this action.
             </p>
             {deleteError ? <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p> : null}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -278,7 +280,7 @@ const AttendeeProfile = () => {
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deactivating...' : 'Yes, Deactivate'}
+                {deletingAccount ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>

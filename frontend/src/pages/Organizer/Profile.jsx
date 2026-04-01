@@ -121,7 +121,7 @@ const OrganizerProfile = () => {
               <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F87171]">Danger Zone</p>
               <h2 className="mt-3 text-xl font-black text-[#991B1B]">Delete organizer account</h2>
               <p className="mt-3 text-sm leading-6 text-[#6B7280]">
-                This removes organizer sign-in access while preserving concerts, bookings, and ticket history.
+                This will delete your organizer account and remove your concerts, bookings, and ticket history.
               </p>
               {deleteError ? <p className="mt-4 text-sm font-semibold text-[#B91C1C]">{deleteError}</p> : null}
               <button
@@ -130,7 +130,7 @@ const OrganizerProfile = () => {
                 onClick={openDeleteDialog}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deactivating Account...' : 'Deactivate Account'}
+                {deletingAccount ? 'Deleting Account...' : 'Delete Account'}
               </button>
             </section>
           </aside>
@@ -311,10 +311,10 @@ const OrganizerProfile = () => {
             aria-describedby="delete-organizer-profile-dialog-description"
           >
             <h3 id="delete-organizer-profile-dialog-title" className="text-lg font-black text-[#B91C1C]">
-              Deactivate organizer account?
+              Delete organizer account?
             </h3>
             <p id="delete-organizer-profile-dialog-description" className="mt-3 text-sm leading-6 text-[#6B7280]">
-              This removes organizer sign-in access. Concerts, bookings, and ticket history will remain preserved.
+              This will permanently delete your organizer account, concerts, bookings, and ticket history.
             </p>
             {deleteError ? <p className="mt-3 text-sm font-semibold text-[#B91C1C]">{deleteError}</p> : null}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -332,7 +332,7 @@ const OrganizerProfile = () => {
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}
               >
-                {deletingAccount ? 'Deactivating...' : 'Yes, Deactivate Account'}
+                {deletingAccount ? 'Deleting...' : 'Yes, Delete Account'}
               </button>
             </div>
           </div>
