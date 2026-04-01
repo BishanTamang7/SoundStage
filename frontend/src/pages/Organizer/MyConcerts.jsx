@@ -97,8 +97,27 @@ const MyConcerts = () => {
             Loading concerts...
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-10 text-center text-sm font-semibold text-[#B91C1C]">
-            {error}
+          <div
+            className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-6 py-6 text-sm text-[#B91C1C]"
+            role="alert"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 text-lg font-black">!</span>
+                <div>
+                  <div className="text-base font-black text-[#B91C1C]">Action blocked</div>
+                  <p className="mt-1 font-semibold leading-6">{error}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                className="rounded-md px-2 py-1 text-sm font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                aria-label="Dismiss message"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ) : concerts.length === 0 ? (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">

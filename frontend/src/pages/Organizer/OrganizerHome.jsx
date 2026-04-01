@@ -181,7 +181,7 @@ const OrganizerHome = () => {
                     </td>
                   </tr>
                 ) : (
-                  recentBookings.slice(0, 2).map((row) => (
+                  recentBookings.slice(0, 3).map((row) => (
                     <tr key={row.id} className="border-b border-[#E5E7EB] last:border-b-0">
                       <td className="py-4">{row.attendee_name || row.attendee_email || 'Customer'}</td>
                       <td className="py-4">
