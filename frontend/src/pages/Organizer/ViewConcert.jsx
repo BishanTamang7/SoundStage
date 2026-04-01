@@ -44,7 +44,27 @@ const ViewConcert = () => {
 
   const ticketCategories = useMemo(() => {
     if (!concert?.ticket_categories) return [];
-    return Array.isArray(concert.ticket_categories) ? concert.ticket_categories : [];
+    const list = Array.isArray(concert.ticket_categories)
+      ? concert.ticket_categories
+      : [];
+
+    const priority = ["vip", "regular"];
+    const withIndex = list.map((item, originalIndex) => ({ item, originalIndex }));
+
+    withIndex.sort((a, b) => {
+      const aName = String(a.item?.name || "").toLowerCase();
+      const bName = String(b.item?.name || "").toLowerCase();
+      const aPriority = priority.indexOf(aName);
+      const bPriority = priority.indexOf(bName);
+
+      const aScore = aPriority === -1 ? priority.length : aPriority;
+      const bScore = bPriority === -1 ? priority.length : bPriority;
+
+      if (aScore !== bScore) return aScore - bScore;
+      return a.originalIndex - b.originalIndex;
+    });
+
+    return withIndex.map(({ item }) => item);
   }, [concert]);
   const { venueName, city } = getVenueParts(concert?.venue || "");
 
