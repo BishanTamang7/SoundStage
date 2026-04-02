@@ -19,18 +19,16 @@ export const getInitialsFromWords = (
   return `${first}${second}`.toUpperCase() || fallback
 }
 
-export const getInitialsFromHandle = (value, fallback = 'UU') => {
+export const getInitialsFromHandle = (value, fallback = 'U') => {
   if (!value) return fallback
 
   const base = String(value).split('@')[0]
   const parts = base.split(/[\s._-]+/).filter(Boolean)
 
   if (!parts.length) return fallback
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase() || fallback
-  }
 
-  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase() || fallback
+  // Show only the first letter of the username/handle as the avatar initial
+  return (parts[0][0] ?? fallback).toUpperCase()
 }
 
 export const toTitleCase = (value) => {

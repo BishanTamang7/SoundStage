@@ -22,7 +22,7 @@ const OrganizerSidebar = () => {
 
   const displayName = user?.username || user?.email || 'User'
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
-  const initials = useMemo(() => getInitialsFromHandle(user?.username || user?.email || '', 'UU'), [user])
+  const initials = useMemo(() => getInitialsFromHandle(user?.username || user?.email || '', 'U'), [user])
   const profilePhoto = useMemo(() => getStoredProfilePhoto(user), [user])
 
   useEffect(() => {
