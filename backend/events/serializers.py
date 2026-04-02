@@ -175,11 +175,14 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
         return value
 
     def validate_description(self, value):
-        word_count = len([word for word in (value or '').strip().split() if word])
+        text = (value or '').strip()
+        word_count = len([word for word in text.split() if word])
         if word_count > DESCRIPTION_WORD_LIMIT:
             raise serializers.ValidationError(
                 f'Description must be {DESCRIPTION_WORD_LIMIT} words or fewer.'
             )
+        if text and text.isdigit():
+            raise serializers.ValidationError('Description cannot be only numbers. Add words or letters.')
         return value
 
     def validate_title(self, value):
@@ -188,6 +191,12 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
             return value
         if text.isdigit():
             raise serializers.ValidationError('Concert title cannot be only numbers. Add words or letters.')
+        return value
+
+    def validate_main_artist(self, value):
+        text = (value or '').strip()
+        if text and text.isdigit():
+            raise serializers.ValidationError('Main artist cannot be only numbers. Add words or letters.')
         return value
 
     def validate_contact_phone(self, value):

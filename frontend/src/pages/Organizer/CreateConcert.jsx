@@ -224,6 +224,16 @@ const CreateConcert = () => {
       setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
       return;
     }
+    if (description && /^\d+$/.test(description.replace(/\s+/g, ""))) {
+      setFormError("Description cannot be only numbers. Add words or letters.");
+      return;
+    }
+
+    const mainArtistValue = getFieldValue("main-artist");
+    if (mainArtistValue && /^\d+$/.test(mainArtistValue)) {
+      setFormError("Main artist cannot be only numbers. Add words or letters.");
+      return;
+    }
 
     const formData = new FormData();
 

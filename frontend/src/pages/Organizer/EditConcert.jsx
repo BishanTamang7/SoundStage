@@ -308,6 +308,23 @@ const EditConcert = () => {
       return;
     }
 
+    const descriptionValue = formState.description?.trim() || "";
+    const descriptionWordCount = descriptionValue ? descriptionValue.split(/\\s+/).filter(Boolean).length : 0;
+    if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
+      setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
+      return;
+    }
+    if (descriptionValue && /^\\d+$/.test(descriptionValue.replace(/\\s+/g, ""))) {
+      setFormError("Description cannot be only numbers. Add words or letters.");
+      return;
+    }
+
+    const mainArtistValue = formState.main_artist?.trim();
+    if (mainArtistValue && /^\\d+$/.test(mainArtistValue)) {
+      setFormError("Main artist cannot be only numbers. Add words or letters.");
+      return;
+    }
+
     let normalizedContactPhone = "";
     if (formState.contact_phone) {
       const strippedPhone = formState.contact_phone.replace(/\s+/g, "");
@@ -346,14 +363,6 @@ const EditConcert = () => {
       (formState.city === "Other" && !formState.other_city.trim())
     ) {
       setFormError("Venue name and city are required.");
-      return;
-    }
-
-    const descriptionWordCount = formState.description
-      ? formState.description.split(/\s+/).filter(Boolean).length
-      : 0;
-    if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
-      setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
       return;
     }
 
