@@ -174,17 +174,26 @@ const CreateConcert = () => {
       return { name, price, quantity };
     });
 
-    const invalidTicket = normalizedTickets.find(
-      (ticket) =>
-        !ticket.name ||
-        !Number.isFinite(ticket.price) ||
-        ticket.price < 0 ||
-        !Number.isFinite(ticket.quantity) ||
-        ticket.quantity < 1
+    const invalidPriceNumber = normalizedTickets.some(
+      (ticket) => !Number.isFinite(ticket.price)
     );
+    const invalidQuantityNumber = normalizedTickets.some(
+      (ticket) => !Number.isFinite(ticket.quantity)
+    );
+    if (invalidPriceNumber || invalidQuantityNumber) {
+      setFormError("Ticket price and quantity must be valid numbers.");
+      return;
+    }
 
-    if (invalidTicket) {
-      setFormError("Please fill in all ticket types with valid price and quantity.");
+    const hasNegativePrice = normalizedTickets.some((ticket) => ticket.price < 0);
+    if (hasNegativePrice) {
+      setFormError("Ticket price cannot be negative.");
+      return;
+    }
+
+    const hasTooSmallQuantity = normalizedTickets.some((ticket) => ticket.quantity < 1);
+    if (hasTooSmallQuantity) {
+      setFormError("Ticket quantity must be at least 1.");
       return;
     }
 

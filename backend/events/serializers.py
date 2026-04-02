@@ -57,6 +57,19 @@ def _validate_and_normalize_ticket_categories(ticket_categories_data):
             raise serializers.ValidationError({'ticket_categories': 'VIP and Regular must each appear once.'})
         seen.add(key)
         payload['name'] = normalized_name
+        try:
+            price = Decimal(str(payload.get('price', '')))
+            quantity = int(payload.get('quantity', 0))
+        except (ValueError, TypeError, Decimal.InvalidOperation):
+            raise serializers.ValidationError({'ticket_categories': 'Price and quantity must be valid numbers.'})
+
+        if price < 0:
+            raise serializers.ValidationError({'ticket_categories': 'Ticket price cannot be negative.'})
+        if quantity < 1:
+            raise serializers.ValidationError({'ticket_categories': 'Ticket quantity must be at least 1.'})
+
+        payload['price'] = price
+        payload['quantity'] = quantity
         normalized.append(payload)
 
     if seen != ALLOWED_TICKET_CATEGORY_NAMES:
