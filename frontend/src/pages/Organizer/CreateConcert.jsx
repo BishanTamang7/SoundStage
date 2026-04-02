@@ -13,6 +13,16 @@ const GENRE_OPTIONS = [
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 
+// Format a Date (or date-like value) into the `datetime-local` input shape.
+const toDateTimeLocalString = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const CreateConcert = () => {
   const navigate = useNavigate();
   const { tokens, user } = useAuth();
@@ -28,6 +38,16 @@ const CreateConcert = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [otherCity, setOtherCity] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
+  const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
+
+  // Keep the earliest selectable date in sync with "now" (rounded to the current minute).
+  useEffect(() => {
+    const intervalId = window.setInterval(
+      () => setMinDateTime(toDateTimeLocalString()),
+      60000
+    );
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const fallbackName = user?.username || user?.email || "";
@@ -161,6 +181,18 @@ const CreateConcert = () => {
       return String(element.value || "").trim();
     };
 
+    const dateTimeValue = getFieldValue("date-time");
+    const selectedDateTime = new Date(dateTimeValue);
+    if (!dateTimeValue || Number.isNaN(selectedDateTime.getTime())) {
+      setFormError("Please select a valid Date & Time.");
+      return;
+    }
+    const now = new Date();
+    if (selectedDateTime < now) {
+      setFormError("Date & Time must be in the future.");
+      return;
+    }
+
     const formData = new FormData();
     const venueName = getFieldValue("venue");
     const city = selectedCity === "Other" ? otherCity.trim() : selectedCity;
@@ -172,7 +204,7 @@ const CreateConcert = () => {
     formData.append("title", getFieldValue("concert-title"));
     formData.append("description", getFieldValue("description"));
     formData.append("genre", selectedGenre);
-    formData.append("date_time", getFieldValue("date-time"));
+    formData.append("date_time", dateTimeValue);
     formData.append("venue", composedVenue);
     formData.append("organizer_name", organizerNameTrimmed);
     formData.append("contact_email", contactEmailTrimmed);
@@ -296,6 +328,7 @@ const CreateConcert = () => {
                   name="date-time"
                   type="datetime-local"
                   required
+                  min={minDateTime}
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
               </div>
