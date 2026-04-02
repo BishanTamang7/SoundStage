@@ -48,6 +48,15 @@ class ConcertCreateSerializerTests(APITestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('date_time', serializer.errors)
 
+    def test_create_serializer_rejects_too_many_description_words(self):
+        long_description = 'word ' * 86
+        serializer = ConcertCreateSerializer(
+            data=self._payload() | {'description': long_description}
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('description', serializer.errors)
+
 
 class ConcertListApiTests(APITestCase):
     list_url = '/api/events/concerts/'
@@ -314,6 +323,23 @@ class ConcertDateValidationApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('date_time', response.data)
+
+    def test_create_endpoint_rejects_description_over_limit(self):
+        payload = {
+            'title': 'Too Wordy',
+            'description': 'word ' * 86,
+            'date_time': (timezone.now() + timedelta(hours=3)).isoformat(),
+            'venue': 'Hall, Kathmandu',
+            'main_artist': 'Artist',
+            'organizer_name': 'SoundStage',
+            'contact_email': 'dateval@example.com',
+            'ticket_categories': self._ticket_categories_payload(),
+        }
+
+        response = self.client.post(self.list_url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('description', response.data)
 
     def test_update_endpoint_rejects_past_date_time(self):
         payload = {

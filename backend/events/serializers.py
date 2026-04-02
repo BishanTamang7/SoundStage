@@ -11,6 +11,7 @@ from events.models import Concert
 from tickets.models import TicketCategory
 
 ALLOWED_TICKET_CATEGORY_NAMES = {'vip', 'regular'}
+DESCRIPTION_WORD_LIMIT = 85
 
 
 def _validate_concert_venue_city(value):
@@ -169,6 +170,14 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
             candidate = timezone.make_aware(candidate, timezone.get_current_timezone())
         if candidate < now:
             raise serializers.ValidationError('Date & Time must be in the future.')
+        return value
+
+    def validate_description(self, value):
+        word_count = len([word for word in (value or '').strip().split() if word])
+        if word_count > DESCRIPTION_WORD_LIMIT:
+            raise serializers.ValidationError(
+                f'Description must be {DESCRIPTION_WORD_LIMIT} words or fewer.'
+            )
         return value
 
 
