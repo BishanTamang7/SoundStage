@@ -286,9 +286,6 @@ def _create_reserved_payment(
         if category.quantity < quantity:
             raise ValueError('Requested quantity exceeds available tickets.')
 
-        category.quantity -= quantity
-        category.save(update_fields=['quantity'])
-
         return PaymentTransaction.objects.create(
             attendee=attendee,
             concert=concert,
@@ -299,8 +296,8 @@ def _create_reserved_payment(
             amount_paisa=amount_paisa,
             quantity=quantity,
             status='Initiated',
-            stock_reserved=True,
-            reservation_expires_at=reservation_expires_at,
+            stock_reserved=False,
+            reservation_expires_at=None,
             ticket_category_name_snapshot=category.name,
             ticket_unit_price_snapshot=category.price,
         )
