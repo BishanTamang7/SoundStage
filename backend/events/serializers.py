@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal
 
 from django.db.models import Count, Prefetch, Sum
@@ -12,6 +13,7 @@ from tickets.models import TicketCategory
 
 ALLOWED_TICKET_CATEGORY_NAMES = {'vip', 'regular'}
 DESCRIPTION_WORD_LIMIT = 85
+NEPAL_PHONE_REGEX = re.compile(r'^(97|98)\d{8}$')
 
 
 def _validate_concert_venue_city(value):
@@ -180,9 +182,20 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_contact_phone(self, value):
+        if value in (None, ''):
+            return value
+
+        digits_only = ''.join(ch for ch in str(value) if ch.isdigit())
+        if not NEPAL_PHONE_REGEX.match(digits_only):
+            raise serializers.ValidationError(
+                'Enter a 10-digit Nepal mobile number starting with 97 or 98 (digits only).'
+            )
+        return digits_only
+
 
 class ConcertCreateSerializer(BaseConcertWriteSerializer):
-    blank_optional_fields = ('organizer_name', 'contact_email')
+    blank_optional_fields = ('organizer_name', 'contact_email', 'contact_phone')
 
     class Meta:
         model = Concert
