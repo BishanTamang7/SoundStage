@@ -158,7 +158,7 @@ class TicketCategorySerializer(serializers.ModelSerializer):
     def get_revenue(self, obj):
         revenue_paisa = getattr(obj, 'revenue_paisa', None)
         if revenue_paisa is None:
-            revenue_paisa = obj.payment_transactions.filter(status='Completed').aggregate(
+            revenue_paisa = obj.payment_transactions.filter(tickets_issued=True).aggregate(
                 total=Sum('amount_paisa')
             ).get('total', 0)
         return Decimal(revenue_paisa or 0) / Decimal('100')

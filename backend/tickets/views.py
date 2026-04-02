@@ -132,7 +132,7 @@ def my_tickets(request):
 def organizer_bookings(request):
     queryset = (
         PaymentTransaction.objects.select_related('attendee', 'concert', 'ticket_category')
-        .filter(concert__organizer=request.user, status='Completed', tickets_issued=True)
+        .filter(concert__organizer=request.user, tickets_issued=True)
         .order_by('-created_at')
     )
     serializer = OrganizerBookingSerializer(queryset, many=True)
