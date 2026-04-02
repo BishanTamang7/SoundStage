@@ -13,6 +13,7 @@ const MyConcerts = () => {
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [confirmTarget, setConfirmTarget] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all') // all | upcoming | past
 
   const emojiSet = useMemo(() => ['🎸', '🎤', '🎹', '🎵', '🥁', '🎺', '🎷', '🎻'], [])
 
@@ -58,6 +59,18 @@ const MyConcerts = () => {
     }
   }
 
+  const filteredConcerts = useMemo(() => {
+    const now = new Date()
+    return concerts.filter((concert) => {
+      if (!concert?.date_time) return statusFilter === 'all'
+      const dt = new Date(concert.date_time)
+      if (Number.isNaN(dt.getTime())) return statusFilter === 'all'
+      if (statusFilter === 'upcoming') return dt >= now
+      if (statusFilter === 'past') return dt < now
+      return true
+    })
+  }, [concerts, statusFilter])
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
       <OrganizerSidebar />
@@ -71,23 +84,41 @@ const MyConcerts = () => {
                 Create and manage your concert events.
               </p>
             </div>
-            <Link
-              className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
-              to="/organizer/concerts/new"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1">
+                {['all', 'upcoming', 'past'].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setStatusFilter(value)}
+                    className={`rounded-md px-3 py-1 text-xs font-bold capitalize transition ${
+                      statusFilter === value
+                        ? 'bg-[#7C3AED] text-white shadow-sm'
+                        : 'text-[#312E81] hover:bg-[#F3F4F6]'
+                    }`}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+              <Link
+                className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#4F46E5]"
+                to="/organizer/concerts/new"
               >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Create New Concert
-            </Link>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Create New Concert
+              </Link>
+            </div>
           </div>
 
         </header>
@@ -119,7 +150,7 @@ const MyConcerts = () => {
               </button>
             </div>
           </div>
-        ) : concerts.length === 0 ? (
+        ) : filteredConcerts.length === 0 ? (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-16 text-center">
             <div className="text-5xl">🎵</div>
             <h2 className="mt-4 text-2xl font-black text-[#312E81]">No Concerts Yet</h2>
@@ -135,7 +166,7 @@ const MyConcerts = () => {
           </div>
         ) : (
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
-            {concerts.map((concert, index) => {
+            {filteredConcerts.map((concert, index) => {
               const { venueName, city } = getVenueParts(concert.venue || '')
               return (
                 <div

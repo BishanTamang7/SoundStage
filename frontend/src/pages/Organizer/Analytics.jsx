@@ -39,6 +39,7 @@ const Analytics = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedConcertId, setSelectedConcertId] = useState('all')
 
   useEffect(() => {
     let isActive = true
@@ -76,7 +77,12 @@ const Analytics = () => {
   }, [tokens?.access])
 
   const analytics = useMemo(() => {
-    const eventRows = concerts
+    const filteredConcerts =
+      selectedConcertId === 'all'
+        ? concerts
+        : concerts.filter((concert) => String(concert.id) === String(selectedConcertId))
+
+    const eventRows = filteredConcerts
       .map((concert) => {
         const categories = normalizeTicketCategories(concert?.ticket_categories).map((category) => {
           const sold = parseNumber(category?.sold ?? category?.sold_quantity ?? category?.tickets_sold)
@@ -124,8 +130,9 @@ const Analytics = () => {
     const totalSold = eventRows.reduce((sum, event) => sum + event.sold, 0)
     const totalCapacity = eventRows.reduce((sum, event) => sum + event.capacity, 0)
     const sellThrough = totalCapacity > 0 ? (totalSold / totalCapacity) * 100 : 0
+    const averageTicketPrice = totalSold > 0 ? totalRevenue / totalSold : 0
 
-    const topEvents = [...eventRows].sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+    const topEvents = [...eventRows].sort((a, b) => b.revenue - a.revenue).slice(0, 3)
     const upcomingEvents = eventRows.filter((event) => event.status === 'Upcoming').slice(0, 5)
 
     const categoryTotals = eventRows.reduce((acc, event) => {
@@ -154,8 +161,34 @@ const Analytics = () => {
       if (pa !== pb) return pa - pb
       return b.revenue - a.revenue
     })
+    const categoryShares = categoryRows.map((row) => ({
+      ...row,
+      share: totalSold > 0 ? (row.sold / totalSold) * 100 : 0,
+    }))
     const topEvent = topEvents[0] || null
     const nextEvent = upcomingEvents[0] || null
+    const recentEvents = [...eventRows].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
+
+    const genreTotals = filteredConcerts.reduce((acc, concert) => {
+      const key = String(concert?.genre_display || concert?.genre || 'Unspecified')
+      if (!acc[key]) acc[key] = { name: key, revenue: 0, sold: 0 }
+      acc[key].revenue += eventRows.filter((e) => e.id === concert.id).reduce((sum, e) => sum + e.revenue, 0)
+      acc[key].sold += eventRows.filter((e) => e.id === concert.id).reduce((sum, e) => sum + e.sold, 0)
+      return acc
+    }, {})
+
+    const cityTotals = filteredConcerts.reduce((acc, concert) => {
+      const venue = concert?.venue || ''
+      const parts = venue.split(',').map((p) => p.trim()).filter(Boolean)
+      const city = parts.length ? parts[parts.length - 1] : 'Unknown'
+      if (!acc[city]) acc[city] = { name: city, revenue: 0, sold: 0 }
+      acc[city].revenue += eventRows.filter((e) => e.id === concert.id).reduce((sum, e) => sum + e.revenue, 0)
+      acc[city].sold += eventRows.filter((e) => e.id === concert.id).reduce((sum, e) => sum + e.sold, 0)
+      return acc
+    }, {})
+
+    const genreRows = Object.values(genreTotals).sort((a, b) => b.revenue - a.revenue).slice(0, 3)
+    const cityRows = Object.values(cityTotals).sort((a, b) => b.revenue - a.revenue).slice(0, 3)
 
     return {
       stats: {
@@ -164,38 +197,42 @@ const Analytics = () => {
         totalSold,
         totalCapacity,
         sellThrough,
+        averageTicketPrice,
       },
       topEvents,
       upcomingEvents,
-      categoryRows,
+      recentEvents,
+      categoryRows: categoryShares,
+      genreRows,
+      cityRows,
       topEvent,
       nextEvent,
     }
-  }, [concerts])
+  }, [concerts, selectedConcertId])
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#312E81]">
       <OrganizerSidebar />
 
       <main className="ml-60 px-12 py-8 max-[1024px]:px-6 max-[768px]:ml-0 max-[768px]:px-4">
-        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+        <header className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4">
           <div className="flex flex-col gap-4 min-[900px]:flex-row min-[900px]:items-center min-[900px]:justify-between">
             <div>
               <h1 className="text-3xl font-black text-[#312E81]">Analytics</h1>
               <p className="mt-1 text-sm font-semibold text-[#6B7280]">
-                Simple performance overview for your concerts.
+                Data, statistics, and insights about your concert performance at a glance.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3 min-[900px]:justify-end">
               <Link
-                className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6D28D9]"
+                className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6D28D9] min-w-[130px] text-center"
                 to="/organizer/bookings"
               >
                 View Bookings
               </Link>
               <Link
-                className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm font-bold text-[#312E81] transition hover:bg-[#F8FAFC]"
+                className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm font-bold text-[#312E81] transition hover:bg-[#F8FAFC] min-w-[130px] text-center"
                 to="/organizer/tickets"
               >
                 View Tickets
@@ -204,24 +241,20 @@ const Analytics = () => {
           </div>
         </header>
 
-        <section className="mb-6 grid gap-4 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-4">
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+        <section className="mb-6 grid gap-3 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-3">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4">
             <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Total Concerts</div>
             <div className="mt-2 text-3xl font-black text-[#312E81]">{analytics.stats.totalConcerts}</div>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4">
             <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Revenue</div>
             <div className="mt-2 text-3xl font-black text-[#7C3AED]">{formatCurrency(analytics.stats.totalRevenue)}</div>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4">
             <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Tickets Sold</div>
             <div className="mt-2 text-3xl font-black text-[#16A34A]">
               {analytics.stats.totalSold.toLocaleString('en-US')}
             </div>
-          </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Sell Through</div>
-            <div className="mt-2 text-3xl font-black text-[#D97706]">{analytics.stats.sellThrough.toFixed(1)}%</div>
           </div>
         </section>
 
@@ -234,10 +267,10 @@ const Analytics = () => {
             {error}
           </div>
         ) : (
-          <div className="grid gap-6 min-[1100px]:grid-cols-[1.3fr_0.7fr]">
+          <div className="grid gap-6">
             <div className="space-y-6">
-              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
-                <div className="mb-4 flex items-center justify-between">
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-xl font-black text-[#312E81]">Top Concerts</h2>
                   <span className="text-sm font-semibold text-[#6B7280]">By revenue</span>
                 </div>
@@ -249,22 +282,22 @@ const Analytics = () => {
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-[#E5E7EB] text-xs font-extrabold uppercase tracking-wide text-[#6B7280]">
-                          <th className="py-3">Concert</th>
-                          <th className="py-3">Date</th>
-                          <th className="py-3">Sold</th>
-                          <th className="py-3">Revenue</th>
+                          <th className="py-2">Concert</th>
+                          <th className="py-2">Date</th>
+                          <th className="py-2">Sold</th>
+                          <th className="py-2">Revenue</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm font-semibold text-[#312E81]">
                         {analytics.topEvents.map((event) => (
                           <tr key={event.id || event.title} className="border-b border-[#E5E7EB] last:border-b-0">
-                            <td className="py-4">
+                            <td className="py-3">
                               <div className="font-black text-[#312E81]">{event.title}</div>
                               <div className="mt-1 text-xs text-[#6B7280]">{event.venue}</div>
                             </td>
-                            <td className="py-4">{event.dateLabel}</td>
-                            <td className="py-4">{event.sold}</td>
-                            <td className="py-4 font-black text-[#7C3AED]">{formatCurrency(event.revenue)}</td>
+                            <td className="py-3">{event.dateLabel}</td>
+                            <td className="py-3">{event.sold}</td>
+                            <td className="py-3 font-black text-[#7C3AED]">{formatCurrency(event.revenue)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -273,104 +306,69 @@ const Analytics = () => {
                 )}
               </section>
 
-              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-black text-[#312E81]">Upcoming Concerts</h2>
-                  <Link className="text-sm font-bold text-[#7C3AED]" to="/organizer/concerts">
-                    View All
-                  </Link>
+              <section className="grid gap-4 min-[900px]:grid-cols-2">
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-lg font-black text-[#312E81]">Top Genres</h3>
+                    <span className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">By revenue</span>
+                  </div>
+                  {analytics.genreRows.length === 0 ? (
+                    <div className="text-sm font-semibold text-[#6B7280]">No genre data.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {analytics.genreRows.map((genre, index) => {
+                        const max = analytics.genreRows[0]?.revenue || 1
+                        const width = Math.min((genre.revenue / max) * 100, 100)
+                        return (
+                          <div key={genre.name} className="rounded-lg bg-[#F8FAFC] p-3">
+                            <div className="flex items-center justify-between text-sm font-semibold text-[#312E81]">
+                              <span>
+                                {index + 1}. {genre.name}
+                              </span>
+                              <span className="text-[#7C3AED] font-bold">{formatCurrency(genre.revenue)}</span>
+                            </div>
+                            <div className="mt-2 h-2 rounded-full bg-[#E5E7EB]">
+                              <div className="h-2 rounded-full bg-[#7C3AED]" style={{ width: `${width}%` }} />
+                            </div>
+                        </div>
+                      )
+                    })}
+                    </div>
+                  )}
                 </div>
 
-                {analytics.upcomingEvents.length === 0 ? (
-                  <div className="text-sm font-semibold text-[#6B7280]">No upcoming concerts.</div>
-                ) : (
-                  <div className="space-y-3">
-                    {analytics.upcomingEvents.map((event) => (
-                      <div key={event.id || event.title} className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-black text-[#312E81]">{event.title}</div>
-                            <div className="mt-1 text-sm font-semibold text-[#6B7280]">
-                              {event.dateLabel} • {event.venue}
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-lg font-black text-[#312E81]">Top Cities</h3>
+                    <span className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">By revenue</span>
+                  </div>
+                  {analytics.cityRows.length === 0 ? (
+                    <div className="text-sm font-semibold text-[#6B7280]">No city data.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {analytics.cityRows.map((city, index) => {
+                        const max = analytics.cityRows[0]?.revenue || 1
+                        const width = Math.min((city.revenue / max) * 100, 100)
+                        return (
+                          <div key={city.name} className="rounded-lg bg-[#F8FAFC] p-3">
+                            <div className="flex items-center justify-between text-sm font-semibold text-[#312E81]">
+                              <span>
+                                {index + 1}. {city.name}
+                              </span>
+                              <span className="text-[#7C3AED] font-bold">{formatCurrency(city.revenue)}</span>
+                            </div>
+                            <div className="mt-2 h-2 rounded-full bg-[#E5E7EB]">
+                              <div className="h-2 rounded-full bg-[#22C55E]" style={{ width: `${width}%` }} />
                             </div>
                           </div>
-                          <span className="rounded-md border border-[rgba(22,163,74,0.18)] bg-[#F0FDF4] px-3 py-1 text-xs font-extrabold text-[#166534]">
-                            {event.status}
-                          </span>
-                        </div>
-                        <div className="mt-3 h-2 rounded-full bg-[#E5E7EB]">
-                          <div
-                            className="h-2 rounded-full bg-[#14B8A6]"
-                            style={{ width: `${Math.max(6, Math.min(event.sellThrough, 100))}%` }}
-                          />
-                        </div>
-                        <div className="mt-2 text-xs font-semibold text-[#6B7280]">
-                          {event.sold} sold of {event.capacity} tickets
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </div>
-
-            <div className="space-y-6">
-              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
-                <h2 className="text-xl font-black text-[#312E81]">Highlights</h2>
-                <div className="mt-4 space-y-4">
-                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Top Concert</div>
-                    <div className="mt-2 text-base font-black text-[#312E81]">
-                      {analytics.topEvent?.title || 'N/A'}
+                        )
+                      })}
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
-                      {analytics.topEvent ? formatCurrency(analytics.topEvent.revenue) : 'No revenue yet'}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Next Concert</div>
-                    <div className="mt-2 text-base font-black text-[#312E81]">
-                      {analytics.nextEvent?.title || 'N/A'}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
-                      {analytics.nextEvent ? analytics.nextEvent.dateLabel : 'No upcoming concert'}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                    <div className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">Capacity</div>
-                    <div className="mt-2 text-base font-black text-[#312E81]">
-                      {analytics.stats.totalCapacity.toLocaleString('en-US')} tickets
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-[#6B7280]">
-                      Across all concerts
-                    </div>
-                  </div>
+                  )}
                 </div>
               </section>
-
-              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6">
-                <h2 className="text-xl font-black text-[#312E81]">Ticket Categories</h2>
-
-                {analytics.categoryRows.length === 0 ? (
-                  <div className="mt-4 text-sm font-semibold text-[#6B7280]">No ticket data available yet.</div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {analytics.categoryRows.map((category) => (
-                      <div key={category.name} className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="font-black text-[#312E81]">{category.name}</div>
-                          <div className="text-sm font-black text-[#7C3AED]">{formatCurrency(category.revenue)}</div>
-                        </div>
-                        <div className="mt-2 text-sm font-semibold text-[#6B7280]">
-                          Sold: {category.sold} • Remaining: {category.remaining}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
             </div>
-          </div>
+         </div>
         )}
       </main>
     </div>
