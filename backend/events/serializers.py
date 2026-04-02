@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 
 from django.db.models import Count, Prefetch, Sum
+from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from rest_framework import serializers
 
@@ -159,6 +160,16 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
 
     def validate_venue(self, value):
         return _validate_concert_venue_city(value)
+
+    def validate_date_time(self, value):
+        # Block concerts scheduled in the past (based on current server time).
+        now = timezone.now()
+        candidate = value
+        if timezone.is_naive(candidate):
+            candidate = timezone.make_aware(candidate, timezone.get_current_timezone())
+        if candidate < now:
+            raise serializers.ValidationError('Date & Time must be in the future.')
+        return value
 
 
 class ConcertCreateSerializer(BaseConcertWriteSerializer):

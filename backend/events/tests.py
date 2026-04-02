@@ -38,6 +38,16 @@ class ConcertCreateSerializerTests(APITestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('venue', serializer.errors)
 
+    def test_create_serializer_rejects_past_date_time(self):
+        serializer = ConcertCreateSerializer(
+            data=self._payload(
+                venue='Arena, Kathmandu',
+            ) | {'date_time': (timezone.now() - timedelta(days=1)).isoformat()}
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('date_time', serializer.errors)
+
 
 class ConcertListApiTests(APITestCase):
     list_url = '/api/events/concerts/'
@@ -243,3 +253,103 @@ class ConcertHistoryProtectionTests(APITestCase):
         }
         self.assertEqual(updated_categories['Regular']['price'], '1500.00')
         self.assertEqual(updated_categories['Regular']['quantity'], 180)
+
+
+class ConcertDateValidationApiTests(APITestCase):
+    list_url = '/api/events/concerts/'
+
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='dateval@example.com',
+            username='dateval',
+            password='StrongPass123!',
+            role=User.ORGANIZER,
+            email_verified=True,
+            status=User.STATUS_ACTIVE,
+        )
+        self.client.force_authenticate(user=self.organizer)
+
+        self.concert = Concert.objects.create(
+            organizer=self.organizer,
+            title='Future Show',
+            description='Valid future concert.',
+            date_time=timezone.now() + timedelta(days=5),
+            venue='Arena, Kathmandu',
+            main_artist='Band',
+            organizer_name='SoundStage',
+            contact_email='dateval@example.com',
+        )
+        self.vip_category = TicketCategory.objects.create(
+            concert=self.concert,
+            name='VIP',
+            price='2500.00',
+            quantity=50,
+        )
+        self.regular_category = TicketCategory.objects.create(
+            concert=self.concert,
+            name='Regular',
+            price='1200.00',
+            quantity=120,
+        )
+
+    def _ticket_categories_payload(self):
+        return [
+            {'name': 'VIP', 'price': '2500.00', 'quantity': 50},
+            {'name': 'Regular', 'price': '1200.00', 'quantity': 120},
+        ]
+
+    def test_create_endpoint_rejects_past_date_time(self):
+        payload = {
+            'title': 'Past Attempt',
+            'description': 'Should fail.',
+            'date_time': (timezone.now() - timedelta(hours=1)).isoformat(),
+            'venue': 'Hall, Kathmandu',
+            'main_artist': 'Artist',
+            'organizer_name': 'SoundStage',
+            'contact_email': 'dateval@example.com',
+            'ticket_categories': self._ticket_categories_payload(),
+        }
+
+        response = self.client.post(self.list_url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('date_time', response.data)
+
+    def test_update_endpoint_rejects_past_date_time(self):
+        payload = {
+            'title': self.concert.title,
+            'description': self.concert.description,
+            'genre': '',
+            'date_time': (timezone.now() - timedelta(hours=2)).isoformat(),
+            'venue': self.concert.venue,
+            'main_artist': self.concert.main_artist,
+            'organizer_name': self.concert.organizer_name,
+            'contact_email': self.concert.contact_email,
+            'contact_phone': '',
+            'ticket_categories': [
+                {
+                    'id': str(self.vip_category.id),
+                    'name': 'VIP',
+                    'price': '2500.00',
+                    'quantity': 50,
+                },
+                {
+                    'id': str(self.regular_category.id),
+                    'name': 'Regular',
+                    'price': '1200.00',
+                    'quantity': 120,
+                },
+            ],
+        }
+
+        response = self.client.put(
+            f'{self.list_url}{self.concert.id}/',
+            payload,
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('date_time', response.data)
+
+        self.concert.refresh_from_db()
+        self.assertGreaterEqual(self.concert.date_time, timezone.now())
