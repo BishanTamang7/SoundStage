@@ -141,7 +141,19 @@ const Analytics = () => {
       return acc
     }, {})
 
-    const categoryRows = Object.values(categoryTotals).sort((a, b) => b.revenue - a.revenue)
+    const categoryRows = Object.values(categoryTotals).sort((a, b) => {
+      // VIP first, then Regular, then by revenue desc
+      const priority = (name) => {
+        const normalized = String(name || '').toLowerCase()
+        if (normalized === 'vip') return 0
+        if (normalized === 'regular') return 1
+        return 2
+      }
+      const pa = priority(a.name)
+      const pb = priority(b.name)
+      if (pa !== pb) return pa - pb
+      return b.revenue - a.revenue
+    })
     const topEvent = topEvents[0] || null
     const nextEvent = upcomingEvents[0] || null
 
