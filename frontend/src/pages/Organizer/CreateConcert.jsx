@@ -196,6 +196,16 @@ const CreateConcert = () => {
       return String(element.value || "").trim();
     };
 
+    const titleValue = getFieldValue("concert-title");
+    if (!titleValue) {
+      setFormError("Concert title is required.");
+      return;
+    }
+    if (/^\\d+$/.test(titleValue)) {
+      setFormError("Concert title cannot be only numbers. Add words or letters.");
+      return;
+    }
+
     const dateTimeValue = getFieldValue("date-time");
     const selectedDateTime = new Date(dateTimeValue);
     if (!dateTimeValue || Number.isNaN(selectedDateTime.getTime())) {
@@ -226,12 +236,12 @@ const CreateConcert = () => {
         return;
       }
 
-      if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
-        setFormError(
-          "Enter a 10-digit Nepal mobile number starting with 97 or 98 (digits only)."
-        );
-        return;
-      }
+    if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
+      setFormError(
+        "Enter a 10-digit Nepal mobile (starts with 97 or 98)."
+      );
+      return;
+    }
 
       formData.append("contact_phone", digitsOnly);
     }

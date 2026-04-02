@@ -182,6 +182,14 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_title(self, value):
+        text = (value or '').strip()
+        if not text:
+            return value
+        if text.isdigit():
+            raise serializers.ValidationError('Concert title cannot be only numbers. Add words or letters.')
+        return value
+
     def validate_contact_phone(self, value):
         if value in (None, ''):
             return value

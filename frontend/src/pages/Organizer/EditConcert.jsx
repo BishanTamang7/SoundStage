@@ -298,6 +298,16 @@ const EditConcert = () => {
       return normalized;
     });
 
+    const titleValue = formState.title?.trim();
+    if (!titleValue) {
+      setFormError("Concert title is required.");
+      return;
+    }
+    if (/^\\d+$/.test(titleValue)) {
+      setFormError("Concert title cannot be only numbers. Add words or letters.");
+      return;
+    }
+
     let normalizedContactPhone = "";
     if (formState.contact_phone) {
       const strippedPhone = formState.contact_phone.replace(/\s+/g, "");
@@ -308,7 +318,7 @@ const EditConcert = () => {
       }
       if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
         setFormError(
-          "Enter a 10-digit Nepal mobile number starting with 97 or 98 (digits only)."
+          "Enter a 10-digit Nepal mobile (starts with 97 or 98)."
         );
         return;
       }
