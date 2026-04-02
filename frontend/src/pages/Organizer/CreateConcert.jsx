@@ -12,6 +12,7 @@ const GENRE_OPTIONS = [
   { value: "folk-dohori", label: "Folk / Dohori" },
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
+const DESCRIPTION_WORD_LIMIT = 85;
 
 // Format a Date (or date-like value) into the `datetime-local` input shape.
 const toDateTimeLocalString = (value = new Date()) => {
@@ -39,6 +40,7 @@ const CreateConcert = () => {
   const [otherCity, setOtherCity] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
   const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
+  const [descriptionWords, setDescriptionWords] = useState(0);
 
   // Keep the earliest selectable date in sync with "now" (rounded to the current minute).
   useEffect(() => {
@@ -54,6 +56,12 @@ const CreateConcert = () => {
     setOrganizerName((prev) => (prev ? prev : fallbackName));
     setContactEmail((prev) => (prev ? prev : user?.email || ""));
   }, [user]);
+
+  const handleDescriptionChange = (event) => {
+    const value = event.target.value;
+    const words = value.trim() ? value.trim().split(/\s+/).length : 0;
+    setDescriptionWords(words);
+  };
 
   const updateTicket = (index, field, value) => {
     setTickets((prev) =>
@@ -193,6 +201,13 @@ const CreateConcert = () => {
       return;
     }
 
+    const description = getFieldValue("description");
+    const descriptionWordCount = description ? description.split(/\s+/).filter(Boolean).length : 0;
+    if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
+      setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
+      return;
+    }
+
     const formData = new FormData();
     const venueName = getFieldValue("venue");
     const city = selectedCity === "Other" ? otherCity.trim() : selectedCity;
@@ -282,15 +297,20 @@ const CreateConcert = () => {
                   htmlFor="description"
                   className="text-sm font-bold text-[#312E81]"
                 >
-                  Description <span className="text-[#EF4444]">*</span>
+                  Description (max {DESCRIPTION_WORD_LIMIT} words){" "}
+                  <span className="text-[#EF4444]">*</span>
                 </label>
                 <textarea
                   id="description"
                   name="description"
                   required
                   placeholder="Tell attendees about your concert..."
+                  onChange={handleDescriptionChange}
                   className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
+                <p className="mt-1 text-xs font-semibold text-[#6B7280]">
+                  {descriptionWords}/{DESCRIPTION_WORD_LIMIT} words
+                </p>
               </div>
 
               <div>

@@ -12,6 +12,7 @@ const GENRE_OPTIONS = [
   { value: "folk-dohori", label: "Folk / Dohori" },
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
+const DESCRIPTION_WORD_LIMIT = 85;
 
 const EditConcert = () => {
   const { id } = useParams();
@@ -40,6 +41,7 @@ const EditConcert = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [descriptionWords, setDescriptionWords] = useState(0);
 
   const toInputDateTime = (value) => {
     if (!value) return "";
@@ -175,6 +177,10 @@ const EditConcert = () => {
   const handleFieldChange = (field) => (event) => {
     const { value } = event.target;
     setFormState((prev) => ({ ...prev, [field]: value }));
+    if (field === "description") {
+      const words = value.trim() ? value.trim().split(/\s+/).length : 0;
+      setDescriptionWords(words);
+    }
   };
 
   useEffect(() => {
@@ -218,6 +224,11 @@ const EditConcert = () => {
           setCoverImage(null);
           setCoverPreview("");
           setRemoveCover(false);
+          setDescriptionWords(
+            payload.description
+              ? payload.description.trim().split(/\s+/).filter(Boolean).length
+              : 0
+          );
           const ticketList = Array.isArray(payload.ticket_categories) ? payload.ticket_categories : [];
           const ticketByName = new Map(
             ticketList.map((ticket) => [String(ticket?.name || "").trim().toLowerCase(), ticket])
@@ -292,6 +303,14 @@ const EditConcert = () => {
       (formState.city === "Other" && !formState.other_city.trim())
     ) {
       setFormError("Venue name and city are required.");
+      return;
+    }
+
+    const descriptionWordCount = formState.description
+      ? formState.description.split(/\s+/).filter(Boolean).length
+      : 0;
+    if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
+      setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
       return;
     }
 
@@ -376,22 +395,26 @@ const EditConcert = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label
-                    htmlFor="description"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Description <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    required
-                    placeholder="Tell attendees about your concert..."
-                    value={formState.description}
-                    onChange={handleFieldChange("description")}
-                    className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
+                <label
+                  htmlFor="description"
+                  className="text-sm font-bold text-[#312E81]"
+                >
+                  Description (max {DESCRIPTION_WORD_LIMIT} words){" "}
+                  <span className="text-[#EF4444]">*</span>
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  required
+                  placeholder="Tell attendees about your concert..."
+                  value={formState.description}
+                  onChange={handleFieldChange("description")}
+                  className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                />
+                <p className="mt-1 text-xs font-semibold text-[#6B7280]">
+                  {descriptionWords}/{DESCRIPTION_WORD_LIMIT} words
+                </p>
+              </div>
 
                 <div>
                   <label htmlFor="genre" className="text-sm font-bold text-[#312E81]">
