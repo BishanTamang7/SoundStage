@@ -38,6 +38,10 @@ const formatErrorMessage = (data) => {
           .join(', ')
       }
       const messages = Object.entries(data.errors).flatMap(([key, value]) => {
+        if (key === 'contact_phone') {
+          const items = Array.isArray(value) ? value : [value]
+          return items.map((item) => String(item))
+        }
         if (Array.isArray(value)) {
           return value.map((item) => String(item))
         }
@@ -64,6 +68,10 @@ const formatErrorMessage = (data) => {
     const messages = Object.entries(data)
       .filter(([key]) => !['success', 'data'].includes(key))
       .flatMap(([key, value]) => {
+        if (key === 'contact_phone') {
+          const items = Array.isArray(value) ? value : [value]
+          return items.map((item) => String(item))
+        }
         if (Array.isArray(value)) {
           return value.map((item) => `${key}: ${String(item)}`)
         }

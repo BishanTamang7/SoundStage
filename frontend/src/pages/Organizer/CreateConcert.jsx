@@ -13,6 +13,7 @@ const GENRE_OPTIONS = [
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 const DESCRIPTION_WORD_LIMIT = 85;
+const NEPAL_PHONE_REGEX = /^(97|98)\d{8}$/;
 
 // Format a Date (or date-like value) into the `datetime-local` input shape.
 const toDateTimeLocalString = (value = new Date()) => {
@@ -36,6 +37,7 @@ const CreateConcert = () => {
   const [coverPreview, setCoverPreview] = useState("");
   const [organizerName, setOrganizerName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [otherCity, setOtherCity] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
@@ -61,6 +63,11 @@ const CreateConcert = () => {
     const value = event.target.value;
     const words = value.trim() ? value.trim().split(/\s+/).length : 0;
     setDescriptionWords(words);
+  };
+
+  const handlePhoneChange = (event) => {
+    // Keep raw input so we can show a clear validation message instead of blocking typing.
+    setContactPhone(event.target.value);
   };
 
   const updateTicket = (index, field, value) => {
@@ -209,6 +216,26 @@ const CreateConcert = () => {
     }
 
     const formData = new FormData();
+
+    if (contactPhone) {
+      const strippedPhone = contactPhone.replace(/\s+/g, "");
+      const digitsOnly = strippedPhone.replace(/\D/g, "");
+
+      if (digitsOnly.length !== strippedPhone.length) {
+        setFormError("Contact phone must contain digits only (no letters or symbols).");
+        return;
+      }
+
+      if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
+        setFormError(
+          "Enter a 10-digit Nepal mobile number starting with 97 or 98 (digits only)."
+        );
+        return;
+      }
+
+      formData.append("contact_phone", digitsOnly);
+    }
+
     const venueName = getFieldValue("venue");
     const city = selectedCity === "Other" ? otherCity.trim() : selectedCity;
     if (!city) {
@@ -223,7 +250,6 @@ const CreateConcert = () => {
     formData.append("venue", composedVenue);
     formData.append("organizer_name", organizerNameTrimmed);
     formData.append("contact_email", contactEmailTrimmed);
-    formData.append("contact_phone", getFieldValue("contact-phone"));
     formData.append("main_artist", getFieldValue("main-artist"));
     formData.append(
       "ticket_categories",
@@ -495,9 +521,15 @@ const CreateConcert = () => {
                   id="contact-phone"
                   name="contact-phone"
                   type="tel"
-                  placeholder="e.g., +977 9812345678"
+                  inputMode="numeric"
+                  value={contactPhone}
+                  onChange={handlePhoneChange}
+                  placeholder="e.g., 9812345678"
                   className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                 />
+                <p className="mt-1 text-xs font-semibold text-[#6B7280]">
+                  10-digit Nepal mobile (starts with 97 or 98).
+                </p>
               </div>
             </div>
           </section>

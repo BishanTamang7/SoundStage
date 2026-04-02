@@ -13,6 +13,7 @@ const GENRE_OPTIONS = [
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 const DESCRIPTION_WORD_LIMIT = 85;
+const NEPAL_PHONE_REGEX = /^(97|98)\d{8}$/;
 const toDateTimeLocalString = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -297,6 +298,23 @@ const EditConcert = () => {
       return normalized;
     });
 
+    let normalizedContactPhone = "";
+    if (formState.contact_phone) {
+      const strippedPhone = formState.contact_phone.replace(/\s+/g, "");
+      const digitsOnly = strippedPhone.replace(/\D/g, "");
+      if (digitsOnly.length !== strippedPhone.length) {
+        setFormError("Contact phone must contain digits only (no letters or symbols).");
+        return;
+      }
+      if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
+        setFormError(
+          "Enter a 10-digit Nepal mobile number starting with 97 or 98 (digits only)."
+        );
+        return;
+      }
+      normalizedContactPhone = digitsOnly;
+    }
+
     const basePayload = {
       title: formState.title,
       description: formState.description,
@@ -307,7 +325,7 @@ const EditConcert = () => {
       ).trim()}`,
       organizer_name: formState.organizer_name,
       contact_email: formState.contact_email,
-      contact_phone: formState.contact_phone,
+      contact_phone: normalizedContactPhone,
       main_artist: formState.main_artist,
       ticket_categories: normalizedTicketCategories,
     };
