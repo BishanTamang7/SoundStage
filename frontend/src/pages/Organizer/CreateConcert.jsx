@@ -237,6 +237,12 @@ const CreateConcert = () => {
 
     const formData = new FormData();
 
+    const venueName = getFieldValue("venue");
+    if (venueName && /\d/.test(venueName)) {
+      setFormError("Venue name cannot contain numbers. Use letters and words.");
+      return;
+    }
+
     if (contactPhone) {
       const strippedPhone = contactPhone.replace(/\s+/g, "");
       const digitsOnly = strippedPhone.replace(/\D/g, "");
@@ -256,7 +262,6 @@ const CreateConcert = () => {
       formData.append("contact_phone", digitsOnly);
     }
 
-    const venueName = getFieldValue("venue");
     const city = selectedCity === "Other" ? otherCity.trim() : selectedCity;
     if (!city) {
       setFormError("Please select a city.");
@@ -465,13 +470,14 @@ const CreateConcert = () => {
                 htmlFor="cover-image"
                 className="text-sm font-bold text-[#312E81]"
               >
-                Cover Image
+                Cover Image <span className="text-[#EF4444]">*</span>
               </label>
               <input
                 id="cover-image"
                 name="cover-image"
                 type="file"
                 accept="image/*"
+                required
                 onChange={handleCoverChange}
                 className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
               />

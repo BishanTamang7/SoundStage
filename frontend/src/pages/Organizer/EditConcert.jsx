@@ -325,6 +325,12 @@ const EditConcert = () => {
       return;
     }
 
+    const venueNameValue = formState.venue_name?.trim();
+    if (venueNameValue && /\\d/.test(venueNameValue)) {
+      setFormError("Venue name cannot contain numbers. Use letters and words.");
+      return;
+    }
+
     let normalizedContactPhone = "";
     if (formState.contact_phone) {
       const strippedPhone = formState.contact_phone.replace(/\s+/g, "");

@@ -18,6 +18,10 @@ NEPAL_PHONE_REGEX = re.compile(r'^(97|98)\d{8}$')
 
 def _validate_concert_venue_city(value):
     venue = (value or '').strip()
+    # Disallow any numeric characters in the venue name.
+    if re.search(r'\d', venue):
+        raise serializers.ValidationError('Venue name cannot contain numbers. Use letters and words.')
+
     normalized_venue = venue.lower()
     if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
         return venue
