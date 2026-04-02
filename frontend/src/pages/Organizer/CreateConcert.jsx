@@ -515,13 +515,14 @@ const CreateConcert = () => {
                   htmlFor="contact-phone"
                   className="text-sm font-bold text-[#312E81]"
                 >
-                  Contact Phone
+                  Contact Phone <span className="text-[#EF4444]">*</span>
                 </label>
                 <input
                   id="contact-phone"
                   name="contact-phone"
                   type="tel"
                   inputMode="numeric"
+                  required
                   value={contactPhone}
                   onChange={handlePhoneChange}
                   placeholder="e.g., 9812345678"
