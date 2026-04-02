@@ -13,6 +13,14 @@ const GENRE_OPTIONS = [
 ];
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 const DESCRIPTION_WORD_LIMIT = 85;
+const toDateTimeLocalString = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 const EditConcert = () => {
   const { id } = useParams();
@@ -42,6 +50,7 @@ const EditConcert = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [descriptionWords, setDescriptionWords] = useState(0);
+  const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
 
   const toInputDateTime = (value) => {
     if (!value) return "";
@@ -186,6 +195,11 @@ const EditConcert = () => {
   useEffect(() => {
     let isActive = true;
 
+    const intervalId = window.setInterval(
+      () => setMinDateTime(toDateTimeLocalString()),
+      60000
+    );
+
     const loadConcert = async () => {
       if (!tokens?.access || !id) {
         if (isActive) setLoading(false);
@@ -258,6 +272,7 @@ const EditConcert = () => {
 
     return () => {
       isActive = false;
+      window.clearInterval(intervalId);
     };
   }, [id, tokens?.access]);
 
@@ -311,6 +326,16 @@ const EditConcert = () => {
       : 0;
     if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
       setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
+      return;
+    }
+
+    const selectedDateTime = new Date(formState.date_time);
+    if (!formState.date_time || Number.isNaN(selectedDateTime.getTime())) {
+      setFormError("Please select a valid Date & Time.");
+      return;
+    }
+    if (selectedDateTime < new Date()) {
+      setFormError("Date & Time must be in the future.");
       return;
     }
 
@@ -440,22 +465,23 @@ const EditConcert = () => {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="date-time"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Date &amp; Time <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="date-time"
-                    name="date-time"
-                    type="datetime-local"
-                    required
-                    value={formState.date_time}
-                    onChange={handleFieldChange("date_time")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
+                <label
+                  htmlFor="date-time"
+                  className="text-sm font-bold text-[#312E81]"
+                >
+                  Date &amp; Time <span className="text-[#EF4444]">*</span>
+                </label>
+                <input
+                  id="date-time"
+                  name="date-time"
+                  type="datetime-local"
+                  required
+                  value={formState.date_time}
+                  onChange={handleFieldChange("date_time")}
+                  min={minDateTime}
+                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                />
+              </div>
 
                 <div>
                   <label htmlFor="venue" className="text-sm font-bold text-[#312E81]">
