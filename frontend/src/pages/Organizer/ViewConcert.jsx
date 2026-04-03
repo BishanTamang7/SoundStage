@@ -79,10 +79,10 @@ const ViewConcert = () => {
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+      <main className="ml-60 max-w-[84rem] px-12 pt-4 pb-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <Link
           to="/organizer/concerts"
-          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
+          className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
         >
           <svg
             width="20"
@@ -131,7 +131,7 @@ const ViewConcert = () => {
               </div>
             </div>
 
-            <div className="grid gap-8 p-8 lg:grid-cols-[2fr_1fr]">
+            <div className="grid gap-6 px-8 pt-8 pb-6 lg:grid-cols-[3fr_1fr]">
               <div className="space-y-6">
                 <div>
                   <h1 className="text-3xl font-black text-[#312E81]">
@@ -148,15 +148,6 @@ const ViewConcert = () => {
                   <InfoBlock label="Organizer" value={concert.organizer_name || "TBD"} />
                   <InfoBlock label="Contact Email" value={concert.contact_email || "TBD"} />
                   <InfoBlock label="Contact Phone" value={concert.contact_phone || "TBD"} />
-                </div>
-
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-5">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-[#9CA3AF]">
-                    Description
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
-                    {concert.description || "No description provided."}
-                  </p>
                 </div>
               </div>
 
@@ -195,6 +186,15 @@ const ViewConcert = () => {
                   </div>
                 )}
               </aside>
+
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-5 lg:col-span-2">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-[#9CA3AF]">
+                  Description
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+                  {concert.description || "No description provided."}
+                </p>
+              </div>
             </div>
           </section>
         )}
