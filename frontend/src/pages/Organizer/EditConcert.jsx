@@ -14,6 +14,16 @@ const GENRE_OPTIONS = [
 const FIXED_TICKET_TYPES = ["VIP", "Regular"];
 const DESCRIPTION_WORD_LIMIT = 85;
 const NEPAL_PHONE_REGEX = /^(97|98)\d{8}$/;
+
+const STEPS = [
+  { key: "basic", label: "Basics", helper: "Title, genre, schedule" },
+  { key: "cover", label: "Cover", helper: "Upload hero image" },
+  { key: "organizer", label: "Organizer", helper: "Contact details" },
+  { key: "artist", label: "Artists", helper: "Headliner" },
+  { key: "tickets", label: "Tickets", helper: "Pricing & qty" },
+  { key: "review", label: "Review", helper: "Confirm & submit" },
+];
+
 const toDateTimeLocalString = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -23,82 +33,71 @@ const toDateTimeLocalString = (value = new Date()) => {
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+const formatDatePreview = (value) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Date & time not set";
+  return parsed.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
+
 const EditConcert = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tokens } = useAuth();
+  const { tokens, user } = useAuth();
+
+  const [currentStep, setCurrentStep] = useState(0);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dateTime, setDateTime] = useState("");
+  const [venue, setVenue] = useState("");
+  const [mainArtist, setMainArtist] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [otherCity, setOtherCity] = useState("");
+
   const [tickets, setTickets] = useState(
     FIXED_TICKET_TYPES.map((name) => ({ id: "", name, price: "", quantity: "" }))
   );
-  const [formState, setFormState] = useState({
-    title: "",
-    description: "",
-    genre: "",
-    date_time: "",
-    venue_name: "",
-    city: "",
-    other_city: "",
-    organizer_name: "",
-    contact_email: "",
-    contact_phone: "",
-    main_artist: "",
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
   const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
   const [existingCover, setExistingCover] = useState("");
   const [removeCover, setRemoveCover] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [descriptionWords, setDescriptionWords] = useState(0);
+  const [organizerName, setOrganizerName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
+  const [descriptionWords, setDescriptionWords] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const toInputDateTime = (value) => {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const pad = (number) => String(number).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-      date.getDate()
-    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  useEffect(() => {
+    const intervalId = window.setInterval(
+      () => setMinDateTime(toDateTimeLocalString()),
+      60000
+    );
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [coverPreview]);
+
+  const getCityValue = () => (selectedCity === "Other" ? otherCity.trim() : selectedCity);
+
+  const handleDescriptionChange = (event) => {
+    const value = event.target.value;
+    setDescription(value);
+    const words = value.trim() ? value.trim().split(/\s+/).length : 0;
+    setDescriptionWords(words);
   };
 
-  const splitVenueAndCity = (value) => {
-    const source = (value || "").trim();
-    if (!source) return { venueName: "", city: "" };
-
-    const parts = source.split(",").map((part) => part.trim()).filter(Boolean);
-    if (parts.length >= 2) {
-      const possibleCity = parts[parts.length - 1];
-      const matchedCity = CITY_OPTIONS.find(
-        (option) => option.toLowerCase() === possibleCity.toLowerCase()
-      );
-      if (matchedCity) {
-        return {
-          venueName: parts.slice(0, -1).join(", "),
-          city: matchedCity,
-          otherCity: "",
-        };
-      }
-      return {
-        venueName: parts.slice(0, -1).join(", "),
-        city: "Other",
-        otherCity: possibleCity,
-      };
-    }
-
-    const matchedByContains = CITY_OPTIONS.find((option) =>
-      source.toLowerCase().includes(option.toLowerCase())
-    );
-    if (matchedByContains) {
-      return {
-        venueName: source.replace(new RegExp(matchedByContains, "ig"), "").replace(/,\s*$/, "").trim() || source,
-        city: matchedByContains,
-        otherCity: "",
-      };
-    }
-
-    return { venueName: source, city: "", otherCity: "" };
+  const handlePhoneChange = (event) => {
+    setContactPhone(event.target.value);
   };
 
   const updateTicket = (index, field, value) => {
@@ -177,36 +176,21 @@ const EditConcert = () => {
     setRemoveCover(false);
   };
 
-  const handleRemoveCover = () => {
+  const clearCoverImage = () => {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
     setCoverImage(null);
     setCoverPreview("");
     setRemoveCover(true);
   };
 
-  const handleFieldChange = (field) => (event) => {
-    const { value } = event.target;
-    setFormState((prev) => ({ ...prev, [field]: value }));
-    if (field === "description") {
-      const words = value.trim() ? value.trim().split(/\s+/).length : 0;
-      setDescriptionWords(words);
-    }
-  };
-
+  // Load existing concert
   useEffect(() => {
     let isActive = true;
-
-    const intervalId = window.setInterval(
-      () => setMinDateTime(toDateTimeLocalString()),
-      60000
-    );
-
-    const loadConcert = async () => {
+    const load = async () => {
       if (!tokens?.access || !id) {
         if (isActive) setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
         setFormError("");
@@ -217,196 +201,271 @@ const EditConcert = () => {
           return;
         }
         if (isActive) {
-          setFormState({
-            title: payload.title || "",
-            description: payload.description || "",
-            genre: payload.genre || "",
-            date_time: toInputDateTime(payload.date_time),
-            ...(() => {
-              const parsedVenue = splitVenueAndCity(payload.venue || "");
-              return {
-                venue_name: parsedVenue.venueName,
-                city: parsedVenue.city,
-                other_city: parsedVenue.otherCity || "",
-              };
-            })(),
-            organizer_name: payload.organizer_name || "",
-            contact_email: payload.contact_email || "",
-            contact_phone: payload.contact_phone || "",
-            main_artist: payload.main_artist || "",
-          });
-          setExistingCover(payload.cover_image || "");
-          setCoverImage(null);
-          setCoverPreview("");
-          setRemoveCover(false);
+          setTitle(payload.title || "");
+          setDescription(payload.description || "");
           setDescriptionWords(
-            payload.description
-              ? payload.description.trim().split(/\s+/).filter(Boolean).length
-              : 0
+            payload.description ? payload.description.trim().split(/\s+/).filter(Boolean).length : 0
           );
+          setSelectedGenre(payload.genre || "");
+          setDateTime(payload.date_time ? toDateTimeLocalString(payload.date_time) : "");
+          const venueParts = (payload.venue || "").split(",").map((part) => part.trim()).filter(Boolean);
+          if (venueParts.length >= 2) {
+            const cityGuess = venueParts.pop();
+            const matchedCity = CITY_OPTIONS.find(
+              (city) => city.toLowerCase() === String(cityGuess || "").toLowerCase()
+            );
+            setSelectedCity(matchedCity || (cityGuess ? "Other" : ""));
+            setOtherCity(matchedCity ? "" : cityGuess || "");
+            setVenue(venueParts.join(", "));
+          } else {
+            setVenue(payload.venue || "");
+          }
+          setOrganizerName(payload.organizer_name || user?.username || user?.email || "");
+          setContactEmail(payload.contact_email || user?.email || "");
+          setContactPhone(payload.contact_phone || "");
+          setMainArtist(payload.main_artist || "");
+          setExistingCover(payload.cover_image || "");
+          setRemoveCover(false);
+
           const ticketList = Array.isArray(payload.ticket_categories) ? payload.ticket_categories : [];
           const ticketByName = new Map(
             ticketList.map((ticket) => [String(ticket?.name || "").trim().toLowerCase(), ticket])
           );
           setTickets(
             FIXED_TICKET_TYPES.map((name) => {
-              const existing = ticketByName.get(name.toLowerCase())
+              const existing = ticketByName.get(name.toLowerCase());
               return {
                 id: existing?.id || "",
                 name,
                 price: existing?.price ?? "",
                 quantity: existing?.quantity ?? "",
-              }
+              };
             })
           );
         }
       } catch (error) {
-        if (isActive) {
-          setFormError(error?.message || "Failed to load concert.");
-        }
+        if (isActive) setFormError(error?.message || "Failed to load concert.");
       } finally {
         if (isActive) setLoading(false);
       }
     };
-
-    loadConcert();
-
+    load();
     return () => {
       isActive = false;
-      window.clearInterval(intervalId);
     };
-  }, [id, tokens?.access]);
+  }, [id, tokens?.access, user?.email, user?.username]);
+
+  const validateStep = (stepIndex, { setMessage = true } = {}) => {
+    let error = "";
+    const cityValue = getCityValue();
+    const descriptionWordCount = description ? description.trim().split(/\s+/).filter(Boolean).length : 0;
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    const trimmedVenue = venue.trim();
+    const trimmedArtist = mainArtist.trim();
+
+    const phoneRaw = contactPhone.replace(/\s+/g, "");
+    const digitsOnlyPhone = phoneRaw.replace(/\D/g, "");
+    const hasPhoneNonDigits = digitsOnlyPhone.length !== phoneRaw.length;
+
+    const normalizedTickets = tickets.map((ticket) => ({
+      name: ticket.name?.trim() || "",
+      price: Number(ticket.price),
+      quantity: Number(ticket.quantity),
+    }));
+
+    switch (stepIndex) {
+      case 0: {
+        if (!trimmedTitle) {
+          error = "Concert title is required.";
+          break;
+        }
+        if (/^\d+$/.test(trimmedTitle)) {
+          error = "Concert title cannot be only numbers. Add words or letters.";
+          break;
+        }
+        if (!selectedGenre) {
+          error = "Please select a genre.";
+          break;
+        }
+        if (!dateTime) {
+          error = "Please select a valid Date & Time.";
+          break;
+        }
+        const selectedDateTime = new Date(dateTime);
+        if (Number.isNaN(selectedDateTime.getTime())) {
+          error = "Please select a valid Date & Time.";
+          break;
+        }
+        if (selectedDateTime < new Date()) {
+          error = "Date & Time must be in the future.";
+          break;
+        }
+        if (!trimmedDescription) {
+          error = "Description is required.";
+          break;
+        }
+        if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
+          error = `Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`;
+          break;
+        }
+        if (trimmedDescription && /^\d+$/.test(trimmedDescription.replace(/\s+/g, ""))) {
+          error = "Description cannot be only numbers. Add words or letters.";
+          break;
+        }
+        if (!trimmedVenue) {
+          error = "Venue name is required.";
+          break;
+        }
+        if (/\d/.test(trimmedVenue)) {
+          error = "Venue name cannot contain numbers. Use letters and words.";
+          break;
+        }
+        if (!cityValue) {
+          error = "Please select a city.";
+          break;
+        }
+        if (selectedCity === "Other" && !otherCity.trim()) {
+          error = "Please enter the city name.";
+          break;
+        }
+        break;
+      }
+      case 1: {
+        const hasUsableCover = coverImage || (existingCover && !removeCover);
+        if (!hasUsableCover) {
+          error = "Cover image is required.";
+        }
+        break;
+      }
+      case 2: {
+        if (!organizerName?.trim() || !contactEmail?.trim()) {
+          error = "Organizer name and email are required.";
+          break;
+        }
+        if (!contactPhone.trim()) {
+          error = "Contact phone is required.";
+          break;
+        }
+        if (hasPhoneNonDigits) {
+          error = "Contact phone must contain digits only (no letters or symbols).";
+          break;
+        }
+        if (!NEPAL_PHONE_REGEX.test(digitsOnlyPhone)) {
+          error = "Enter a 10-digit Nepal mobile (starts with 97 or 98).";
+          break;
+        }
+        break;
+      }
+      case 3: {
+        if (!trimmedArtist) {
+          error = "Main artist is required.";
+          break;
+        }
+        if (/^\d+$/.test(trimmedArtist)) {
+          error = "Main artist cannot be only numbers. Add words or letters.";
+          break;
+        }
+        break;
+      }
+      case 4: {
+        const invalidPrice = normalizedTickets.some((ticket) => !Number.isFinite(ticket.price));
+        const invalidQuantity = normalizedTickets.some((ticket) => !Number.isFinite(ticket.quantity));
+        if (invalidPrice || invalidQuantity) {
+          error = "Ticket price and quantity must be valid numbers.";
+          break;
+        }
+        const negativePrice = normalizedTickets.some((ticket) => ticket.price < 0);
+        if (negativePrice) {
+          error = "Ticket price cannot be negative.";
+          break;
+        }
+        const tooSmallQty = normalizedTickets.some((ticket) => ticket.quantity < 1);
+        if (tooSmallQty) {
+          error = "Ticket quantity must be at least 1.";
+          break;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (setMessage) setFormError(error);
+    return !error;
+  };
+
+  const validateAll = () => {
+    for (let i = 0; i < STEPS.length - 1; i += 1) {
+      if (!validateStep(i)) {
+        setCurrentStep(i);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setFormError("");
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+    }
+  };
+
+  const handleBack = () => {
+    setFormError("");
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleStepSelect = (index) => {
+    if (index <= currentStep) {
+      setFormError("");
+      setCurrentStep(index);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setFormError("");
+
+    if (!validateAll()) return;
 
     if (!tokens?.access) {
       setFormError("You must be logged in as an organizer.");
       return;
     }
 
-    const normalizedTicketCategories = tickets.map((ticket) => {
-      const normalized = {
-        name: ticket.name,
-        price: parseFloat(ticket.price || 0),
-        quantity: parseInt(ticket.quantity || 0, 10),
-      };
-      if (ticket.id) {
-        normalized.id = ticket.id;
-      }
-      return normalized;
-    });
+    const phoneRaw = contactPhone.replace(/\s+/g, "");
+    const digitsOnlyPhone = phoneRaw.replace(/\D/g, "");
 
-    const titleValue = formState.title?.trim();
-    if (!titleValue) {
-      setFormError("Concert title is required.");
-      return;
-    }
-    if (/^\\d+$/.test(titleValue)) {
-      setFormError("Concert title cannot be only numbers. Add words or letters.");
-      return;
-    }
+    const normalizedTickets = tickets.map((ticket) => ({
+      ...(ticket.id ? { id: ticket.id } : {}),
+      name: ticket.name?.trim() || "",
+      price: Number(ticket.price),
+      quantity: Number(ticket.quantity),
+    }));
 
-    const descriptionValue = formState.description?.trim() || "";
-    const descriptionWordCount = descriptionValue ? descriptionValue.split(/\\s+/).filter(Boolean).length : 0;
-    if (descriptionWordCount > DESCRIPTION_WORD_LIMIT) {
-      setFormError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
-      return;
-    }
-    if (descriptionValue && /^\\d+$/.test(descriptionValue.replace(/\\s+/g, ""))) {
-      setFormError("Description cannot be only numbers. Add words or letters.");
-      return;
-    }
-
-    const mainArtistValue = formState.main_artist?.trim();
-    if (mainArtistValue && /^\\d+$/.test(mainArtistValue)) {
-      setFormError("Main artist cannot be only numbers. Add words or letters.");
-      return;
-    }
-
-    const venueNameValue = formState.venue_name?.trim();
-    if (venueNameValue && /\\d/.test(venueNameValue)) {
-      setFormError("Venue name cannot contain numbers. Use letters and words.");
-      return;
-    }
-
-    let normalizedContactPhone = "";
-    if (formState.contact_phone) {
-      const strippedPhone = formState.contact_phone.replace(/\s+/g, "");
-      const digitsOnly = strippedPhone.replace(/\D/g, "");
-      if (digitsOnly.length !== strippedPhone.length) {
-        setFormError("Contact phone must contain digits only (no letters or symbols).");
-        return;
-      }
-      if (!NEPAL_PHONE_REGEX.test(digitsOnly)) {
-        setFormError(
-          "Enter a 10-digit Nepal mobile (starts with 97 or 98)."
-        );
-        return;
-      }
-      normalizedContactPhone = digitsOnly;
-    }
-
-    const basePayload = {
-      title: formState.title,
-      description: formState.description,
-      genre: formState.genre,
-      date_time: formState.date_time,
-      venue: `${(formState.venue_name || "").trim()}, ${(
-        formState.city === "Other" ? formState.other_city : formState.city
-      ).trim()}`,
-      organizer_name: formState.organizer_name,
-      contact_email: formState.contact_email,
-      contact_phone: normalizedContactPhone,
-      main_artist: formState.main_artist,
-      ticket_categories: normalizedTicketCategories,
-    };
-
-    if (
-      !formState.venue_name.trim() ||
-      !formState.city.trim() ||
-      (formState.city === "Other" && !formState.other_city.trim())
-    ) {
-      setFormError("Venue name and city are required.");
-      return;
-    }
-
-    const selectedDateTime = new Date(formState.date_time);
-    if (!formState.date_time || Number.isNaN(selectedDateTime.getTime())) {
-      setFormError("Please select a valid Date & Time.");
-      return;
-    }
-    if (selectedDateTime < new Date()) {
-      setFormError("Date & Time must be in the future.");
-      return;
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("description", description.trim());
+    formData.append("genre", selectedGenre);
+    formData.append("date_time", dateTime);
+    formData.append("venue", `${venue.trim()}, ${getCityValue()}`);
+    formData.append("organizer_name", organizerName.trim());
+    formData.append("contact_email", contactEmail.trim());
+    formData.append("contact_phone", digitsOnlyPhone);
+    formData.append("main_artist", mainArtist.trim());
+    formData.append("ticket_categories", JSON.stringify(normalizedTickets));
+    if (coverImage instanceof File) {
+      formData.append("cover_image", coverImage);
+    } else if (removeCover) {
+      formData.append("cover_image", "");
     }
 
     try {
       setSubmitting(true);
-      const hasCoverChange = Boolean(coverImage) || removeCover;
-      if (hasCoverChange) {
-        const payload = new FormData();
-        payload.append("title", basePayload.title);
-        payload.append("description", basePayload.description);
-        payload.append("genre", basePayload.genre);
-        payload.append("date_time", basePayload.date_time);
-        payload.append("venue", basePayload.venue);
-        payload.append("organizer_name", basePayload.organizer_name);
-        payload.append("contact_email", basePayload.contact_email);
-        payload.append("contact_phone", basePayload.contact_phone);
-        payload.append("main_artist", basePayload.main_artist);
-        payload.append("ticket_categories", JSON.stringify(basePayload.ticket_categories));
-        if (coverImage) {
-          payload.append("cover_image", coverImage);
-        } else if (removeCover) {
-          payload.append("cover_image", "");
-        }
-        await api.updateConcert(tokens.access, id, payload);
-      } else {
-        await api.updateConcert(tokens.access, id, basePayload);
-      }
-      navigate(`/organizer/concerts/${id}`);
+      await api.updateConcert(tokens.access, id, formData);
+      navigate("/organizer/concerts");
     } catch (error) {
       setFormError(error?.message || "Failed to update concert.");
     } finally {
@@ -414,16 +473,44 @@ const EditConcert = () => {
     }
   };
 
+  const progress = Math.min((currentStep / (STEPS.length - 1)) * 100, 100);
+  const genreLabel =
+    GENRE_OPTIONS.find((genre) => genre.value === selectedGenre)?.label || "Not set";
+  const coverDisplay = removeCover ? "" : coverPreview || existingCover;
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main className="ml-60 max-w-4xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
-        <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <h1 className="mb-2 text-3xl font-black text-[#312E81]">Edit Concert</h1>
-          <p className="font-semibold text-[#6B7280]">
+      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+        <div className="mb-6 flex flex-col gap-3 text-center">
+          <h1 className="text-3xl font-black text-[#1F2937]">Edit Concert</h1>
+          <p className="text-sm font-semibold text-[#6B7280]">
             Update the details of your concert event
           </p>
+
+          <div className="h-3 w-full rounded-full bg-[#E5E7EB]">
+            <div
+              className="h-3 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 text-base font-bold">
+            {STEPS.map((step, index) => {
+              const isActive = index === currentStep;
+              return (
+                <button
+                  key={step.key}
+                  type="button"
+                  onClick={() => handleStepSelect(index)}
+                  className={`transition ${isActive ? "text-[#4F46E5]" : "text-[#6B7280]"}`}
+                >
+                  {step.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {loading ? (
@@ -431,355 +518,479 @@ const EditConcert = () => {
             Loading concert...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             {formError ? (
               <div className="rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
                 {formError}
               </div>
             ) : null}
 
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                1. Basic Info
-              </h2>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="concert-title"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Concert Title <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="concert-title"
-                    name="concert-title"
-                    type="text"
-                    required
-                    placeholder="e.g., Rock Night 2026"
-                    value={formState.title}
-                    onChange={handleFieldChange("title")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                <label
-                  htmlFor="description"
-                  className="text-sm font-bold text-[#312E81]"
-                >
-                  Description (max {DESCRIPTION_WORD_LIMIT} words){" "}
-                  <span className="text-[#EF4444]">*</span>
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  required
-                  placeholder="Tell attendees about your concert..."
-                  value={formState.description}
-                  onChange={handleFieldChange("description")}
-                  className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                />
-                <p className="mt-1 text-xs font-semibold text-[#6B7280]">
-                  {descriptionWords}/{DESCRIPTION_WORD_LIMIT} words
-                </p>
-              </div>
-
-                <div>
-                  <label htmlFor="genre" className="text-sm font-bold text-[#312E81]">
-                    Genre <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <select
-                    id="genre"
-                    name="genre"
-                    required
-                    value={formState.genre}
-                    onChange={handleFieldChange("genre")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  >
-                    <option value="" disabled>
-                      Select a genre
-                    </option>
-                    {GENRE_OPTIONS.map((genreOption) => (
-                      <option key={genreOption.value} value={genreOption.value}>
-                        {genreOption.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                <label
-                  htmlFor="date-time"
-                  className="text-sm font-bold text-[#312E81]"
-                >
-                  Date &amp; Time <span className="text-[#EF4444]">*</span>
-                </label>
-                <input
-                  id="date-time"
-                  name="date-time"
-                  type="datetime-local"
-                  required
-                  value={formState.date_time}
-                  onChange={handleFieldChange("date_time")}
-                  min={minDateTime}
-                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                />
-              </div>
-
-                <div>
-                  <label htmlFor="venue" className="text-sm font-bold text-[#312E81]">
-                    Venue Name <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="venue"
-                    name="venue"
-                    type="text"
-                    required
-                    placeholder="e.g., Valley Concert Hall"
-                    value={formState.venue_name}
-                    onChange={handleFieldChange("venue_name")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="city" className="text-sm font-bold text-[#312E81]">
-                    City <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <select
-                    id="city"
-                    name="city"
-                    required
-                    value={formState.city}
-                    onChange={handleFieldChange("city")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  >
-                    <option value="" disabled>
-                      Select a city
-                    </option>
-                    {CITY_OPTIONS.map((cityOption) => (
-                      <option key={cityOption} value={cityOption}>
-                        {cityOption}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {formState.city === "Other" ? (
-                  <div>
-                    <label htmlFor="other-city" className="text-sm font-bold text-[#312E81]">
-                      Other City <span className="text-[#EF4444]">*</span>
+            {currentStep === 0 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  1. Basic Info
+                </h2>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="concert-title"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Concert Title <span className="text-[#EF4444]">*</span>
                     </label>
                     <input
-                      id="other-city"
-                      name="other-city"
+                      id="concert-title"
+                      name="concert-title"
                       type="text"
-                      required
-                      placeholder="Enter city name"
-                      value={formState.other_city}
-                      onChange={handleFieldChange("other_city")}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="e.g., Rock Night 2026"
                       className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                     />
                   </div>
-                ) : null}
-              </div>
-            </section>
 
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                2. Cover Image
-              </h2>
-              <div className="flex flex-col gap-3">
-                <label
-                  htmlFor="cover-image"
-                  className="text-sm font-bold text-[#312E81]"
-                >
-                  Cover Image
-                </label>
-                <input
-                  id="cover-image"
-                  name="cover-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCoverChange}
-                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                />
-                {(coverImage || (existingCover && !removeCover)) ? (
-                  <button
-                    type="button"
-                    onClick={handleRemoveCover}
-                    className="w-fit rounded-lg border border-[#FCA5A5] bg-white px-4 py-2 text-xs font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2]"
-                  >
-                    Remove Image
-                  </button>
-                ) : null}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                3. Organizer Info
-              </h2>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="organizer-name"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Organizer Name <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="organizer-name"
-                    name="organizer-name"
-                    type="text"
-                    required
-                    placeholder="e.g., SoundStage Events"
-                    value={formState.organizer_name}
-                    readOnly
-                    aria-readonly="true"
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="contact-email"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Contact Email <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="contact-email"
-                    name="contact-email"
-                    type="email"
-                    required
-                    placeholder="contact@example.com"
-                    value={formState.contact_email}
-                    readOnly
-                    aria-readonly="true"
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="contact-phone"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Contact Phone <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="contact-phone"
-                    name="contact-phone"
-                    type="tel"
-                    placeholder="e.g., +977 9812345678"
-                    value={formState.contact_phone}
-                    onChange={handleFieldChange("contact_phone")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                4. Artist
-              </h2>
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label
-                    htmlFor="main-artist"
-                    className="text-sm font-bold text-[#312E81]"
-                  >
-                    Main Artist <span className="text-[#EF4444]">*</span>
-                  </label>
-                  <input
-                    id="main-artist"
-                    name="main-artist"
-                    type="text"
-                    required
-                    placeholder="e.g., The Rockers Band"
-                    value={formState.main_artist}
-                    onChange={handleFieldChange("main_artist")}
-                    className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
-                5. Ticket Categories
-              </h2>
-              <div className="flex flex-col gap-4">
-                {tickets.map((ticket, index) => (
-                  <div
-                    key={`ticket-${index}`}
-                    className="grid grid-cols-1 items-end gap-4 rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
-                  >
-                    <div>
-                      <label className="text-sm font-bold text-[#312E81]">
-                        Ticket Type <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={ticket.name}
-                        readOnly
-                        aria-readonly="true"
-                        className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-[#312E81]">
-                        Price (Rs) <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        placeholder="500"
-                        value={ticket.price}
-                        onChange={(event) =>
-                          updateTicket(index, "price", event.target.value)
-                        }
-                        className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-[#312E81]">
-                        Quantity <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        placeholder="100"
-                        value={ticket.quantity}
-                        onChange={(event) =>
-                          updateTicket(index, "quantity", event.target.value)
-                        }
-                        className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
-                      />
-                    </div>
-                    <div />
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="description"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Description (max {DESCRIPTION_WORD_LIMIT} words){" "}
+                      <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={description}
+                      onChange={handleDescriptionChange}
+                      placeholder="Tell attendees about your concert..."
+                      className="mt-2 min-h-30 w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                    <p className="mt-1 text-xs font-semibold text-[#6B7280]">
+                      {descriptionWords}/{DESCRIPTION_WORD_LIMIT} words
+                    </p>
                   </div>
-                ))}
-              </div>
-            </section>
 
-            <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-end">
+                  <div>
+                    <label htmlFor="genre" className="text-sm font-bold text-[#312E81]">
+                      Genre <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <select
+                      id="genre"
+                      name="genre"
+                      value={selectedGenre}
+                      onChange={(event) => setSelectedGenre(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    >
+                      <option value="" disabled>
+                        Select a genre
+                      </option>
+                      {GENRE_OPTIONS.map((genreOption) => (
+                        <option key={genreOption.value} value={genreOption.value}>
+                          {genreOption.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="date-time"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Date &amp; Time <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="date-time"
+                      name="date-time"
+                      type="datetime-local"
+                      value={dateTime}
+                      min={minDateTime}
+                      onChange={(event) => setDateTime(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="venue" className="text-sm font-bold text-[#312E81]">
+                      Venue Name <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="venue"
+                      name="venue"
+                      type="text"
+                      value={venue}
+                      onChange={(event) => setVenue(event.target.value)}
+                      placeholder="e.g., Valley Concert Hall"
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="city" className="text-sm font-bold text-[#312E81]">
+                      City <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <select
+                      id="city"
+                      name="city"
+                      value={selectedCity}
+                      onChange={(event) => setSelectedCity(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    >
+                      <option value="" disabled>
+                        Select a city
+                      </option>
+                      {CITY_OPTIONS.map((cityOption) => (
+                        <option key={cityOption} value={cityOption}>
+                          {cityOption}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedCity === "Other" ? (
+                    <div>
+                      <label htmlFor="other-city" className="text-sm font-bold text-[#312E81]">
+                        Other City <span className="text-[#EF4444]">*</span>
+                      </label>
+                      <input
+                        id="other-city"
+                        name="other-city"
+                        type="text"
+                        value={otherCity}
+                        onChange={(event) => setOtherCity(event.target.value)}
+                        placeholder="Enter city name"
+                        className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {currentStep === 1 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  2. Cover Image
+                </h2>
+                <div className="flex flex-col gap-4">
+                  <label
+                    htmlFor="cover-image"
+                    className="text-sm font-bold text-[#312E81]"
+                  >
+                    Cover Image <span className="text-[#EF4444]">*</span>
+                  </label>
+                  <input
+                    id="cover-image"
+                    name="cover-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverChange}
+                    className="w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                  />
+                  {coverDisplay ? (
+                    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#FCFCFF]">
+                      <img
+                        src={coverDisplay}
+                        alt="Cover preview"
+                        className="h-48 w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+                  {(coverImage || (existingCover && !removeCover)) ? (
+                    <button
+                      type="button"
+                      onClick={clearCoverImage}
+                      className="w-fit rounded-lg border border-[#FCA5A5] bg-white px-4 py-2 text-xs font-bold text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                    >
+                      Remove Image
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {currentStep === 2 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  3. Organizer Info
+                </h2>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="organizer-name"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Organizer Name <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="organizer-name"
+                      name="organizer-name"
+                      type="text"
+                      value={organizerName}
+                      readOnly
+                      aria-readonly="true"
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="contact-email"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Contact Email <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="contact-email"
+                      name="contact-email"
+                      type="email"
+                      value={contactEmail}
+                      readOnly
+                      aria-readonly="true"
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="contact-phone"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Contact Phone <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="contact-phone"
+                      name="contact-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      value={contactPhone}
+                      onChange={handlePhoneChange}
+                      placeholder="e.g., 9812345678"
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                    <p className="mt-1 text-xs font-semibold text-[#6B7280]">
+                      10-digit Nepal mobile (starts with 97 or 98).
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {currentStep === 3 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  4. Artist
+                </h2>
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label
+                      htmlFor="main-artist"
+                      className="text-sm font-bold text-[#312E81]"
+                    >
+                      Main Artist <span className="text-[#EF4444]">*</span>
+                    </label>
+                    <input
+                      id="main-artist"
+                      name="main-artist"
+                      type="text"
+                      value={mainArtist}
+                      onChange={(event) => setMainArtist(event.target.value)}
+                      placeholder="e.g., The Rockers Band"
+                      className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {currentStep === 4 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  5. Ticket Categories
+                </h2>
+                <div className="flex flex-col gap-4">
+                  {tickets.map((ticket, index) => (
+                    <div
+                      key={`ticket-${index}`}
+                      className="grid grid-cols-1 items-end gap-4 rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
+                    >
+                      <div>
+                        <label className="text-sm font-bold text-[#312E81]">
+                          Ticket Type <span className="text-[#EF4444]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={ticket.name}
+                          readOnly
+                          aria-readonly="true"
+                          className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-[#312E81]">
+                          Price (Rs) <span className="text-[#EF4444]">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="500"
+                          value={ticket.price}
+                          onChange={(event) =>
+                            updateTicket(index, "price", event.target.value)
+                          }
+                          className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-[#312E81]">
+                          Quantity <span className="text-[#EF4444]">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="100"
+                          value={ticket.quantity}
+                          onChange={(event) =>
+                            updateTicket(index, "quantity", event.target.value)
+                          }
+                          className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
+                        />
+                      </div>
+                      <div />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {currentStep === 5 ? (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                <h2 className="mb-6 border-b-2 border-[#E5E7EB] pb-3 text-xl font-black text-[#312E81]">
+                  6. Review &amp; Submit
+                </h2>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4">
+                      <h3 className="mb-2 text-lg font-black text-[#312E81]">Event</h3>
+                      <dl className="grid grid-cols-1 gap-y-2 text-sm text-[#1F2937] sm:grid-cols-2">
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Title</dt>
+                          <dd className="font-semibold">{title || "Not set"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Genre</dt>
+                          <dd className="font-semibold">{genreLabel}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Date &amp; Time</dt>
+                          <dd className="font-semibold">{formatDatePreview(dateTime)}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Venue</dt>
+                          <dd className="font-semibold">
+                            {venue ? `${venue}${getCityValue() ? ", " : ""}${getCityValue()}` : "Not set"}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div className="mt-3">
+                        <dt className="font-bold text-[#6B7280]">Description</dt>
+                        <dd className="mt-1 text-sm font-semibold text-[#1F2937]">
+                          {description || "No description provided yet."}
+                        </dd>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4">
+                      <h3 className="mb-2 text-lg font-black text-[#312E81]">Organizer &amp; Artist</h3>
+                      <dl className="grid grid-cols-1 gap-y-2 text-sm text-[#1F2937] sm:grid-cols-2">
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Organizer</dt>
+                          <dd className="font-semibold">{organizerName || "Not set"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Email</dt>
+                          <dd className="font-semibold">{contactEmail || "Not set"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Phone</dt>
+                          <dd className="font-semibold">{contactPhone || "Not set"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-bold text-[#6B7280]">Main Artist</dt>
+                          <dd className="font-semibold">{mainArtist || "Not set"}</dd>
+                        </div>
+                      </dl>
+                    </div>
+
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-4">
+                      <h3 className="mb-2 text-lg font-black text-[#312E81]">Tickets</h3>
+                      <div className="divide-y divide-[#E5E7EB] text-sm font-semibold text-[#1F2937]">
+                        {tickets.map((ticket) => (
+                          <div key={ticket.name} className="grid grid-cols-[2fr_1fr_1fr] items-center gap-2 py-2">
+                            <span className="font-bold text-[#312E81]">{ticket.name}</span>
+                            <span>Rs {ticket.price || "0"}</span>
+                            <span>{ticket.quantity || "0"} qty</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#FCFCFF]">
+                      {coverDisplay ? (
+                        <img
+                          src={coverDisplay}
+                          alt="Cover preview"
+                          className="h-56 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-56 items-center justify-center bg-[#E5E7EB] text-sm font-bold text-[#6B7280]">
+                          Cover image preview
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-[#6B7280]">
+                      Double-check your details before saving. You can still edit tickets later.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-4 md:flex-row md:items-center md:justify-between">
               <Link
                 to="/organizer/concerts"
                 className="inline-flex justify-center rounded-xl border border-[#E5E7EB] bg-white px-8 py-3 text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F4F6]"
               >
                 Cancel
               </Link>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex justify-center rounded-xl bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
-              >
-                {submitting ? "Saving..." : "Save Changes"}
-              </button>
+              <div className="flex gap-3">
+                {currentStep > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="inline-flex justify-center rounded-xl border border-[#E5E7EB] bg-white px-6 py-3 text-sm font-bold text-[#312E81] transition hover:bg-[#F3F4F6]"
+                  >
+                    Back
+                  </button>
+                ) : null}
+                {currentStep < STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="inline-flex justify-center rounded-xl bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5]"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex justify-center rounded-xl bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {submitting ? "Saving..." : "Save Changes"}
+                  </button>
+                )}
+              </div>
             </div>
           </form>
         )}
