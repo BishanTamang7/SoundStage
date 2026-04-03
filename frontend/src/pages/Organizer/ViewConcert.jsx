@@ -6,6 +6,13 @@ import OrganizerSidebar from "../../components/OrganizerSidebar";
 import { getVenueParts } from "../../utils/concerts";
 import { formatDateTime } from "../../utils/formatters";
 
+const InfoBlock = ({ label, value }) => (
+  <div className="rounded-lg border border-[#E5E7EB] bg-[#FCFCFF] px-4 py-3">
+    <p className="text-xs font-bold uppercase tracking-wide text-[#9CA3AF]">{label}</p>
+    <p className="mt-1 text-sm font-semibold text-[#312E81]">{value}</p>
+  </div>
+);
+
 const ViewConcert = () => {
   const { id } = useParams();
   const { tokens } = useAuth();
@@ -72,7 +79,7 @@ const ViewConcert = () => {
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main className="ml-60 max-w-4xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <Link
           to="/organizer/concerts"
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
@@ -103,116 +110,93 @@ const ViewConcert = () => {
             Concert not found.
           </div>
         ) : (
-          <>
-            <section className="mb-6 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-              <div className="relative h-64 bg-[#F3F4F6] sm:h-72">
-                {concert.cover_image ? (
-                  <img
-                    src={concert.cover_image}
-                    alt={`${concert.title || "Concert"} cover`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-semibold text-[#9CA3AF]">
-                    No cover image uploaded.
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h1 className="mb-6 text-3xl font-black text-[#312E81]">
-                {concert.title || "Untitled Concert"}
-              </h1>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Date &amp; Time</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {formatDateTime(concert.date_time, {
-                      dateOptions: { month: "long", day: "numeric", year: "numeric" },
-                      separator: " • ",
-                    })}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Venue</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {venueName || "TBD"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">City</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {city || "TBD"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Main Artist</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {concert.main_artist || "TBD"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Organizer</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {concert.organizer_name || "TBD"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Contact Email</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {concert.contact_email || "TBD"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-[#6B7280]">Contact Phone</span>
-                  <span className="text-base font-bold text-[#312E81]">
-                    {concert.contact_phone || "TBD"}
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-4 text-xl font-black text-[#312E81]">Description</h2>
-              <p className="text-sm font-medium leading-7 text-[#6B7280]">
-                {concert.description || "No description provided."}
-              </p>
-            </section>
-
-            <section className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <h2 className="mb-4 text-xl font-black text-[#312E81]">
-                Ticket Categories
-              </h2>
-              {ticketCategories.length === 0 ? (
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-6 text-sm font-semibold text-[#6B7280]">
-                  No ticket categories available.
-                </div>
+          <section className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_12px_30px_rgba(49,46,129,0.08)]">
+            <div className="relative h-64 bg-[#F3F4F6] sm:h-80">
+              {concert.cover_image ? (
+                <img
+                  src={concert.cover_image}
+                  alt={`${concert.title || "Concert"} cover`}
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <div className="space-y-4">
-                  {ticketCategories.map((ticket) => (
-                    <div
-                      key={ticket.id || ticket.name}
-                      className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-5"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-lg font-black text-[#312E81]">
-                          {ticket.name || "Ticket"}
-                        </span>
-                        <span className="text-xl font-black text-[#7C3AED]">
+                <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-semibold text-[#9CA3AF]">
+                  No cover image uploaded.
+                </div>
+              )}
+              <div className="absolute bottom-4 left-4 rounded-full bg-white/80 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#6B7280] backdrop-blur">
+                {formatDateTime(concert.date_time, {
+                  dateOptions: { month: "long", day: "numeric", year: "numeric" },
+                  separator: " • ",
+                }) || "Schedule TBD"}
+              </div>
+            </div>
+
+            <div className="grid gap-8 p-8 lg:grid-cols-[2fr_1fr]">
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-black text-[#312E81]">
+                    {concert.title || "Untitled Concert"}
+                  </h1>
+                  <p className="mt-2 text-sm font-semibold text-[#6B7280]">
+                    {concert.main_artist || "Main artist TBD"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <InfoBlock label="Venue" value={venueName || "TBD"} />
+                  <InfoBlock label="City" value={city || "TBD"} />
+                  <InfoBlock label="Organizer" value={concert.organizer_name || "TBD"} />
+                  <InfoBlock label="Contact Email" value={concert.contact_email || "TBD"} />
+                  <InfoBlock label="Contact Phone" value={concert.contact_phone || "TBD"} />
+                </div>
+
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-5">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-[#9CA3AF]">
+                    Description
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+                    {concert.description || "No description provided."}
+                  </p>
+                </div>
+              </div>
+
+              <aside className="space-y-4 self-start rounded-xl border border-[#E5E7EB] bg-[#FCFCFF] p-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-black text-[#312E81]">Ticket Categories</h2>
+                  <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#4F46E5]">
+                    {ticketCategories.length} Types
+                  </span>
+                </div>
+
+                {ticketCategories.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-white px-4 py-5 text-xs font-semibold text-[#9CA3AF]">
+                    No ticket categories available.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {ticketCategories.map((ticket) => (
+                      <div
+                        key={ticket.id || ticket.name}
+                        className="flex items-start justify-between rounded-lg border border-[#E5E7EB] bg-white px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-sm font-black text-[#312E81]">
+                            {ticket.name || "Ticket"}
+                          </p>
+                          <p className="text-xs font-semibold text-[#6B7280]">
+                            Quantity: {ticket.quantity ?? 0}
+                          </p>
+                        </div>
+                        <span className="text-base font-black text-[#7C3AED]">
                           Rs {ticket.price ?? 0}
                         </span>
                       </div>
-                      <div className="mt-2 text-sm font-semibold text-[#6B7280]">
-                        Quantity: {ticket.quantity ?? 0} tickets
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-          </>
+                    ))}
+                  </div>
+                )}
+              </aside>
+            </div>
+          </section>
         )}
       </main>
     </div>
