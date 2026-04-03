@@ -13,6 +13,13 @@ const InfoBlock = ({ label, value }) => (
   </div>
 );
 
+const formatPrice = (value) => {
+  if (value === null || value === undefined || value === "") return "0";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  return Number.isInteger(num) ? String(num) : String(num.toFixed(2)).replace(/\.?0+$/, "");
+};
+
 const ViewConcert = () => {
   const { id } = useParams();
   const { tokens } = useAuth();
@@ -79,7 +86,7 @@ const ViewConcert = () => {
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main className="ml-60 max-w-[84rem] px-12 pt-4 pb-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+      <main className="ml-60 max-w-336 px-12 pt-4 pb-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <Link
           to="/organizer/concerts"
           className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#7C3AED]"
@@ -179,7 +186,7 @@ const ViewConcert = () => {
                           </p>
                         </div>
                         <span className="text-base font-black text-[#7C3AED]">
-                          Rs {ticket.price ?? 0}
+                          Rs {formatPrice(ticket.price)}
                         </span>
                       </div>
                     ))}

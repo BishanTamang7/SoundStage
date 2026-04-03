@@ -244,7 +244,7 @@ const EditConcert = () => {
               return {
                 id: existing?.id || "",
                 name,
-                price: existing?.price ?? "",
+                price: formatPriceValue(existing?.price ?? ""),
                 quantity: existing?.quantity ?? "",
               };
             })
@@ -490,12 +490,24 @@ const EditConcert = () => {
   const genreLabel =
     GENRE_OPTIONS.find((genre) => genre.value === selectedGenre)?.label || "Not set";
   const coverDisplay = removeCover ? "" : coverPreview || existingCover;
+  const isReviewStep = currentStep === STEPS.length - 1;
+
+  const formatPriceValue = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const num = Number(value);
+    if (!Number.isFinite(num)) return String(value);
+    return Number.isInteger(num) ? String(num) : String(num.toFixed(2)).replace(/\.?0+$/, "");
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
+      <main
+        className={`ml-60 px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto ${
+          isReviewStep ? "max-w-screen-2xl" : "max-w-5xl"
+        }`}
+      >
         <div className="mb-6 flex flex-col gap-3 text-center">
           <h1 className="text-3xl font-black text-[#1F2937]">Edit Concert</h1>
           <p className="text-sm font-semibold text-[#6B7280]">
@@ -845,7 +857,7 @@ const EditConcert = () => {
                           type="number"
                           min="0"
                           placeholder="500"
-                          value={ticket.price}
+                          value={formatPriceValue(ticket.price)}
                           onChange={(event) =>
                             updateTicket(index, "price", event.target.value)
                           }
@@ -939,7 +951,7 @@ const EditConcert = () => {
                         {tickets.map((ticket) => (
                           <div key={ticket.name} className="grid grid-cols-[2fr_1fr_1fr] items-center gap-2 py-2">
                             <span className="font-bold text-[#312E81]">{ticket.name}</span>
-                            <span>Rs {ticket.price || "0"}</span>
+                            <span>Rs {formatPriceValue(ticket.price) || "0"}</span>
                             <span>{ticket.quantity || "0"} qty</span>
                           </div>
                         ))}
