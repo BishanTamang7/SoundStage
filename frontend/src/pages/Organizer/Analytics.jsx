@@ -226,13 +226,13 @@ const Analytics = () => {
 
             <div className="flex flex-wrap items-center gap-3 min-[900px]:justify-end">
               <Link
-                className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6D28D9] min-w-[130px] text-center"
+                className="inline-flex items-center justify-center rounded-lg bg-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6D28D9] min-w-32 text-center"
                 to="/organizer/bookings"
               >
                 View Bookings
               </Link>
               <Link
-                className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm font-bold text-[#312E81] transition hover:bg-[#F8FAFC] min-w-[130px] text-center"
+                className="inline-flex items-center justify-center rounded-lg border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm font-bold text-[#312E81] transition hover:bg-[#F8FAFC] min-w-32 text-center"
                 to="/organizer/tickets"
               >
                 View Tickets

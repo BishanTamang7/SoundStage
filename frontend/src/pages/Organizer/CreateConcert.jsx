@@ -431,7 +431,7 @@ const CreateConcert = () => {
 
           <div className="h-3 w-full rounded-full bg-[#E5E7EB]">
             <div
-              className="h-3 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] transition-all"
+              className="h-3 rounded-full bg-linear-to-r from-[#4F46E5] to-[#7C3AED] transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
