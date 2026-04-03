@@ -207,6 +207,13 @@ const EditConcert = () => {
           if (isActive) setFormError("Concert not found.");
           return;
         }
+        const concertDate = payload.date_time ? new Date(payload.date_time) : null;
+        const isPastConcert =
+          concertDate instanceof Date && !Number.isNaN(concertDate.getTime()) && concertDate < new Date();
+        if (isPastConcert) {
+          navigate(`/organizer/concerts/${id}`, { replace: true });
+          return;
+        }
         if (isActive) {
           setTitle(payload.title || "");
           setDescription(payload.description || "");
@@ -260,7 +267,7 @@ const EditConcert = () => {
     return () => {
       isActive = false;
     };
-  }, [id, tokens?.access, user?.email, user?.username]);
+  }, [id, tokens?.access, user?.email, user?.username, navigate]);
 
   const validateStep = (stepIndex, { setMessage = true } = {}) => {
     let error = "";
@@ -490,7 +497,6 @@ const EditConcert = () => {
   const genreLabel =
     GENRE_OPTIONS.find((genre) => genre.value === selectedGenre)?.label || "Not set";
   const coverDisplay = removeCover ? "" : coverPreview || existingCover;
-  const isReviewStep = currentStep === STEPS.length - 1;
 
   const formatPriceValue = (value) => {
     if (value === null || value === undefined || value === "") return "";
@@ -503,11 +509,7 @@ const EditConcert = () => {
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">
       <OrganizerSidebar />
 
-      <main
-        className={`ml-60 px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto ${
-          isReviewStep ? "max-w-screen-2xl" : "max-w-5xl"
-        }`}
-      >
+      <main className="ml-60 max-w-5xl px-12 py-8 md:px-6 max-[768px]:ml-0 max-[768px]:px-4 xl:mx-auto">
         <div className="mb-6 flex flex-col gap-3 text-center">
           <h1 className="text-3xl font-black text-[#1F2937]">Edit Concert</h1>
           <p className="text-sm font-semibold text-[#6B7280]">

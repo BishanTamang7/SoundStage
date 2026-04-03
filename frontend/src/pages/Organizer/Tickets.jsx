@@ -134,6 +134,7 @@ const Tickets = () => {
       return {
         concertId: concert?.id,
         concertTitle: concert?.title || 'Untitled Concert',
+        dateTime: concert?.date_time,
         rows,
         totalCapacity,
         totalRemaining,
@@ -144,15 +145,18 @@ const Tickets = () => {
 
   const concertOptions = useMemo(() => {
     return concertBlocks
-      .map((block) => block.concertTitle)
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b))
+      .map((block) => ({
+        id: block.concertId ? String(block.concertId) : '',
+        title: block.concertTitle,
+      }))
+      .filter((option) => option.id && option.title)
+      .sort((a, b) => a.title.localeCompare(b.title))
   }, [concertBlocks])
 
   const filteredBlocks = useMemo(() => {
     return concertBlocks
       .map((block) => {
-        const concertMatched = concertFilter === 'all' || block.concertTitle === concertFilter
+        const concertMatched = concertFilter === 'all' || String(block.concertId) === concertFilter
         if (!concertMatched) return null
 
         const rows = block.rows.filter((row) => statusFilter === 'all' || row.status === statusFilter)
@@ -180,6 +184,7 @@ const Tickets = () => {
           id: row.id,
           concertId: block.concertId,
           concertTitle: block.concertTitle,
+          dateTime: block.dateTime,
           ...row,
         }))
       ),
@@ -228,9 +233,9 @@ const Tickets = () => {
               onChange={(event) => setConcertFilter(event.target.value)}
             >
               <option value="all">All Concerts</option>
-              {concertOptions.map((concertTitle) => (
-                <option key={concertTitle} value={concertTitle}>
-                  {concertTitle}
+              {concertOptions.map((concert) => (
+                <option key={concert.id} value={concert.id}>
+                  {concert.title}
                 </option>
               ))}
             </select>
@@ -279,17 +284,16 @@ const Tickets = () => {
               <div>Status</div>
             </div>
             <div className="divide-y divide-[#E5E7EB]">
-              {tableRows.map((row) => (
-                <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.7fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr] md:items-center md:gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-black text-[#312E81]">{row.concertTitle}</span>
-                    <Link
-                      to={`/organizer/concerts/${row.concertId}/edit`}
-                      className="rounded-md border border-[#D1D5DB] px-2 py-1 text-[11px] font-bold text-[#374151] transition hover:bg-[#F9FAFB] md:hidden"
-                    >
-                      Edit
-                    </Link>
-                  </div>
+              {tableRows.map((row) => {
+                const isPastConcert =
+                  row.dateTime && !Number.isNaN(new Date(row.dateTime).getTime())
+                    ? new Date(row.dateTime) < new Date()
+                    : false
+                return (
+                  <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.7fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr] md:items-center md:gap-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-black text-[#312E81]">{row.concertTitle}</span>
+                    </div>
                   <div>
                     <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-extrabold text-[#1D4ED8]">
                       {row.ticketType}
@@ -302,19 +306,14 @@ const Tickets = () => {
                   <div className="text-sm font-bold text-[#7C3AED]">
                     {row.revenue === null ? '-' : formatCurrency(row.revenue)}
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
-                      {row.status}
-                    </span>
-                    <Link
-                      to={`/organizer/concerts/${row.concertId}/edit`}
-                      className="hidden rounded-md border border-[#D1D5DB] px-2 py-1 text-[11px] font-bold text-[#374151] transition hover:bg-[#F9FAFB] md:inline-flex"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${getStatusClasses(row.status)}`}>
+                        {row.status}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

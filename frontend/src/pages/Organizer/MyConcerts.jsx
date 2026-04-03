@@ -13,7 +13,7 @@ const MyConcerts = () => {
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [confirmTarget, setConfirmTarget] = useState(null)
-  const [statusFilter, setStatusFilter] = useState('all') // all | upcoming | past
+  const [statusFilter, setStatusFilter] = useState('upcoming') // all | upcoming | past
 
   const emojiSet = useMemo(() => ['🎸', '🎤', '🎹', '🎵', '🥁', '🎺', '🎷', '🎻'], [])
 
@@ -168,6 +168,10 @@ const MyConcerts = () => {
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
             {filteredConcerts.map((concert, index) => {
               const { venueName, city } = getVenueParts(concert.venue || '')
+              const isPastConcert = (() => {
+                const dt = new Date(concert.date_time)
+                return !Number.isNaN(dt.getTime()) && dt < new Date()
+              })()
               return (
                 <div
                   key={concert.id}
@@ -215,12 +219,14 @@ const MyConcerts = () => {
                     >
                       View
                     </Link>
-                    <Link
-                      to={`/organizer/concerts/${concert.id}/edit`}
-                      className="flex-1 rounded-lg border border-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
-                    >
-                      Edit
-                    </Link>
+                    {!isPastConcert ? (
+                      <Link
+                        to={`/organizer/concerts/${concert.id}/edit`}
+                        className="flex-1 rounded-lg border border-[#7C3AED] px-4 py-2 text-center text-xs font-bold text-[#7C3AED] transition hover:bg-[#F3F4F6]"
+                      >
+                        Edit
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setConfirmTarget(concert)}

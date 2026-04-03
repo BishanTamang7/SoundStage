@@ -72,7 +72,7 @@ const OrganizerHome = () => {
       return !Number.isNaN(date.getTime()) && date.getTime() >= currentTime
     })
     .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
-    .slice(0, 2)
+    .slice(0, 1)
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#312E81]">
