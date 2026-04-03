@@ -72,6 +72,7 @@ const EditConcert = () => {
   const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
   const [descriptionWords, setDescriptionWords] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [acknowledgedReview, setAcknowledgedReview] = useState(false);
 
   useEffect(() => {
     const intervalId = window.setInterval(
@@ -86,6 +87,12 @@ const EditConcert = () => {
       if (coverPreview) URL.revokeObjectURL(coverPreview);
     };
   }, [coverPreview]);
+
+  useEffect(() => {
+    if (currentStep !== STEPS.length - 1 && acknowledgedReview) {
+      setAcknowledgedReview(false);
+    }
+  }, [currentStep, acknowledgedReview]);
 
   const getCityValue = () => (selectedCity === "Other" ? otherCity.trim() : selectedCity);
 
@@ -429,6 +436,12 @@ const EditConcert = () => {
     setFormError("");
 
     if (!validateAll()) return;
+
+    if (!acknowledgedReview) {
+      setCurrentStep(STEPS.length - 1);
+      setFormError("Please confirm you've reviewed your details before saving.");
+      return;
+    }
 
     if (!tokens?.access) {
       setFormError("You must be logged in as an organizer.");
@@ -951,6 +964,18 @@ const EditConcert = () => {
                     <p className="text-xs font-semibold text-[#6B7280]">
                       Double-check your details before saving. You can still edit tickets later.
                     </p>
+                    <label className="flex items-start gap-3 rounded-xl border border-[#E5E7EB] bg-white p-3 text-sm font-semibold text-[#1F2937]">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 accent-[#7C3AED]"
+                        checked={acknowledgedReview}
+                        onChange={(event) => {
+                          setAcknowledgedReview(event.target.checked);
+                          if (formError) setFormError("");
+                        }}
+                      />
+                      <span>I have reviewed all details and confirm they are correct.</span>
+                    </label>
                   </div>
                 </div>
               </section>
@@ -984,7 +1009,7 @@ const EditConcert = () => {
                 ) : (
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || !acknowledgedReview}
                     className="inline-flex justify-center rounded-xl bg-[#7C3AED] px-8 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {submitting ? "Saving..." : "Save Changes"}
