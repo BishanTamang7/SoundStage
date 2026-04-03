@@ -110,10 +110,6 @@ const OrganizerProfile = () => {
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9CA3AF]">Member Since</p>
                   <p className="mt-2 text-sm font-semibold text-[#312E81]">{memberSince}</p>
                 </div>
-                <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9CA3AF]">Dashboard Access</p>
-                  <p className="mt-2 text-sm font-semibold text-[#312E81]">Organizer account enabled</p>
-                </div>
               </div>
             </section>
 
