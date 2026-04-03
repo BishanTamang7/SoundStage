@@ -42,16 +42,18 @@ const Register = () => {
 
     setSubmitting(true)
     try {
+      const email = formData.email.trim().toLowerCase()
+      const username = formData.username.trim()
       await register({
         role: formData.role.toUpperCase(),
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
+        username,
+        email,
+        password: formData.password.trim(),
         confirm_password: formData.confirm,
       })
-      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err) {
-      setError(err?.message || 'Registration failed. Please try again.')
+      setError(err?.message || 'Could not create your account. Please review the details and try again.')
     } finally {
       setSubmitting(false)
     }

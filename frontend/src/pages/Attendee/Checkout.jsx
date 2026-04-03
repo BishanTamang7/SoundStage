@@ -34,11 +34,6 @@ const Checkout = () => {
         const payload = data?.data || data
         if (isActive) {
           setConcert(payload || null)
-          const categories = Array.isArray(payload?.ticket_categories)
-            ? payload.ticket_categories
-            : Array.isArray(payload?.tickets)
-              ? payload.tickets
-              : []
           // Do not preselect a ticket; require explicit user choice.
           setSelectedTicket(null)
         }

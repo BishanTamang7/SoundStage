@@ -10,6 +10,8 @@ const ResetPassword = () => {
   const token = searchParams.get('token') || ''
   const email = searchParams.get('email') || ''
   const [formData, setFormData] = useState({ new_password: '', confirm_password: '' })
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -29,6 +31,11 @@ const ResetPassword = () => {
       return
     }
 
+    if (formData.new_password !== formData.confirm_password) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setSubmitting(true)
     try {
       const response = await resetPasswordConfirm({
@@ -43,7 +50,7 @@ const ResetPassword = () => {
         navigate(`/signin${suffix}`)
       }, 900)
     } catch (submitError) {
-      setError(submitError?.message || 'Failed to reset password.')
+      setError(submitError?.message || 'Could not reset your password. Request a new link and try again.')
     } finally {
       setSubmitting(false)
     }
@@ -67,26 +74,44 @@ const ResetPassword = () => {
         <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label className="mb-1 text-sm font-semibold">New password</label>
-            <input
-              className="rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
-              type="password"
-              name="new_password"
-              value={formData.new_password}
-              onChange={handleChange}
-              required
-            />
+            <div className="relative">
+              <input
+                className="w-full rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 pr-24 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
+                type={showNew ? 'text' : 'password'}
+                name="new_password"
+                value={formData.new_password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew((prev) => !prev)}
+                className="absolute inset-y-0 right-3 my-1 rounded-lg px-3 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#F3F4F6]"
+              >
+                {showNew ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col">
             <label className="mb-1 text-sm font-semibold">Confirm password</label>
-            <input
-              className="rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
-              type="password"
-              name="confirm_password"
-              value={formData.confirm_password}
-              onChange={handleChange}
-              required
-            />
+            <div className="relative">
+              <input
+                className="w-full rounded-[14px] border border-[rgba(49,46,129,0.22)] px-4 py-3 pr-24 text-base outline-none focus:border-[rgba(124,58,237,0.7)] focus:ring-4 focus:ring-[rgba(124,58,237,0.12)]"
+                type={showConfirm ? 'text' : 'password'}
+                name="confirm_password"
+                value={formData.confirm_password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((prev) => !prev)}
+                className="absolute inset-y-0 right-3 my-1 rounded-lg px-3 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#F3F4F6]"
+              >
+                {showConfirm ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           {message ? <p className="text-sm font-semibold text-emerald-700">{message}</p> : null}

@@ -6,6 +6,37 @@ const apiClient = axios.create({
   baseURL: BASE_URL,
 })
 
+let authTokens = { access: null, refresh: null }
+const authTokenListeners = new Set()
+
+const notifyAuthTokenListeners = (tokens) => {
+  authTokenListeners.forEach((listener) => {
+    try {
+      listener(tokens)
+    } catch {
+      // Swallow listener errors to avoid breaking the chain
+    }
+  })
+}
+
+export const addAuthTokenListener = (listener) => {
+  authTokenListeners.add(listener)
+  return () => authTokenListeners.delete(listener)
+}
+
+export const setAuthTokens = (tokens) => {
+  authTokens = {
+    access: tokens?.access || null,
+    refresh: tokens?.refresh || null,
+  }
+  notifyAuthTokenListeners(authTokens)
+}
+
+export const clearAuthTokens = () => {
+  authTokens = { access: null, refresh: null }
+  notifyAuthTokenListeners(authTokens)
+}
+
 const formatErrorMessage = (data) => {
   if (!data) return 'Request failed'
   if (typeof data === 'string') return data
@@ -93,8 +124,9 @@ const formatErrorMessage = (data) => {
 }
 
 const withAuth = (token) => {
-  if (!token) return {}
-  return { Authorization: `Bearer ${token}` }
+  const effective = authTokens.access || token
+  if (!effective) return {}
+  return { Authorization: `Bearer ${effective}` }
 }
 
 const handleError = (error) => {
@@ -114,6 +146,66 @@ const handleError = (error) => {
 
   throw error
 }
+
+const refreshTokenRequest = async (refresh) => {
+  const { data } = await apiClient.post(
+    '/accounts/token/refresh/',
+    { refresh },
+    { skipAuthRefresh: true }
+  )
+  return data
+}
+
+let refreshPromise = null
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const { response, config } = error
+
+    if (!response || config?.skipAuthRefresh) {
+      return Promise.reject(error)
+    }
+
+    if (response.status !== 401 || config._retry || !authTokens.refresh) {
+      return Promise.reject(error)
+    }
+
+    // Mark the request so we don't retry twice
+    config._retry = true
+
+    if (!refreshPromise) {
+      refreshPromise = refreshTokenRequest(authTokens.refresh)
+        .then((data) => {
+          const nextAccess = data?.access || data?.data?.access
+          const nextRefresh = data?.refresh || data?.data?.refresh || authTokens.refresh
+          if (!nextAccess) {
+            throw new Error('Token refresh failed')
+          }
+          setAuthTokens({ access: nextAccess, refresh: nextRefresh })
+          return { access: nextAccess, refresh: nextRefresh }
+        })
+        .catch((refreshError) => {
+          clearAuthTokens()
+          throw refreshError
+        })
+        .finally(() => {
+          refreshPromise = null
+        })
+    }
+
+    try {
+      const tokens = await refreshPromise
+      config.headers = {
+        ...(config.headers || {}),
+        Authorization: `Bearer ${tokens.access}`,
+      }
+      return apiClient(config)
+    } catch {
+      return Promise.reject(error)
+    }
+  }
+)
 
 export const resolveMediaUrl = (path) => {
   if (!path) return ''
@@ -186,8 +278,7 @@ export const api = {
   },
   refreshToken: async (refresh) => {
     try {
-      const { data } = await apiClient.post('/accounts/token/refresh/', { refresh })
-      return data
+      return await refreshTokenRequest(refresh)
     } catch (error) {
       handleError(error)
     }

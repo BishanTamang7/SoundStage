@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '../services/api'
+import { api, setAuthTokens, clearAuthTokens, addAuthTokenListener } from '../services/api'
 import { AuthContext } from './AuthContextStore'
 import { normalizeRole } from '../utils/roles'
 
@@ -111,9 +111,29 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   useEffect(() => {
+    const unsubscribe = addAuthTokenListener((nextTokens) => {
+      setTokens((prev) => {
+        if (
+          prev?.access === nextTokens?.access &&
+          prev?.refresh === nextTokens?.refresh
+        ) {
+          return prev
+        }
+        if (nextTokens?.access) {
+          return { access: nextTokens.access, refresh: nextTokens.refresh || null }
+        }
+        return null
+      })
+    })
+    return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
     if (tokens?.access) {
+      setAuthTokens(tokens)
       writeStoredAuth({ access: tokens.access, refresh: tokens.refresh || null })
     } else {
+      clearAuthTokens()
       writeStoredAuth(null)
     }
   }, [tokens])

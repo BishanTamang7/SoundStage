@@ -6,7 +6,7 @@ const ProtectedRoute = ({ redirectTo = '/' }) => {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return null
+    return <div className="route-loader">Loading...</div>
   }
 
   if (!isAuthenticated) {

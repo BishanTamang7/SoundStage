@@ -21,7 +21,7 @@ const ForgotPassword = () => {
       )
     } catch (error) {
       setStatus('error')
-      setMessage(error?.message || 'Failed to send password reset link.')
+      setMessage(error?.message || 'Could not send the reset link right now. Please try again.')
     } finally {
       setSubmitting(false)
     }

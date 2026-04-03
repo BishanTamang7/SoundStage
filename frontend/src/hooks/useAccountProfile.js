@@ -100,6 +100,14 @@ const useAccountProfile = ({
     setProfileMessage('')
     setProfileError('')
 
+    const trimmedUsername = profileForm.username.trim()
+    const trimmedEmail = profileForm.email.trim()
+
+    if (!trimmedUsername || !trimmedEmail) {
+      setProfileError('Username and email are required.')
+      return
+    }
+
     if (!hasProfileChanges) {
       setProfileMessage('No changes to save.')
       return
@@ -108,8 +116,8 @@ const useAccountProfile = ({
     try {
       setSavingProfile(true)
       const response = await updateProfile({
-        username: profileForm.username.trim(),
-        email: profileForm.email.trim(),
+        username: trimmedUsername,
+        email: trimmedEmail.toLowerCase(),
       })
       if (response?.data?.requires_email_verification) {
         const verificationEmail = response?.data?.verification_email || profileForm.email.trim()
@@ -119,7 +127,7 @@ const useAccountProfile = ({
       }
       setProfileMessage(response?.message || 'Profile updated successfully.')
     } catch (error) {
-      setProfileError(error?.message || 'Failed to update profile.')
+      setProfileError(error?.message || 'Could not update your profile. Please try again.')
     } finally {
       setSavingProfile(false)
     }
@@ -145,6 +153,16 @@ const useAccountProfile = ({
       return
     }
 
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+
+    if (passwordForm.newPassword === passwordForm.currentPassword) {
+      setPasswordError('New password must be different from current password.')
+      return
+    }
+
     try {
       setSavingPassword(true)
       await changePassword({
@@ -159,7 +177,7 @@ const useAccountProfile = ({
         confirmPassword: '',
       })
     } catch (error) {
-      setPasswordError(error?.message || 'Failed to update password.')
+      setPasswordError(error?.message || 'Could not update your password. Please try again.')
     } finally {
       setSavingPassword(false)
     }
@@ -198,7 +216,7 @@ const useAccountProfile = ({
         await updateProfile(payload)
         setPhotoMessage('Profile photo updated successfully.')
       } catch (error) {
-        setPhotoError(error?.message || 'Failed to upload photo.')
+        setPhotoError(error?.message || 'Could not upload photo. Please try again.')
       } finally {
         setSavingPhoto(false)
       }

@@ -6,7 +6,7 @@ const RoleRoute = ({ allowedRoles = [], redirectTo = '/' }) => {
   const { role, loading, isAuthenticated } = useAuth()
 
   if (loading) {
-    return null
+    return <div className="route-loader">Loading...</div>
   }
 
   if (!isAuthenticated) {

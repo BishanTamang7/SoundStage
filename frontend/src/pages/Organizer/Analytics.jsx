@@ -39,7 +39,7 @@ const Analytics = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedConcertId, setSelectedConcertId] = useState('all')
+  const [selectedConcertId] = useState('all')
 
   useEffect(() => {
     let isActive = true

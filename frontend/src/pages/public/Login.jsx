@@ -32,9 +32,11 @@ const Login = () => {
     setMessage('')
     setSubmitting(true)
     try {
+      const email = formData.email.trim().toLowerCase()
+      const password = formData.password.trim()
       const profile = await login({
-        email: formData.email,
-        password: formData.password,
+        email,
+        password,
       })
       const role = normalizeRole(profile?.role)
       if (role === ROLES.ORGANIZER) {
@@ -45,7 +47,7 @@ const Login = () => {
         navigate('/')
       }
     } catch (err) {
-      setError(err?.message || 'Login failed. Please try again.')
+      setError(err?.message || 'Unable to sign in. Check your email and password and try again.')
     } finally {
       setSubmitting(false)
     }
@@ -55,7 +57,7 @@ const Login = () => {
   const showResend = error.toLowerCase().includes('verify your email')
 
   const handleResend = async () => {
-    const email = (defaultEmail || formData.email || '').trim()
+    const email = (defaultEmail || formData.email || '').trim().toLowerCase()
     if (!email) {
       setError('Enter your email to resend OTP.')
       return
