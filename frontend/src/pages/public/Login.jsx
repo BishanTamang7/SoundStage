@@ -20,6 +20,7 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [resending, setResending] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -34,10 +35,13 @@ const Login = () => {
     try {
       const email = formData.email.trim().toLowerCase()
       const password = formData.password.trim()
-      const profile = await login({
-        email,
-        password,
-      })
+      const profile = await login(
+        {
+          email,
+          password,
+        },
+        { remember: rememberMe }
+      )
       const role = normalizeRole(profile?.role)
       if (role === ROLES.ORGANIZER) {
         navigate('/organizer')
@@ -174,6 +178,8 @@ const Login = () => {
                 <input
                   className="h-4 w-4"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 Remember me
               </label>

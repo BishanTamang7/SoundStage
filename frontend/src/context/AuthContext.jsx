@@ -15,7 +15,8 @@ const readStoredAuth = () => {
 }
 
 const writeStoredAuth = (value) => {
-  if (!value) {
+  // Only persist when remember flag is true; otherwise clear storage
+  if (!value || value.remember === false) {
     localStorage.removeItem(STORAGE_KEY)
     return
   }
@@ -39,6 +40,11 @@ export const AuthProvider = ({ children }) => {
     if (!stored?.access) return null
     return { access: stored.access, refresh: stored.refresh || null }
   })
+  const [rememberChoice, setRememberChoice] = useState(() => {
+    const stored = readStoredAuth()
+    if (stored?.remember === false) return false
+    return true
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,6 +61,7 @@ export const AuthProvider = ({ children }) => {
 
       let activeAccess = stored.access
       let activeRefresh = stored.refresh || null
+      setRememberChoice(stored?.remember === false ? false : true)
 
       try {
         const profileData = await api.profile(activeAccess)
@@ -131,14 +138,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (tokens?.access) {
       setAuthTokens(tokens)
-      writeStoredAuth({ access: tokens.access, refresh: tokens.refresh || null })
+      if (rememberChoice) {
+        writeStoredAuth({ access: tokens.access, refresh: tokens.refresh || null, remember: true })
+      } else {
+        writeStoredAuth(null)
+      }
     } else {
       clearAuthTokens()
       writeStoredAuth(null)
     }
-  }, [tokens])
+  }, [tokens, rememberChoice])
 
-  const login = useCallback(async (payload) => {
+  const login = useCallback(async (payload, options = {}) => {
+    const remember = options.remember !== false
     const data = await api.login(payload)
     const access = data?.data?.tokens?.access || data?.access || data?.tokens?.access
     const refresh = data?.data?.tokens?.refresh || data?.refresh || data?.tokens?.refresh
@@ -148,6 +160,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Login response missing access token')
     }
 
+    setRememberChoice(remember)
     setTokens({ access, refresh })
 
     try {
