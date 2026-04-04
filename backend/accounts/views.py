@@ -14,6 +14,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .throttles import LoginRateThrottle
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -363,6 +364,7 @@ class UserLoginAPIView(APIView):
     """API endpoint for user login."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     serializer_class = UserLoginSerializer
 
     def post(self, request):

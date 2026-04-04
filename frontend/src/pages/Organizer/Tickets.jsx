@@ -285,10 +285,6 @@ const Tickets = () => {
             </div>
             <div className="divide-y divide-[#E5E7EB]">
               {tableRows.map((row) => {
-                const isPastConcert =
-                  row.dateTime && !Number.isNaN(new Date(row.dateTime).getTime())
-                    ? new Date(row.dateTime) < new Date()
-                    : false
                 return (
                   <div key={row.id} className="grid grid-cols-1 gap-2 px-5 py-4 md:grid-cols-[1.7fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr] md:items-center md:gap-3">
                     <div className="flex items-center justify-between gap-2">
