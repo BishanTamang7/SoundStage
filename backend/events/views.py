@@ -164,7 +164,8 @@ class ConcertViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if instance.payment_transactions.exists():
+        # Block deletion only if any transactions have issued tickets (i.e., real bookings).
+        if instance.payment_transactions.filter(tickets_issued=True).exists():
             return Response(
                 {
                     'success': False,

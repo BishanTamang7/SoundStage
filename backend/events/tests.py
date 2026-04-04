@@ -185,6 +185,47 @@ class ConcertHistoryProtectionTests(APITestCase):
         self.assertTrue(PaymentTransaction.objects.filter(pk=self.payment.pk).exists())
         self.assertTrue(Ticket.objects.filter(pk=self.ticket.pk).exists())
 
+    def test_delete_concert_with_only_pending_payments_is_allowed(self):
+        self.client.force_authenticate(user=self.organizer)
+
+        # Fresh concert without issued tickets
+        delete_candidate = Concert.objects.create(
+            organizer=self.organizer,
+            title='Pending Only Show',
+            description='No bookings yet.',
+            date_time=timezone.now() + timedelta(days=15),
+            venue='Arena, Kathmandu',
+            main_artist='Band',
+            organizer_name='SoundStage',
+            contact_email='organizer-history@example.com',
+        )
+        cat = TicketCategory.objects.create(
+            concert=delete_candidate,
+            name='Regular',
+            price='1200.00',
+            quantity=200,
+        )
+        pending_payment = PaymentTransaction.objects.create(
+            attendee=self.attendee,
+            concert=delete_candidate,
+            ticket_category=cat,
+            pidx='pending-delete',
+            purchase_order_id='pending-delete',
+            amount_paisa=120000,
+            quantity=2,
+            status='Initiated',
+            tickets_issued=False,
+            stock_reserved=True,
+        )
+
+        response = self.client.delete(f'/api/events/concerts/{delete_candidate.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertFalse(Concert.objects.filter(pk=delete_candidate.pk).exists())
+        self.assertFalse(TicketCategory.objects.filter(pk=cat.pk).exists())
+        self.assertFalse(PaymentTransaction.objects.filter(pk=pending_payment.pk).exists())
+
     def test_cannot_change_sold_category_settings(self):
         self.client.force_authenticate(user=self.organizer)
         update_response = self.client.put(

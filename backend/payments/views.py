@@ -14,6 +14,7 @@ from urllib import request as url_request
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.timezone import localtime
 from rest_framework import status
@@ -283,7 +284,20 @@ def _create_reserved_payment(
 
     with transaction.atomic():
         category = TicketCategory.objects.select_for_update().get(id=ticket_category.id)
-        if category.quantity < quantity:
+        reserved_pending = (
+            PaymentTransaction.objects.select_for_update()
+            .filter(
+                ticket_category=category,
+                stock_reserved=True,
+                tickets_issued=False,
+            )
+            .aggregate(total=Sum('quantity'))
+            .get('total')
+            or 0
+        )
+
+        available = category.quantity - reserved_pending
+        if available < quantity:
             raise ValueError('Requested quantity exceeds available tickets.')
 
         return PaymentTransaction.objects.create(
@@ -296,8 +310,8 @@ def _create_reserved_payment(
             amount_paisa=amount_paisa,
             quantity=quantity,
             status='Initiated',
-            stock_reserved=False,
-            reservation_expires_at=None,
+            stock_reserved=True,
+            reservation_expires_at=reservation_expires_at,
             ticket_category_name_snapshot=category.name,
             ticket_unit_price_snapshot=category.price,
         )
@@ -306,12 +320,9 @@ def _create_reserved_payment(
 def _release_stock_reservation(payment, *, status_value=None, transaction_id=None, raw_response=None):
     with transaction.atomic():
         locked_payment = PaymentTransaction.objects.select_for_update().get(id=payment.id)
-        category = TicketCategory.objects.select_for_update().get(id=locked_payment.ticket_category_id)
         update_fields = []
 
         if locked_payment.stock_reserved and not locked_payment.tickets_issued:
-            category.quantity += locked_payment.quantity
-            category.save(update_fields=['quantity'])
             locked_payment.stock_reserved = False
             locked_payment.reservation_expires_at = None
             update_fields.extend(['stock_reserved', 'reservation_expires_at'])
@@ -399,16 +410,17 @@ def _issue_tickets(payment: PaymentTransaction):
             for field, value in snapshot_updates.items():
                 setattr(locked_payment, field, value)
 
+        # Deduct stock at issuance time (reservations keep visible quantity unchanged)
+        if category.quantity < locked_payment.quantity:
+            raise ValueError('Ticket stock is no longer available.')
+        category.quantity -= locked_payment.quantity
+        category.save(update_fields=['quantity'])
+
         if locked_payment.stock_reserved:
             locked_payment.stock_reserved = False
             locked_payment.reservation_expires_at = None
             snapshot_updates['stock_reserved'] = False
             snapshot_updates['reservation_expires_at'] = None
-        else:
-            if category.quantity < locked_payment.quantity:
-                raise ValueError('Ticket stock is no longer available.')
-            category.quantity -= locked_payment.quantity
-            category.save(update_fields=['quantity'])
 
         tickets = []
         for _ in range(locked_payment.quantity):

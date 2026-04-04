@@ -289,12 +289,12 @@ class AccountLifecycleTests(APITestCase):
 
     def test_login_for_suspended_user_returns_disabled_message(self):
         user = User.objects.create_user(
-            email='suspended@example.com',
-            username='suspendeduser',
+            email='disabled@example.com',
+            username='disableduser',
             password='StrongPass123!',
             role=User.ATTENDEE,
             email_verified=True,
-            status=User.STATUS_SUSPENDED,
+            status=User.STATUS_ACTIVE,
             is_active=False,
         )
 

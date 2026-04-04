@@ -118,7 +118,8 @@ class KhaltiReservationFlowTests(APITestCase):
 
         self.assertEqual(initiate_response.status_code, status.HTTP_200_OK)
         self.ticket_category.refresh_from_db()
-        self.assertEqual(self.ticket_category.quantity, 3)
+        # Reservation should not reduce visible stock
+        self.assertEqual(self.ticket_category.quantity, 5)
 
         payment = PaymentTransaction.objects.get(pidx='pidx-reserve-1')
         self.assertTrue(payment.stock_reserved)
@@ -177,7 +178,8 @@ class KhaltiReservationFlowTests(APITestCase):
 
         self.assertEqual(initiate_response.status_code, status.HTTP_200_OK)
         self.ticket_category.refresh_from_db()
-        self.assertEqual(self.ticket_category.quantity, 4)
+        # Visible stock unchanged during reservation
+        self.assertEqual(self.ticket_category.quantity, 5)
 
         confirm_response = self.client.post(
             self.confirm_url,

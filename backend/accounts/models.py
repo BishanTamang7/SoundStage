@@ -43,7 +43,6 @@ class User(AbstractBaseUser):
     # Account status choices
     STATUS_PENDING_VERIFICATION = 'PENDING_VERIFICATION'
     STATUS_ACTIVE = 'ACTIVE'
-    STATUS_SUSPENDED = 'SUSPENDED'
     STATUS_CHOICES = [
         (STATUS_PENDING_VERIFICATION, 'Pending Verification'),
         (STATUS_ACTIVE, 'Active'),
