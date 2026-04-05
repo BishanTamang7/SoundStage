@@ -17,23 +17,29 @@ NEPAL_PHONE_REGEX = re.compile(r'^(97|98)\d{8}$')
 
 
 def _validate_concert_venue_city(value):
+    """
+    Validate venue text: must be non-empty, contain no digits, and can be any location string.
+    """
     venue = (value or '').strip()
-    # Disallow any numeric characters in the venue name.
+    if not venue:
+        raise serializers.ValidationError('Venue is required.')
+    # Disallow any numeric characters in the venue name to keep it textual.
     if re.search(r'\d', venue):
         raise serializers.ValidationError('Venue name cannot contain numbers. Use letters and words.')
+    return venue
 
-    normalized_venue = venue.lower()
-    if any(city in normalized_venue for city in ALLOWED_CONCERT_CITIES):
-        return venue
 
-    parts = [part.strip() for part in venue.split(',') if part.strip()]
-    if len(parts) >= 2 and parts[-1]:
-        return venue
-
-    allowed_cities = ', '.join(city.title() for city in ALLOWED_CONCERT_CITIES)
-    raise serializers.ValidationError(
-        f'Venue must include a city. Use one of: {allowed_cities}, or select Other and enter a city.'
-    )
+def _validate_concert_city(value):
+    city = (value or '').strip()
+    if not city:
+        raise serializers.ValidationError('City is required.')
+    if re.search(r'\d', city):
+        raise serializers.ValidationError('City cannot contain numbers.')
+    normalized = city.lower()
+    if normalized in ALLOWED_CONCERT_CITIES:
+        return city.title()
+    # Allow other cities; just return as-is (title-cased for consistency)
+    return city
 
 
 def _normalize_ticket_category_name(name):
@@ -191,6 +197,9 @@ class BaseConcertWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Date & Time must be in the future.')
         return value
 
+    def validate_city(self, value):
+        return _validate_concert_city(value)
+
     def validate_description(self, value):
         text = (value or '').strip()
         word_count = len([word for word in text.split() if word])
@@ -234,7 +243,7 @@ class ConcertCreateSerializer(BaseConcertWriteSerializer):
     class Meta:
         model = Concert
         fields = [
-            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue',
+            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue', 'city',
             'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories', 'cover_image'
         ]
@@ -282,6 +291,7 @@ class ConcertListSerializer(serializers.ModelSerializer):
             'genre_display',
             'date_time',
             'venue',
+            'city',
             'main_artist',
             'cover_image',
             'created_at',
@@ -292,7 +302,7 @@ class ConcertDetailSerializer(BaseConcertWriteSerializer):
     class Meta:
         model = Concert
         fields = [
-            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue',
+            'id', 'title', 'description', 'genre', 'genre_display', 'date_time', 'venue', 'city',
             'main_artist', 'organizer_name', 'contact_email', 'contact_phone',
             'ticket_categories', 'cover_image', 'created_at', 'updated_at'
         ]

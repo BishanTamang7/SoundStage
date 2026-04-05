@@ -21,6 +21,7 @@ class Concert(models.Model):
     genre = models.CharField(max_length=32, choices=CONCERT_GENRE_CHOICES, blank=True, null=True)
     date_time = models.DateTimeField()
     venue = models.CharField(max_length=255)
+    city = models.CharField(max_length=100, blank=True, default='')
     main_artist = models.CharField(max_length=255)
 
     organizer_name = models.CharField(max_length=255)
