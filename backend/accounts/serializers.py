@@ -117,13 +117,13 @@ class UserLoginSerializer(serializers.Serializer):
         
         # Authenticate user
         user = authenticate(username=email, password=password)
-        
+
         if not user:
             existing_user = User.objects.filter(email__iexact=email).first()
             if not existing_user:
-                raise serializers.ValidationError('Invalid email or password. No account found with this email.')
+                raise serializers.ValidationError('No account found with this email.')
             if not existing_user.check_password(password):
-                raise serializers.ValidationError('Invalid email or password.')
+                raise serializers.ValidationError('Invalid password.')
             user = existing_user
         
         if user.status == User.STATUS_PENDING_VERIFICATION:

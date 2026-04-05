@@ -87,7 +87,7 @@ const formatErrorMessage = (data) => {
 
   if (data.message && typeof data.message === 'string') {
     if (data.message === 'Authentication failed') {
-      return 'Invalid email or password.'
+      return 'Invalid password.'
     }
     if (data.message === 'Validation error') {
       return 'Validation error.'

@@ -285,7 +285,7 @@ class AccountLifecycleTests(APITestCase):
             format='json',
         )
         self.assertEqual(login_response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn('invalid email or password', str(login_response.data).lower())
+        self.assertIn('no account found with this email', str(login_response.data).lower())
 
     def test_login_for_suspended_user_returns_disabled_message(self):
         user = User.objects.create_user(
