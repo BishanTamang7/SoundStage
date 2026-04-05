@@ -121,7 +121,7 @@ class UserLoginSerializer(serializers.Serializer):
         if not user:
             existing_user = User.objects.filter(email__iexact=email).first()
             if not existing_user:
-                raise serializers.ValidationError('No account found with this email.')
+                raise serializers.ValidationError('Invalid email. No account found with this email.')
             if not existing_user.check_password(password):
                 raise serializers.ValidationError('Invalid password.')
             user = existing_user
