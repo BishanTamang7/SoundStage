@@ -1,6 +1,6 @@
 import json
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db.models import Count, Prefetch, Sum
 from django.utils import timezone
@@ -66,11 +66,15 @@ def _validate_and_normalize_ticket_categories(ticket_categories_data):
         try:
             price = Decimal(str(payload.get('price', '')))
             quantity = int(payload.get('quantity', 0))
-        except (ValueError, TypeError, Decimal.InvalidOperation):
+        except (ValueError, TypeError, InvalidOperation):
             raise serializers.ValidationError({'ticket_categories': 'Price and quantity must be valid numbers.'})
 
         if price < 0:
-            raise serializers.ValidationError({'ticket_categories': 'Ticket price cannot be negative.'})
+            raise serializers.ValidationError({'ticket_categories': 'Ticket cannot be negative.'})
+        if price == 0:
+            raise serializers.ValidationError({'ticket_categories': 'Ticket price must be greater than zero.'})
+        if quantity < 0:
+            raise serializers.ValidationError({'ticket_categories': 'Ticket quantity cannot be negative.'})
         if quantity < 1:
             raise serializers.ValidationError({'ticket_categories': 'Ticket quantity must be at least 1.'})
 
@@ -252,6 +256,30 @@ class ConcertCreateSerializer(BaseConcertWriteSerializer):
             'organizer_name': {'required': False},
             'contact_email': {'required': False},
         }
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        if user and user.is_authenticated:
+            profile_name = (user.get_full_name() or user.username or user.email or '').strip()
+            profile_email = (user.email or '').strip()
+            organizer_name = (attrs.get('organizer_name') or '').strip()
+            contact_email = (attrs.get('contact_email') or '').strip()
+
+            if organizer_name and profile_name and organizer_name != profile_name:
+                raise serializers.ValidationError({
+                    'organizer_name': 'Organizer name must match your profile. Update your profile to change it.'
+                })
+
+            if contact_email and profile_email and contact_email.lower() != profile_email.lower():
+                raise serializers.ValidationError({
+                    'contact_email': 'Contact email must match your profile email. Update your profile to change it.'
+                })
+
+        return attrs
 
     def create(self, validated_data):
         ticket_categories_data = validated_data.pop('ticket_categories', None)

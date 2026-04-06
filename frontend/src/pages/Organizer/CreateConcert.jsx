@@ -202,6 +202,10 @@ const CreateConcert = () => {
     const trimmedDescription = description.trim();
     const trimmedVenue = venue.trim();
     const trimmedArtist = mainArtist.trim();
+    const profileOrganizerName = (user?.username || user?.email || "").trim();
+    const profileContactEmail = (user?.email || "").trim();
+    const normalizedOrganizerName = organizerName.trim();
+    const normalizedContactEmail = contactEmail.trim();
 
     const phoneRaw = contactPhone.replace(/\s+/g, "");
     const digitsOnlyPhone = phoneRaw.replace(/\D/g, "");
@@ -277,8 +281,26 @@ const CreateConcert = () => {
         break;
       }
       case 2: {
-        if (!organizerName?.trim() || !contactEmail?.trim()) {
+        if (!normalizedOrganizerName || !normalizedContactEmail) {
           error = "Your organizer profile is missing a name or email.";
+          break;
+        }
+        if (
+          user &&
+          profileOrganizerName &&
+          normalizedOrganizerName &&
+          normalizedOrganizerName !== profileOrganizerName
+        ) {
+          error = "Organizer name must match your profile. Update your profile to change it.";
+          break;
+        }
+        if (
+          user &&
+          profileContactEmail &&
+          normalizedContactEmail &&
+          normalizedContactEmail.toLowerCase() !== profileContactEmail.toLowerCase()
+        ) {
+          error = "Contact email must match your profile email. Update your profile to change it.";
           break;
         }
         if (!contactPhone.trim()) {
@@ -315,7 +337,17 @@ const CreateConcert = () => {
         }
         const negativePrice = normalizedTickets.some((ticket) => ticket.price < 0);
         if (negativePrice) {
-          error = "Ticket price cannot be negative.";
+          error = "Ticket cannot be negative.";
+          break;
+        }
+        const negativeQuantity = normalizedTickets.some((ticket) => ticket.quantity < 0);
+        if (negativeQuantity) {
+          error = "Ticket quantity cannot be negative.";
+          break;
+        }
+        const zeroPrice = normalizedTickets.some((ticket) => ticket.price === 0);
+        if (zeroPrice) {
+          error = "Ticket price must be greater than zero.";
           break;
         }
         const tooSmallQty = normalizedTickets.some((ticket) => ticket.quantity < 1);
@@ -654,8 +686,7 @@ const CreateConcert = () => {
                     name="organizer-name"
                     type="text"
                     value={organizerName}
-                    readOnly
-                    aria-readonly="true"
+                    onChange={(event) => setOrganizerName(event.target.value)}
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
                 </div>
@@ -668,8 +699,7 @@ const CreateConcert = () => {
                     name="contact-email"
                     type="email"
                     value={contactEmail}
-                    readOnly
-                    aria-readonly="true"
+                    onChange={(event) => setContactEmail(event.target.value)}
                     className="mt-2 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#312E81] transition focus:border-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[rgba(124,58,237,0.1)]"
                   />
                 </div>
