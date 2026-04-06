@@ -69,6 +69,7 @@ const EditConcert = () => {
   const [organizerName, setOrganizerName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [locked, setLocked] = useState(false); // tickets booked -> only cover allowed
   const [minDateTime, setMinDateTime] = useState(() => toDateTimeLocalString());
   const [descriptionWords, setDescriptionWords] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -222,17 +223,28 @@ const EditConcert = () => {
           );
           setSelectedGenre(payload.genre || "");
           setDateTime(payload.date_time ? toDateTimeLocalString(payload.date_time) : "");
-          const venueParts = (payload.venue || "").split(",").map((part) => part.trim()).filter(Boolean);
-          if (venueParts.length >= 2) {
-            const cityGuess = venueParts.pop();
+
+          const payloadCity = (payload.city || "").trim();
+          if (payloadCity) {
             const matchedCity = CITY_OPTIONS.find(
-              (city) => city.toLowerCase() === String(cityGuess || "").toLowerCase()
+              (city) => city.toLowerCase() === payloadCity.toLowerCase()
             );
-            setSelectedCity(matchedCity || (cityGuess ? "Other" : ""));
-            setOtherCity(matchedCity ? "" : cityGuess || "");
-            setVenue(venueParts.join(", "));
-          } else {
+            setSelectedCity(matchedCity || "Other");
+            setOtherCity(matchedCity ? "" : payloadCity);
             setVenue(payload.venue || "");
+          } else {
+            const venueParts = (payload.venue || "").split(",").map((part) => part.trim()).filter(Boolean);
+            if (venueParts.length >= 2) {
+              const cityGuess = venueParts.pop();
+              const matchedCity = CITY_OPTIONS.find(
+                (city) => city.toLowerCase() === String(cityGuess || "").toLowerCase()
+              );
+              setSelectedCity(matchedCity || (cityGuess ? "Other" : ""));
+              setOtherCity(matchedCity ? "" : cityGuess || "");
+              setVenue(venueParts.join(", "));
+            } else {
+              setVenue(payload.venue || "");
+            }
           }
           setOrganizerName(payload.organizer_name || user?.username || user?.email || "");
           setContactEmail(payload.contact_email || user?.email || "");
@@ -245,6 +257,10 @@ const EditConcert = () => {
           const ticketByName = new Map(
             ticketList.map((ticket) => [String(ticket?.name || "").trim().toLowerCase(), ticket])
           );
+          const hasBookings = ticketList.some(
+            (ticket) => Number(ticket?.sold || 0) > 0 || Number(ticket?.remaining ?? ticket?.quantity ?? 0) < Number(ticket?.quantity ?? 0)
+          );
+          setLocked(hasBookings);
           setTickets(
             FIXED_TICKET_TYPES.map((name) => {
               const existing = ticketByName.get(name.toLowerCase());
@@ -465,17 +481,26 @@ const EditConcert = () => {
       quantity: Number(ticket.quantity),
     }));
 
+    // If locked, require a cover change and strip other fields to avoid validation errors
+    const coverChanged = coverImage instanceof File || removeCover;
+    if (locked && !coverChanged) {
+      setFormError("Tickets are booked. Only cover image can be updated.");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("title", title.trim());
-    formData.append("description", description.trim());
-    formData.append("genre", selectedGenre);
-    formData.append("date_time", dateTime);
-    formData.append("venue", `${venue.trim()}, ${getCityValue()}`);
-    formData.append("organizer_name", organizerName.trim());
-    formData.append("contact_email", contactEmail.trim());
-    formData.append("contact_phone", digitsOnlyPhone);
-    formData.append("main_artist", mainArtist.trim());
-    formData.append("ticket_categories", JSON.stringify(normalizedTickets));
+    if (!locked) {
+      formData.append("title", title.trim());
+      formData.append("description", description.trim());
+      formData.append("genre", selectedGenre);
+      formData.append("date_time", dateTime);
+      formData.append("venue", `${venue.trim()}, ${getCityValue()}`);
+      formData.append("organizer_name", organizerName.trim());
+      formData.append("contact_email", contactEmail.trim());
+      formData.append("contact_phone", digitsOnlyPhone);
+      formData.append("main_artist", mainArtist.trim());
+      formData.append("ticket_categories", JSON.stringify(normalizedTickets));
+    }
     if (coverImage instanceof File) {
       formData.append("cover_image", coverImage);
     } else if (removeCover) {
@@ -484,7 +509,12 @@ const EditConcert = () => {
 
     try {
       setSubmitting(true);
-      await api.updateConcert(tokens.access, id, formData);
+      // When locked, send PATCH with only cover; otherwise PUT full update
+      if (locked) {
+        await api.patchConcert(tokens.access, id, formData);
+      } else {
+        await api.updateConcert(tokens.access, id, formData);
+      }
       navigate("/organizer/concerts");
     } catch (error) {
       setFormError(error?.message || "Failed to update concert.");

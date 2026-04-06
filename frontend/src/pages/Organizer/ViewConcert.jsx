@@ -80,7 +80,7 @@ const ViewConcert = () => {
 
     return withIndex.map(({ item }) => item);
   }, [concert]);
-  const { venueName, city } = getVenueParts(concert?.venue || "");
+  const { venueName, city } = getVenueParts(concert?.venue || "", concert?.city);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['DM_Sans'] text-[#312E81]">

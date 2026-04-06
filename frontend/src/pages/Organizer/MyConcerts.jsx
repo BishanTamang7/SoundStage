@@ -167,7 +167,7 @@ const MyConcerts = () => {
         ) : (
           <div className="grid gap-6 min-[640px]:grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
             {filteredConcerts.map((concert, index) => {
-              const { venueName, city } = getVenueParts(concert.venue || '')
+              const { venueName, city } = getVenueParts(concert.venue || '', concert.city)
               const isPastConcert = (() => {
                 const dt = new Date(concert.date_time)
                 return !Number.isNaN(dt.getTime()) && dt < new Date()

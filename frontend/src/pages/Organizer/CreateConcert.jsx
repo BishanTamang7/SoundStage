@@ -331,8 +331,12 @@ const CreateConcert = () => {
       case 4: {
         const invalidPrice = normalizedTickets.some((ticket) => !Number.isFinite(ticket.price));
         const invalidQuantity = normalizedTickets.some((ticket) => !Number.isFinite(ticket.quantity));
-        if (invalidPrice || invalidQuantity) {
-          error = "Ticket price and quantity must be valid numbers.";
+        if (invalidPrice) {
+          error = "Ticket price must be valid numbers.";
+          break;
+        }
+        if (invalidQuantity) {
+          error = "Quantity must be valid numbers.";
           break;
         }
         const negativePrice = normalizedTickets.some((ticket) => ticket.price < 0);
@@ -777,8 +781,8 @@ const CreateConcert = () => {
                         Price (Rs) <span className="text-[#EF4444]">*</span>
                       </label>
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="500"
                         value={ticket.price}
                         onChange={(event) =>
@@ -792,8 +796,8 @@ const CreateConcert = () => {
                         Quantity <span className="text-[#EF4444]">*</span>
                       </label>
                       <input
-                        type="number"
-                        min="1"
+                        type="text"
+                        inputMode="numeric"
                         placeholder="100"
                         value={ticket.quantity}
                         onChange={(event) =>
@@ -833,9 +837,11 @@ const CreateConcert = () => {
                       </div>
                       <div>
                         <dt className="font-bold text-[#6B7280]">Venue</dt>
-                        <dd className="font-semibold">
-                          {venue ? `${venue}${getCityValue() ? ", " : ""}${getCityValue()}` : "Not set"}
-                        </dd>
+                        <dd className="font-semibold">{venue || "Not set"}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-bold text-[#6B7280]">City</dt>
+                        <dd className="font-semibold">{getCityValue() || "Not set"}</dd>
                       </div>
                     </dl>
                     <div className="mt-3">

@@ -65,9 +65,12 @@ def _validate_and_normalize_ticket_categories(ticket_categories_data):
         payload['name'] = normalized_name
         try:
             price = Decimal(str(payload.get('price', '')))
-            quantity = int(payload.get('quantity', 0))
         except (ValueError, TypeError, InvalidOperation):
-            raise serializers.ValidationError({'ticket_categories': 'Price and quantity must be valid numbers.'})
+            raise serializers.ValidationError({'ticket_categories': 'Ticket price must be valid numbers.'})
+        try:
+            quantity = int(payload.get('quantity', 0))
+        except (ValueError, TypeError):
+            raise serializers.ValidationError({'ticket_categories': 'Quantity must be valid numbers.'})
 
         if price < 0:
             raise serializers.ValidationError({'ticket_categories': 'Ticket cannot be negative.'})
@@ -279,6 +282,25 @@ class ConcertCreateSerializer(BaseConcertWriteSerializer):
                     'contact_email': 'Contact email must match your profile email. Update your profile to change it.'
                 })
 
+        # Prevent duplicate concerts for the same organizer on the same schedule/location
+        if user and user.is_authenticated:
+            title = (attrs.get('title') or '').strip()
+            date_time = attrs.get('date_time')
+            venue = (attrs.get('venue') or '').strip()
+            city = (attrs.get('city') or '').strip()
+            if title and date_time and venue:
+                duplicate_exists = Concert.objects.filter(
+                    organizer=user,
+                    title__iexact=title,
+                    date_time=date_time,
+                    venue__iexact=venue,
+                    city__iexact=city,
+                ).exists()
+                if duplicate_exists:
+                    raise serializers.ValidationError(
+                        'You already have a concert with the same title, date/time, and venue.'
+                    )
+
         return attrs
 
     def create(self, validated_data):
@@ -335,6 +357,57 @@ class ConcertDetailSerializer(BaseConcertWriteSerializer):
             'ticket_categories', 'cover_image', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        # Block edits to concerts that are already in the past
+        instance = getattr(self, 'instance', None)
+        if instance and instance.date_time and instance.date_time < timezone.now():
+            raise serializers.ValidationError('Past concerts cannot be edited.')
+
+        # If tickets are booked, only allow cover_image changes (all other fields must remain unchanged)
+        if instance and (
+            instance.tickets.exists()
+            or instance.payment_transactions.filter(tickets_issued=True).exists()
+        ):
+            changed_non_cover_fields = []
+            for field, value in attrs.items():
+                if field == 'cover_image':
+                    continue
+                current = getattr(instance, field, None)
+                if current != value:
+                    changed_non_cover_fields.append(field)
+            if changed_non_cover_fields:
+                raise serializers.ValidationError(
+                    'Only cover image can be updated after tickets are booked.'
+                )
+
+        if user and user.is_authenticated:
+            profile_name = (user.get_full_name() or user.username or user.email or '').strip()
+            profile_email = (user.email or '').strip()
+
+            target_name = (attrs.get('organizer_name')
+                           if 'organizer_name' in attrs
+                           else getattr(self.instance, 'organizer_name', '')).strip()
+            target_email = (attrs.get('contact_email')
+                            if 'contact_email' in attrs
+                            else getattr(self.instance, 'contact_email', '')).strip()
+
+            if profile_name and target_name and target_name != profile_name:
+                raise serializers.ValidationError({
+                    'organizer_name': 'Organizer name must match your profile. Update your profile to change it.'
+                })
+
+            if profile_email and target_email and target_email.lower() != profile_email.lower():
+                raise serializers.ValidationError({
+                    'contact_email': 'Contact email must match your profile email. Update your profile to change it.'
+                })
+
+        return attrs
 
     def update(self, instance, validated_data):
         validated_ticket_categories = validated_data.pop('ticket_categories', None)

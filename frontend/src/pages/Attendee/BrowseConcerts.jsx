@@ -69,7 +69,7 @@ const BrowseConcerts = () => {
       const venue = concert?.venue || ''
       const matchesQuery = normalizedQuery ? title.toLowerCase().includes(normalizedQuery) : true
       const matchesCity = normalizedCity
-        ? getVenueParts(venue).city.toLowerCase() === normalizedCity
+        ? getVenueParts(venue, concert.city).city.toLowerCase() === normalizedCity
         : true
       const matchesGenre = normalizedGenre ? (concert?.genre || '').toLowerCase() === normalizedGenre : true
 
@@ -237,7 +237,7 @@ const BrowseConcerts = () => {
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {filteredConcerts.map((concert) => {
                     const imageUrl = resolveMediaUrl(concert?.cover_image)
-                    const { venueName, city: concertCity } = getVenueParts(concert?.venue || '')
+                    const { venueName, city: concertCity } = getVenueParts(concert?.venue || '', concert?.city)
                     return (
                       <article
                         key={concert.id}

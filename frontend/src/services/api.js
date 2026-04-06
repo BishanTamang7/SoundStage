@@ -411,6 +411,18 @@ export const api = {
       handleError(error)
     }
   },
+  patchConcert: async (token, concertId, payload) => {
+    try {
+      const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
+      const headers = isFormData ? withAuth(token) : withAuth(token)
+      const { data } = await apiClient.patch(`/events/concerts/${concertId}/`, payload, {
+        headers,
+      })
+      return data
+    } catch (error) {
+      handleError(error)
+    }
+  },
   khaltiInitiate: async (token, payload) => {
     try {
       const { data } = await apiClient.post('/payments/khalti/initiate/', payload, {

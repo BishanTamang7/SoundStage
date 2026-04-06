@@ -78,7 +78,7 @@ const ConcertDetails = () => {
   }, [ticketCategories])
 
   const coverImage = resolveMediaUrl(concert?.cover_image)
-  const { venueName, city } = getVenueParts(concert?.venue || '')
+  const { venueName, city } = getVenueParts(concert?.venue || '', concert?.city)
 
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-[#F5F3FF] via-[#EEF2FF] to-[#E0EAFF] text-[#312E81]">
