@@ -21,6 +21,8 @@ const GENRE_OPTIONS = [
   { value: 'folk-dohori', label: 'Folk / Dohori' },
 ]
 
+const CONCERTS_PER_PAGE = 3
+
 const BrowseConcerts = () => {
   const [concerts, setConcerts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,6 +32,7 @@ const BrowseConcerts = () => {
   const [city, setCity] = useState('all')
   const [genre, setGenre] = useState('')
   const [dateRange, setDateRange] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     let isActive = true
@@ -110,6 +113,30 @@ const BrowseConcerts = () => {
       return true
     })
   }, [city, concerts, dateRange, genre, query])
+
+  const totalPages = useMemo(
+    () => Math.ceil(filteredConcerts.length / CONCERTS_PER_PAGE),
+    [filteredConcerts.length],
+  )
+
+  useEffect(() => {
+    // Reset to first page whenever filters or search change.
+    setCurrentPage(1)
+  }, [city, genre, dateRange, query])
+
+  useEffect(() => {
+    // Clamp the current page when the number of pages shrinks.
+    if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1)
+    } else if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const paginatedConcerts = useMemo(() => {
+    const startIndex = (currentPage - 1) * CONCERTS_PER_PAGE
+    return filteredConcerts.slice(startIndex, startIndex + CONCERTS_PER_PAGE)
+  }, [currentPage, filteredConcerts])
 
   const handleResetFilters = () => {
     setSearchInput('')
@@ -234,84 +261,110 @@ const BrowseConcerts = () => {
                   {emptyStateMessage}
                 </div>
               ) : (
-                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredConcerts.map((concert) => {
-                    const imageUrl = resolveMediaUrl(concert?.cover_image)
-                    const { venueName, city: concertCity } = getVenueParts(concert?.venue || '', concert?.city)
-                    return (
-                      <article
-                        key={concert.id}
-                        className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_10px_30px_rgba(49,46,129,0.08)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(49,46,129,0.12)]"
-                      >
-                        <div className="relative h-40 bg-linear-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5]">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={concert?.title || 'Concert cover'}
-                              className="h-full w-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-4xl text-white">
-                              🎹
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-5">
-                          <h3 className="text-lg font-black text-[#2C2E83]">
-                            {concert?.title || 'Untitled Concert'}
-                          </h3>
-                          <div className="mt-3 space-y-2 text-sm font-semibold text-[#6B7280]">
-                            <div className="flex items-center gap-2">
-                              <span>📅</span>
-                              <span>
-                                {formatDate(concert?.date_time, {
-                                  fallback: 'TBD',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                })}{' '}
-                                · {formatTime(concert?.date_time)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span>📍</span>
-                              <span>{venueName || 'Venue TBD'}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span>🏙️</span>
-                              <span>{concertCity || 'City TBD'}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span>🎤</span>
-                              <span>{concert?.main_artist || 'Artist lineup TBD'}</span>
-                            </div>
-                            {concert?.genre_display ? (
-                              <div className="flex items-center gap-2">
-                                <span>🎼</span>
-                                <span>{concert.genre_display}</span>
+                <div className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {paginatedConcerts.map((concert) => {
+                      const imageUrl = resolveMediaUrl(concert?.cover_image)
+                      const { venueName, city: concertCity } = getVenueParts(concert?.venue || '', concert?.city)
+                      return (
+                        <article
+                          key={concert.id}
+                          className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_10px_30px_rgba(49,46,129,0.08)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(49,46,129,0.12)]"
+                        >
+                          <div className="relative h-40 bg-linear-to-br from-[#7C3AED] via-[#6D28D9] to-[#4F46E5]">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={concert?.title || 'Concert cover'}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-4xl text-white">
+                                🎹
                               </div>
-                            ) : null}
+                            )}
                           </div>
-                          <div className="my-4 h-px bg-[#E5E7EB]" />
-                          <div className="flex items-center justify-between gap-3">
-                            <Link
-                              className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-xs font-bold text-[#6B7280] transition hover:border-[#CBD5F5] hover:text-[#1F2937]"
-                              to={`/attendee/concerts/${concert.id}`}
-                            >
-                              View Details
-                            </Link>
-                            <Link
-                              className="rounded-lg bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white shadow-[0_8px_18px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
-                              to={`/attendee/checkout/${concert.id}`}
-                            >
-                              Book Now
-                            </Link>
+                          <div className="p-5">
+                            <h3 className="text-lg font-black text-[#2C2E83]">
+                              {concert?.title || 'Untitled Concert'}
+                            </h3>
+                            <div className="mt-3 space-y-2 text-sm font-semibold text-[#6B7280]">
+                              <div className="flex items-center gap-2">
+                                <span>📅</span>
+                                <span>
+                                  {formatDate(concert?.date_time, {
+                                    fallback: 'TBD',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}{' '}
+                                  · {formatTime(concert?.date_time)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span>📍</span>
+                                <span>{venueName || 'Venue TBD'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span>🏙️</span>
+                                <span>{concertCity || 'City TBD'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span>🎤</span>
+                                <span>{concert?.main_artist || 'Artist lineup TBD'}</span>
+                              </div>
+                              {concert?.genre_display ? (
+                                <div className="flex items-center gap-2">
+                                  <span>🎼</span>
+                                  <span>{concert.genre_display}</span>
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="my-4 h-px bg-[#E5E7EB]" />
+                            <div className="flex items-center justify-between gap-3">
+                              <Link
+                                className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-xs font-bold text-[#6B7280] transition hover:border-[#CBD5F5] hover:text-[#1F2937]"
+                                to={`/attendee/concerts/${concert.id}`}
+                              >
+                                View Details
+                              </Link>
+                              <Link
+                                className="rounded-lg bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white shadow-[0_8px_18px_rgba(124,58,237,0.3)] transition hover:bg-[#5B21B6]"
+                                to={`/attendee/checkout/${concert.id}`}
+                              >
+                                Book Now
+                              </Link>
+                            </div>
                           </div>
-                        </div>
-                      </article>
-                    )
-                  })}
+                        </article>
+                      )
+                    })}
+                  </div>
+
+                  {totalPages > 1 ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        className="rounded-full border border-[#E5E7EB] px-4 py-2 text-xs font-bold text-[#6B7280] transition hover:border-[#CBD5F5] hover:text-[#1F2937] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                        type="button"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs font-semibold text-[#6B7280]">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        className="rounded-full bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white shadow-[0_8px_18px_rgba(124,58,237,0.25)] transition hover:bg-[#5B21B6] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                        type="button"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
