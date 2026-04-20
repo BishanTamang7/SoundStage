@@ -41,62 +41,28 @@ After successful payment, the system automatically generates a **QR-based e-tick
 
 ## Docker Usage Guide
 
-### Stack services
-- **frontend**: React app served by Nginx at `http://localhost:5173`
-- **backend**: Django + DRF API at `http://localhost:8000`
-- **db**: PostgreSQL 16 (internal Docker network)
-
-### Prerequisites
-- Install Docker Desktop (Windows/macOS) or Docker Engine + Docker Compose plugin (Linux)
-- Make sure Docker is running
-
-### 1. Configure environment
-Edit `backend/.env.docker` before running:
-- Set `SECRET_KEY` to your own secure value
-- Set payment and email credentials if you want those features to work
-- Keep `DATABASE_URL=postgres://soundstage:soundstage@db:5432/soundstage` for Docker network access
-
-### 2. Build and start all services
+### Clone and run (Docker only)
+1. Clone the project:
 ```bash
-docker compose up --build
+git clone <your-repo-url>
+cd SoundStage
 ```
 
-### 3. Open the app
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:8000`
-
-### 4. Run in background (detached mode)
+2. Build and start:
 ```bash
 docker compose up -d --build
 ```
 
-### 5. Check container status and logs
+3. Open:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+
+4. See logs if needed:
 ```bash
-docker compose ps
 docker compose logs -f backend
-docker compose logs -f frontend
 ```
 
-### 6. Stop services
+5. Stop:
 ```bash
 docker compose down
-```
-
-### 7. Remove services + database data (fresh reset)
-```bash
-docker compose down -v
-```
-
-### Useful commands
-- Rebuild images only:
-```bash
-docker compose build
-```
-- Restart one service:
-```bash
-docker compose restart backend
-```
-- Open Django shell:
-```bash
-docker compose exec backend uv run python manage.py shell
 ```
