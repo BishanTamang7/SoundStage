@@ -38,3 +38,65 @@ After successful payment, the system automatically generates a **QR-based e-tick
 - **Payment Integration**: eSewa and Khalti
 - **Authentication**: OTP-based email verification
 - **Ticket Validation**: QR code and PIN-based verification
+
+## Docker Usage Guide
+
+### Stack services
+- **frontend**: React app served by Nginx at `http://localhost:5173`
+- **backend**: Django + DRF API at `http://localhost:8000`
+- **db**: PostgreSQL 16 (internal Docker network)
+
+### Prerequisites
+- Install Docker Desktop (Windows/macOS) or Docker Engine + Docker Compose plugin (Linux)
+- Make sure Docker is running
+
+### 1. Configure environment
+Edit `backend/.env.docker` before running:
+- Set `SECRET_KEY` to your own secure value
+- Set payment and email credentials if you want those features to work
+- Keep `DATABASE_URL=postgres://soundstage:soundstage@db:5432/soundstage` for Docker network access
+
+### 2. Build and start all services
+```bash
+docker compose up --build
+```
+
+### 3. Open the app
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+
+### 4. Run in background (detached mode)
+```bash
+docker compose up -d --build
+```
+
+### 5. Check container status and logs
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
+### 6. Stop services
+```bash
+docker compose down
+```
+
+### 7. Remove services + database data (fresh reset)
+```bash
+docker compose down -v
+```
+
+### Useful commands
+- Rebuild images only:
+```bash
+docker compose build
+```
+- Restart one service:
+```bash
+docker compose restart backend
+```
+- Open Django shell:
+```bash
+docker compose exec backend uv run python manage.py shell
+```

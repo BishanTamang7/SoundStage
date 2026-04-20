@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: soundstage_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: soundstage
+      POSTGRES_USER: soundstage
+      POSTGRES_PASSWORD: soundstage
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soundstage -d soundstage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: soundstage_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_media:/app/media
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000/api
+    container_name: soundstage_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
+  backend_media:
